@@ -451,6 +451,7 @@ impl App {
             buffer: String::new(),
             choice_index: 0,
             file_preview,
+            body_scroll: 0,
         };
         self.state.phase = AppPhase::Prompt;
         self.state.pending_ask = true;
@@ -1704,6 +1705,14 @@ impl App {
                 KeyCode::Down if !dialog.question.choices.is_empty() => {
                     let max = dialog.question.choices.len().saturating_sub(1);
                     dialog.choice_index = (dialog.choice_index + 1).min(max);
+                    None
+                }
+                KeyCode::PageUp => {
+                    dialog.body_scroll = dialog.body_scroll.saturating_sub(3);
+                    None
+                }
+                KeyCode::PageDown => {
+                    dialog.body_scroll = dialog.body_scroll.saturating_add(3);
                     None
                 }
                 KeyCode::Char(c)

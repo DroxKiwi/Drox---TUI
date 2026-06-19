@@ -111,6 +111,8 @@ pub struct PromptDialog {
     pub buffer: String,
     pub choice_index: usize,
     pub file_preview: Option<PermissionPreview>,
+    /// Défilement du corps du message (PgUp/PgDn).
+    pub body_scroll: u16,
 }
 
 /// Sélecteur `/rewind` — choix d'un message utilisateur.
