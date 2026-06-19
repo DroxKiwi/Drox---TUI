@@ -4,7 +4,9 @@ Binaire `drox-cli` autonome qui implémente la boucle agent. Communique via stdi
 
 ## Statut
 
-**Phase 1 — Rewrite Rust en cours.** Le moteur TypeScript dans `../src/` est la spécification exécutable. Voir `../docs/PLAN-MOTEUR-RUST.md` et `../docs/INVENTAIRE-NOYAU-MOTEUR.md` pour le plan détaillé.
+**Ligne produit `2.0.1`** — client terminal `drox-tui` dérivé du **moteur agent Drox IDE `1.5.0`** (rewrite Rust). Branche de développement active : **`2.0.1`**. La passe expérimentale **`0.0.0`** est clôturée.
+
+Voir [`../docs/2.0.1/README.md`](../docs/2.0.1/README.md) et [`../README.md`](../README.md).
 
 ## Architecture
 

@@ -1,10 +1,20 @@
 # Drox — agent local en terminal
 
-> **Version : `0.0.0` — expérimentale**
->
-> Ce dépôt est en **phase de test et stabilisation**. L’API, le comportement du TUI et le contrat moteur peuvent changer sans préavis. Ne pas utiliser en production critique. Retours et bugs bienvenus sur la branche `0.0.0`.
+> **Version produit : `2.0.1`** — ligne active (`2.0.1`)  
+> **Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`** (crates Rust partagés : `drox-engine`, outils, permissions, sessions)  
+> **Statut** : stabilisation — API et TUI encore évolutifs. Branche **`0.0.0`** clôturée (voir [`docs/0.0.0/README.md`](docs/0.0.0/README.md)).
 
-**Drox** est un moteur d’agent IA écrit en **Rust**, avec une interface terminal (**TUI**) complète. LLM local (Ollama par défaut), outils fichiers / shell / MCP, permissions granulaires et sessions persistantes — **sans service cloud obligatoire**.
+**Drox TUI** est un client terminal (**`drox-tui`**) pour le moteur d’agent IA **Rust** de l’écosystème Drox. LLM local (Ollama par défaut), outils fichiers / shell / MCP, permissions granulaires et sessions persistantes — **sans service cloud obligatoire**.
+
+```mermaid
+flowchart LR
+    IDE["Drox IDE<br/>engine 1.5.0"]
+    ENG["Rust engine<br/>drox-engine"]
+    TUI["Drox TUI<br/>product 2.0.1"]
+
+    IDE -.->|functional baseline| ENG
+    ENG --> TUI
+```
 
 ---
 
@@ -346,9 +356,10 @@ Binaire debug : `drox/target/debug/drox-tui`.
 
 | Document | Contenu |
 |---|---|
-| [`docs/0.0.0/README.md`](docs/0.0.0/README.md) | Branche 0.0.0 — objectifs test & debug |
-| [`docs/0.0.0/CHECKLIST.md`](docs/0.0.0/CHECKLIST.md) | Checklist tests manuels TUI |
-| [`docs/0.0.0/PLAN-I18N-EN.md`](docs/0.0.0/PLAN-I18N-EN.md) | Plan passage UI en anglais |
+| [`docs/2.0.1/README.md`](docs/2.0.1/README.md) | Ligne produit 2.0.1 — moteur IDE 1.5.0, objectifs |
+| [`docs/2.0.1/CHECKLIST.md`](docs/2.0.1/CHECKLIST.md) | Checklist tests manuels TUI |
+| [`docs/2.0.1/PLAN-I18N-EN.md`](docs/2.0.1/PLAN-I18N-EN.md) | Plan passage UI en anglais |
+| [`docs/0.0.0/README.md`](docs/0.0.0/README.md) | Branche 0.0.0 — archivée |
 | [`drox/README.md`](drox/README.md) | Architecture crates, conventions Rust |
 | [`drox/crates/drox-tui/README.md`](drox/crates/drox-tui/README.md) | Raccourcis et slash commands détaillés |
 
@@ -364,11 +375,21 @@ MIT — voir [`drox/Cargo.toml`](drox/Cargo.toml).
 
 # English version
 
-> **Version: `0.0.0` — experimental**
->
-> This repository is in **testing and stabilization**. The API, TUI behavior, and engine contract may change without notice. Do not use for critical production workloads. Feedback and bug reports welcome on branch `0.0.0`.
+> **Product version: `2.0.1`** — active line (`2.0.1`)  
+> **Engine**: derived from **Drox IDE agent engine `1.5.0`** (shared Rust crates: `drox-engine`, tools, permissions, sessions)  
+> **Status**: stabilization — API and TUI still evolving. Branch **`0.0.0`** closed (see [`docs/0.0.0/README.md`](docs/0.0.0/README.md)).
 
-**Drox** is an AI agent engine written in **Rust**, with a full terminal (**TUI**) interface. Local LLM (Ollama by default), file / shell / MCP tools, granular permissions, and persistent sessions — **no mandatory cloud service**.
+**Drox TUI** is a terminal client (**`drox-tui`**) for the **Rust** agent engine in the Drox ecosystem. Local LLM (Ollama by default), file / shell / MCP tools, granular permissions, and persistent sessions — **no mandatory cloud service**.
+
+```mermaid
+flowchart LR
+    IDE["Drox IDE<br/>engine 1.5.0"]
+    ENG["Rust engine<br/>drox-engine"]
+    TUI["Drox TUI<br/>product 2.0.1"]
+
+    IDE -.->|functional baseline| ENG
+    ENG --> TUI
+```
 
 ---
 
@@ -710,9 +731,10 @@ Debug binary: `drox/target/debug/drox-tui`.
 
 | Document | Content |
 |---|---|
-| [`docs/0.0.0/README.md`](docs/0.0.0/README.md) | Branch 0.0.0 — test & debug goals |
-| [`docs/0.0.0/CHECKLIST.md`](docs/0.0.0/CHECKLIST.md) | Manual TUI test checklist |
-| [`docs/0.0.0/PLAN-I18N-EN.md`](docs/0.0.0/PLAN-I18N-EN.md) | UI English migration plan |
+| [`docs/2.0.1/README.md`](docs/2.0.1/README.md) | Product line 2.0.1 — IDE engine 1.5.0, goals |
+| [`docs/2.0.1/CHECKLIST.md`](docs/2.0.1/CHECKLIST.md) | Manual TUI test checklist |
+| [`docs/2.0.1/PLAN-I18N-EN.md`](docs/2.0.1/PLAN-I18N-EN.md) | UI English migration plan |
+| [`docs/0.0.0/README.md`](docs/0.0.0/README.md) | Branch 0.0.0 — archived |
 | [`drox/README.md`](drox/README.md) | Crate architecture, Rust conventions |
 | [`drox/crates/drox-tui/README.md`](drox/crates/drox-tui/README.md) | Shortcuts and slash commands |
 
