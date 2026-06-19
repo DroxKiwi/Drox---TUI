@@ -1,0 +1,43 @@
+[package]
+name = "drox-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Drox — boucle agent, orchestration tools, streaming"
+
+[lints]
+workspace = true
+
+[dependencies]
+drox-types.workspace = true
+drox-llm.workspace = true
+drox-tools.workspace = true
+drox-permissions.workspace = true
+drox-bash.workspace = true
+drox-context.workspace = true
+drox-session.workspace = true
+drox-mcp.workspace = true
+drox-hooks.workspace = true
+
+tokio.workspace = true
+tokio-stream.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+futures-util.workspace = true
+
+camino.workspace = true
+chrono.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+
+thiserror.workspace = true
+tracing.workspace = true
+parking_lot.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+pretty_assertions.workspace = true
+tempfile.workspace = true

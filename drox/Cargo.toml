@@ -1,0 +1,144 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/drox-types",
+    "crates/drox-llm",
+    "crates/drox-tools",
+    "crates/drox-mcp",
+    "crates/drox-bash",
+    "crates/drox-permissions",
+    "crates/drox-context",
+    "crates/drox-session",
+    "crates/drox-engine",
+    "crates/drox-hooks",
+    "crates/drox-cli",
+    "crates/drox-tui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/coren/drox"
+authors = ["Drox contributors"]
+
+[workspace.lints.rust]
+# `deny` plutôt que `forbid` afin d'autoriser des `#[allow(unsafe_code)]`
+# ciblés et documentés (ex. `std::env::set_var` en Rust 2024 avant le
+# démarrage du runtime, pour charger un `.env`).
+unsafe_code = "deny"
+unused_must_use = "warn"
+missing_docs = "allow"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+needless_pass_by_value = "allow"
+
+[workspace.dependencies]
+# Internal crates
+drox-types = { path = "crates/drox-types", version = "0.1.0" }
+drox-llm = { path = "crates/drox-llm", version = "0.1.0" }
+drox-tools = { path = "crates/drox-tools", version = "0.1.0" }
+drox-mcp = { path = "crates/drox-mcp", version = "0.1.0" }
+drox-bash = { path = "crates/drox-bash", version = "0.1.0" }
+drox-permissions = { path = "crates/drox-permissions", version = "0.1.0" }
+drox-context = { path = "crates/drox-context", version = "0.1.0" }
+drox-session = { path = "crates/drox-session", version = "0.1.0" }
+drox-engine = { path = "crates/drox-engine", version = "0.1.0" }
+drox-hooks = { path = "crates/drox-hooks", version = "0.1.0" }
+drox-tui = { path = "crates/drox-tui", version = "0.1.0" }
+
+# TUI
+crossterm = "0.28"
+ratatui = "0.29"
+
+# MCP (Model Context Protocol)
+rmcp = { version = "1.6.0", default-features = false, features = [
+    "client",
+    "transport-child-process",
+    "transport-streamable-http-client-reqwest",
+    "which-command",
+    "reqwest",
+    "auth",
+] }
+
+# Async runtime
+tokio = { version = "1.41", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io", "codec"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+async-trait = "0.1"
+futures = "0.3"
+futures-util = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+serde_with = "3.11"
+schemars = { version = "0.8", features = ["derive"] }
+
+# HTTP / streaming
+http = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls", "gzip", "brotli"] }
+eventsource-stream = "0.2"
+bytes = "1.7"
+
+# Errors
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+tracing-appender = "0.2"
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# IDs and time
+uuid = { version = "1.11", features = ["v4", "v7", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+time = { version = "0.3", features = ["serde", "macros", "formatting"] }
+
+# Filesystem and paths
+camino = { version = "1.1", features = ["serde1"] }
+dirs = "5.0"
+tempfile = "3.13"
+walkdir = "2.5"
+glob = "0.3"
+ignore = "0.4"
+
+# Text / patterns
+regex = "1.11"
+globset = "0.4"
+pulldown-cmark = "0.12"
+similar = "2.6"
+scraper = "0.21"
+
+# Crypto / encoding
+sha2 = "0.10"
+base64 = "0.22"
+url = { version = "2.5", features = ["serde"] }
+percent-encoding = "2.3"
+
+# Concurrency
+parking_lot = "0.12"
+dashmap = "6.1"
+
+# Testing
+insta = { version = "1.41", features = ["yaml", "json"] }
+mockito = "1.5"
+pretty_assertions = "1.4"
+
+# Tokenization (pour drox-context)
+tiktoken-rs = "0.6"
+
+# Bash parsing (sprint 1.8+)
+tree-sitter = "0.25.2"
+tree-sitter-bash = "0.25.1"

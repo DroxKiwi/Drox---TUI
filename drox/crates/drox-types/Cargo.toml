@@ -1,0 +1,25 @@
+[package]
+name = "drox-types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Drox — types partagés, schémas, erreurs"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
+schemars.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+camino.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+pretty_assertions.workspace = true

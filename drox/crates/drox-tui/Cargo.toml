@@ -1,0 +1,53 @@
+[package]
+name = "drox-tui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Drox — interface terminal (TUI) propriétaire, branchée sur drox-engine"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "drox-tui"
+path = "src/main.rs"
+
+[dependencies]
+drox-context.workspace = true
+drox-bash.workspace = true
+drox-engine.workspace = true
+drox-llm.workspace = true
+drox-tools.workspace = true
+drox-types.workspace = true
+drox-permissions.workspace = true
+drox-session.workspace = true
+drox-hooks.workspace = true
+drox-cli = { path = "../drox-cli", version = "0.1.0" }
+drox-mcp.workspace = true
+
+camino.workspace = true
+chrono.workspace = true
+dirs.workspace = true
+uuid.workspace = true
+parking_lot.workspace = true
+tokio.workspace = true
+futures.workspace = true
+async-trait.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+
+clap.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+crossterm.workspace = true
+ratatui.workspace = true
+pulldown-cmark.workspace = true
+base64.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+tempfile.workspace = true

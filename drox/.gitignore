@@ -1,0 +1,24 @@
+/target
+*.log
+**/*.rs.bk
+Cargo.lock.bak
+.cargo-ok
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+*.profraw
+tarpaulin-report.html
+
+# Drox env files (peuvent contenir des secrets, ex. DROX_API_KEY)
+.drox/.env
+.drox/env
+.env
+.env.local

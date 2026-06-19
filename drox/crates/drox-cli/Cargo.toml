@@ -1,0 +1,51 @@
+[package]
+name = "drox-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Drox — binaire CLI (point d'entrée du moteur)"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "drox"
+path = "src/main.rs"
+
+[lib]
+name = "drox_cli"
+path = "src/lib.rs"
+
+[dependencies]
+drox-types.workspace = true
+drox-llm.workspace = true
+drox-tools.workspace = true
+drox-engine.workspace = true
+drox-hooks.workspace = true
+drox-mcp.workspace = true
+drox-permissions.workspace = true
+dirs.workspace = true
+
+camino.workspace = true
+
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+parking_lot.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+
+clap.workspace = true
+anyhow.workspace = true
+
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+pretty_assertions.workspace = true
+tempfile.workspace = true

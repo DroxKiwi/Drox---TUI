@@ -1,0 +1,43 @@
+[package]
+name = "drox-tools"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Drox — implémentations des tools (FileRead, FileWrite, Bash, MCP, etc.)"
+
+[lints]
+workspace = true
+
+[dependencies]
+drox-types.workspace = true
+drox-session.workspace = true
+drox-mcp.workspace = true
+
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+
+camino.workspace = true
+ignore.workspace = true
+glob.workspace = true
+regex.workspace = true
+similar.workspace = true
+scraper.workspace = true
+reqwest.workspace = true
+url.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+insta.workspace = true
+pretty_assertions.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }

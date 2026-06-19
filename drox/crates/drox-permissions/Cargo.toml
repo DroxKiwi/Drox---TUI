@@ -1,0 +1,25 @@
+[package]
+name = "drox-permissions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Drox — modèle de permissions (allow/ask/deny + modes)"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+camino.workspace = true
+ignore.workspace = true
+regex.workspace = true
+
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+tempfile.workspace = true

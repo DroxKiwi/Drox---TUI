@@ -1,0 +1,27 @@
+[package]
+name = "drox-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Drox — wrapper MCP (clients serveurs, OAuth, config)"
+
+[lints]
+workspace = true
+
+[dependencies]
+rmcp.workspace = true
+http.workspace = true
+camino.workspace = true
+
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+
+thiserror.workspace = true
+tracing.workspace = true
+
+regex.workspace = true

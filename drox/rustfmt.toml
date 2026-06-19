@@ -1,0 +1,15 @@
+edition = "2024"
+max_width = 100
+tab_spaces = 4
+hard_tabs = false
+newline_style = "Auto"
+use_field_init_shorthand = true
+use_try_shorthand = true
+reorder_imports = true
+reorder_modules = true
+match_block_trailing_comma = false
+
+# Options nightly-only (à activer si on passe en nightly pour le formatage) :
+# imports_granularity = "Crate"
+# group_imports = "StdExternalCrate"
+# trailing_comma = "Vertical"
