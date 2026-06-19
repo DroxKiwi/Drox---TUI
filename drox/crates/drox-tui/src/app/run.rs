@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::Context;
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use drox_cli::env_file;
 use drox_engine::{AgentEvent, EngineError};
 use drox_session::{default_sessions_dir, list_sessions};
@@ -19,7 +19,7 @@ use ratatui::Terminal;
 use tokio::sync::mpsc;
 
 use crate::asker::{parse_answer, AskCoordinator, PendingAsk};
-use crate::engine::{apply_agent_event, compact_checkpoint_preview, BindingAction, CompactOutcome, EngineRuntime, TuiKeybindings, VimComposer, VimKeyResult, VimMode};
+use crate::engine::{apply_agent_event, compact_checkpoint_preview, cycle_preset_index, BindingAction, CompactOutcome, EngineRuntime, TuiKeybindings, VimComposer, VimKeyResult, VimMode, CONTEXT_CUSTOM_INDEX};
 use crate::engine::status_bar::StatusBarSnapshot;
 use crate::slash::{apply_theme, filter_entries, handle_config, handle_hooks, handle_plan, handle_slash, PendingSlash, SlashOutcome, SLASH_PALETTE_ENTRIES};
 use crate::ui::TuiThemeSetting;
@@ -33,14 +33,17 @@ use crate::view::{
 use crate::AppConfig;
 
 use crate::app::state::{
-    AppPhase, AppState, ComposerMode, ComposerSuggestionDialog, CopyDialog, OnboardingDialog,
-    PromptDialog, RewindChoiceView, RewindDialog, RunStatus, SlashPaletteDialog, ThemeDialog,
+    AiServerDialog, AiServerField, AiServerSelectFocus, AiServerStep, AppPhase, AppState, ComposerMode,
+    ComposerSuggestionDialog, CopyDialog, OnboardingDialog, PromptDialog, RewindChoiceView,
+    RewindDialog, RunStatus, SlashPaletteDialog, ThemeDialog, WorkspaceDialog, WorkspaceField,
+    WorkspaceStep,
 };
 use crate::engine::at_typeahead::{self, AtFileIndex};
 use crate::engine::unified_suggestions::{
     self, preserve_cursor, ComposerSuggestionItem, SkillSuggestionEntry, SuggestionKind,
 };
-use crate::engine::preferences::TuiPreferences;
+use crate::engine::preferences::{preferences_path, record_recent_workspace, resolve_llm_startup, save_llm_connection, llm_connection_from_config, LlmConnectionPrefs, TuiPreferences};
+use crate::engine::notices::{NoticeLevel, StatusNotice};
 use crate::terminal::set_terminal_title;
 
 /// Application TUI complète.
@@ -81,6 +84,8 @@ pub struct App {
     skill_suggestions: Vec<SkillSuggestionEntry>,
     /// Mode vim composer (`/vim`).
     vim: VimComposer,
+    /// Résultat async test connexion IA.
+    ai_server_test_rx: Option<mpsc::Receiver<Result<Vec<String>, String>>>,
 }
 
 impl App {
@@ -119,12 +124,17 @@ impl App {
             paste_store: crate::engine::PastedTextStore::default(),
             skill_suggestions: Vec::new(),
             vim,
+            ai_server_test_rx: None,
         }
     }
 
     /// Lance la boucle jusqu'à quit explicite.
     pub async fn run(&mut self) -> anyhow::Result<()> {
         env_file::load_default(Some(self.config.workspace.as_std_path()));
+
+        self.tui_prefs = crate::engine::preferences::load_preferences();
+        let llm_configured = resolve_llm_startup(&mut self.config, &self.tui_prefs);
+        self.state.llm_configured = llm_configured;
 
         let _guard = terminal::setup().context("échec initialisation terminal")?;
         let mut stdout = io::stdout();
@@ -136,11 +146,18 @@ impl App {
                 .await
                 .context("bootstrap moteur")?,
         );
+        self.runtime = Some(Arc::clone(&runtime));
         self.state.push_system(format!("Workspace : {}", runtime.workspace));
-        self.state.push_system(format!(
-            "LLM : {} @ {}",
-            self.config.model, self.config.server
-        ));
+        if llm_configured {
+            self.state.push_system(format!(
+                "LLM : {} @ {}",
+                self.config.model, self.config.server
+            ));
+        } else {
+            self.state.push_system(
+                "Serveur IA non configuré — Ctrl+Shift+L ou /server pour connecter Ollama et choisir un modèle.",
+            );
+        }
         self.state.push_system(format!(
             "Session : {} ({})",
             runtime.session_id(),
@@ -152,10 +169,26 @@ impl App {
         self.refresh_status_snapshot().await;
         self.refresh_mcp_panel().await;
         self.state.status_notices = runtime.collect_startup_notices(&self.config);
+        if !llm_configured {
+            self.state.status_notices.insert(
+                0,
+                StatusNotice {
+                    level: NoticeLevel::Warn,
+                    text: "Serveur IA non configuré — Ctrl+Shift+L ou /server : adresse Ollama, test, choix du modèle."
+                        .into(),
+                },
+            );
+            self.state.status_line =
+                "Ctrl+Shift+L — configurer le serveur IA (Ollama)".into();
+        }
         self.load_skill_suggestions(&runtime).await;
-        self.runtime = Some(runtime);
+
         let prefs = crate::engine::preferences::load_preferences();
-        if !prefs.onboarding_done {
+        if !llm_configured {
+            self.open_ai_server_dialog();
+            self.state
+                .push_toast("Configurez Ollama pour envoyer des messages à l'agent");
+        } else if !prefs.onboarding_done {
             self.state.onboarding = Some(OnboardingDialog::default());
             self.state.phase = AppPhase::Onboarding;
         }
@@ -190,12 +223,18 @@ impl App {
                 self.state.status_line = bash_progress::status_hint(bash);
             }
             self.poll_agent_events();
+            self.poll_ai_server_test();
             self.sync_prompt_modal();
 
+            let model = if self.state.llm_configured {
+                self.config.model.clone()
+            } else {
+                "IA non configurée".into()
+            };
             let (model, workspace, permission_mode, plan_mode) = {
                 let rt = self.runtime.as_ref().unwrap();
                 (
-                    self.config.model.clone(),
+                    model,
                     rt.workspace.to_string(),
                     rt.permission_mode().short_title().to_string(),
                     rt.plan_mode(),
@@ -220,6 +259,10 @@ impl App {
             if event::poll(Duration::from_millis(80)).context("poll événements")? {
                 match event::read().context("lecture événement")? {
                     Event::Key(key) => {
+                        // Windows émet Press + Release pour chaque touche ; ignorer Release.
+                        if !matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
+                            continue;
+                        }
                         if self.handle_key(key)? {
                             break;
                         }
@@ -236,7 +279,27 @@ impl App {
             }
         }
 
+        self.flush_llm_preferences();
         Ok(())
+    }
+
+    /// Ecrit la connexion IA courante sur disque (quit ou filet de securite).
+    fn flush_llm_preferences(&mut self) {
+        if !self.state.llm_configured {
+            return;
+        }
+        let Some(prefs) = llm_connection_from_config(&self.config) else {
+            return;
+        };
+        match save_llm_connection(&prefs) {
+            Ok(()) => {
+                self.tui_prefs.llm_connection = Some(prefs);
+                tracing::info!(path = %preferences_path(), "connexion IA persistee au quit");
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "echec persistance connexion IA au quit");
+            }
+        }
     }
 
     fn poll_agent_events(&mut self) {
@@ -479,6 +542,13 @@ impl App {
     }
 
     fn start_run(&mut self, prompt: String) -> anyhow::Result<()> {
+        if !self.state.llm_configured {
+            self.state.push_system(
+                "Serveur IA non configuré — Ctrl+Shift+L ou /server avant d'envoyer un message.",
+            );
+            self.open_ai_server_dialog();
+            return Ok(());
+        }
         let runtime = self
             .runtime
             .as_ref()
@@ -707,6 +777,18 @@ impl App {
             return self.handle_ctrl_c();
         }
 
+        // Raccourcis globaux (modals) — actifs sauf pendant un run agent.
+        if self.state.phase != AppPhase::Running {
+            if self.keybindings.matches(BindingAction::AiServer, &key) {
+                self.open_ai_server_dialog();
+                return Ok(false);
+            }
+            if self.keybindings.matches(BindingAction::Workspace, &key) {
+                self.open_workspace_dialog(None);
+                return Ok(false);
+            }
+        }
+
         if self.state.phase == AppPhase::Prompt {
             return Ok(self.handle_prompt_key(key));
         }
@@ -723,11 +805,19 @@ impl App {
         }
 
         if self.state.phase == AppPhase::SlashPalette {
-            return Ok(self.handle_slash_palette_key(key));
+            return self.handle_slash_palette_key(key);
         }
 
         if self.state.phase == AppPhase::Onboarding {
             return Ok(self.handle_onboarding_key(key));
+        }
+
+        if self.state.phase == AppPhase::AiServer {
+            return Ok(self.handle_ai_server_key(key));
+        }
+
+        if self.state.phase == AppPhase::Workspace {
+            return Ok(self.handle_workspace_key(key));
         }
 
         if self.state.scroll_viewer.is_some() {
@@ -998,9 +1088,29 @@ impl App {
         let runtime = self
             .runtime
             .as_ref()
-            .context("moteur non initialisé")?;
+            .context("moteur non initialisé")?
+            .clone();
 
-        match handle_slash(&raw, &mut self.state, runtime) {
+        let outcome = handle_slash(&raw, &mut self.state, &runtime);
+        self.apply_slash_outcome(outcome, &runtime)
+    }
+
+    fn dispatch_slash_command(&mut self, raw: &str) -> anyhow::Result<bool> {
+        let runtime = self
+            .runtime
+            .as_ref()
+            .context("moteur non initialisé")?
+            .clone();
+        let outcome = handle_slash(raw, &mut self.state, &runtime);
+        self.apply_slash_outcome(outcome, &runtime)
+    }
+
+    fn apply_slash_outcome(
+        &mut self,
+        outcome: SlashOutcome,
+        runtime: &EngineRuntime,
+    ) -> anyhow::Result<bool> {
+        match outcome {
             SlashOutcome::Handled => {}
             SlashOutcome::Quit => return Ok(true),
             SlashOutcome::RunPrompt(prompt) => {
@@ -1109,6 +1219,7 @@ impl App {
                 self.pending_slash = Some(PendingSlash::Statusline);
             }
             SlashOutcome::Settings => {
+                self.tui_prefs = crate::engine::preferences::load_preferences();
                 for line in crate::engine::preferences::format_settings_lines(&self.tui_prefs) {
                     self.state.push_system(line);
                 }
@@ -1116,6 +1227,12 @@ impl App {
             SlashOutcome::Onboarding => {
                 self.state.onboarding = Some(OnboardingDialog::default());
                 self.state.phase = AppPhase::Onboarding;
+            }
+            SlashOutcome::AiServer => {
+                self.open_ai_server_dialog();
+            }
+            SlashOutcome::Workspace { initial } => {
+                self.open_workspace_dialog(initial);
             }
             SlashOutcome::ToggleVim => {
                 self.tui_prefs.vim_enabled = !self.tui_prefs.vim_enabled;
@@ -1226,6 +1343,18 @@ impl App {
                             .push_system("Lire en entier : /memory <slug>");
                     }
                     Err(e) => self.state.push_system(format!("Recherche mémoire : {e:#}")),
+                }
+            }
+            PendingSlash::ApplyAiServer { index } => {
+                if let Err(e) = self.apply_ai_server_model(index).await {
+                    self.state.push_system(format!("Connexion IA : {e:#}"));
+                    self.state.status_line = "Échec enregistrement connexion IA".into();
+                }
+            }
+            PendingSlash::ApplyWorkspace { path } => {
+                if let Err(e) = self.apply_workspace_switch(path).await {
+                    self.state.push_system(format!("Workspace : {e:#}"));
+                    self.state.status_line = "Échec changement workspace".into();
                 }
             }
             PendingSlash::Statusline => {
@@ -1866,6 +1995,726 @@ impl App {
         self.state.mcp_snapshot = runtime.build_mcp_panel_snapshot().await;
     }
 
+    fn open_ai_server_dialog(&mut self) {
+        if self.state.phase == AppPhase::Running {
+            self.state
+                .push_system("Impossible pendant un run agent — annulez d'abord (Esc).");
+            return;
+        }
+        let saved = self.tui_prefs.llm_connection.as_ref();
+        let server = saved
+            .map(|c| c.server.clone())
+            .unwrap_or_else(|| self.config.server.clone());
+        let api_key = saved
+            .and_then(|c| c.api_key.clone())
+            .or_else(|| self.config.api_key.clone())
+            .unwrap_or_default();
+        let num_ctx = saved.map(|c| c.num_ctx).unwrap_or(self.config.num_ctx);
+        let max_iterations = saved
+            .map(|c| c.max_iterations)
+            .unwrap_or(self.config.max_iterations);
+        self.state.ai_server = Some(AiServerDialog::from_current(
+            server,
+            api_key,
+            num_ctx,
+            max_iterations,
+        ));
+        self.state.phase = AppPhase::AiServer;
+        self.state.status_line = "/server — connexion IA (Ctrl+Shift+L)".into();
+    }
+
+    fn close_ai_server_dialog(&mut self) {
+        let should_persist = self
+            .state
+            .ai_server
+            .as_ref()
+            .is_some_and(|d| !d.models.is_empty());
+        if should_persist {
+            if let Err(e) = self.persist_ai_server_dialog_draft() {
+                tracing::warn!(error = %e, "echec persistance brouillon /server");
+            } else {
+                tracing::info!("brouillon connexion IA persistee a la fermeture /server");
+            }
+        }
+        self.state.ai_server = None;
+        self.ai_server_test_rx = None;
+        self.state.phase = AppPhase::Idle;
+    }
+
+    fn open_workspace_dialog(&mut self, initial: Option<String>) {
+        if self.state.phase == AppPhase::Running {
+            self.state
+                .push_system("Impossible pendant un run agent — annulez d'abord (Esc).");
+            return;
+        }
+        let current = self
+            .runtime
+            .as_ref()
+            .map(|r| r.workspace.to_string())
+            .unwrap_or_else(|| self.config.workspace.to_string());
+        let recents = self.tui_prefs.recent_workspaces.clone();
+        self.state.workspace_dialog =
+            Some(WorkspaceDialog::new(current, recents, initial));
+        self.state.phase = AppPhase::Workspace;
+        self.state.status_line =
+            "/workspace — changer le répertoire de travail (Ctrl+Shift+W)".into();
+    }
+
+    fn close_workspace_dialog(&mut self) {
+        self.state.workspace_dialog = None;
+        if self.state.phase == AppPhase::Workspace {
+            self.state.phase = AppPhase::Idle;
+        }
+    }
+
+    fn cycle_workspace_focus(&mut self, reverse: bool) {
+        let Some(dialog) = self.state.workspace_dialog.as_mut() else {
+            return;
+        };
+        if dialog.step != WorkspaceStep::Edit {
+            return;
+        }
+        if dialog.recents.is_empty() {
+            dialog.focus = match (dialog.focus, reverse) {
+                (WorkspaceField::Path, false) => WorkspaceField::ValidateButton,
+                (WorkspaceField::ValidateButton, true) => WorkspaceField::Path,
+                _ => WorkspaceField::Path,
+            };
+            return;
+        }
+        dialog.focus = match (dialog.focus, reverse) {
+            (WorkspaceField::Recents, false) => WorkspaceField::Path,
+            (WorkspaceField::Path, false) => WorkspaceField::ValidateButton,
+            (WorkspaceField::ValidateButton, false) => WorkspaceField::Recents,
+            (WorkspaceField::Recents, true) => WorkspaceField::ValidateButton,
+            (WorkspaceField::Path, true) => WorkspaceField::Recents,
+            (WorkspaceField::ValidateButton, true) => WorkspaceField::Path,
+        };
+    }
+
+    fn validate_workspace_dialog(&mut self) {
+        let Some(input) = self
+            .state
+            .workspace_dialog
+            .as_ref()
+            .map(|d| d.path.trim().to_string())
+        else {
+            return;
+        };
+        if input.is_empty() {
+            if let Some(dialog) = self.state.workspace_dialog.as_mut() {
+                dialog.status = "Chemin requis".into();
+            }
+            return;
+        }
+        let current = self.runtime.as_ref().map(|r| r.workspace.clone());
+        match crate::engine::validate_workspace_path(&input) {
+            Ok(canonical) => {
+                let Some(dialog) = self.state.workspace_dialog.as_mut() else {
+                    return;
+                };
+                if current.is_some_and(|c| c == canonical) {
+                    dialog.status = "Déjà le workspace courant".into();
+                    dialog.validated = None;
+                    return;
+                }
+                dialog.validated = Some(canonical);
+                dialog.step = WorkspaceStep::Confirm;
+                dialog.status = "Entrée pour confirmer · nouvelle session".into();
+            }
+            Err(e) => {
+                if let Some(dialog) = self.state.workspace_dialog.as_mut() {
+                    dialog.status = e;
+                    dialog.validated = None;
+                }
+            }
+        }
+    }
+
+    fn handle_workspace_key(&mut self, key: KeyEvent) -> bool {
+        let Some(dialog) = self.state.workspace_dialog.as_mut() else {
+            self.state.phase = AppPhase::Idle;
+            return false;
+        };
+
+        if dialog.step == WorkspaceStep::Confirm {
+            match key.code {
+                KeyCode::Esc => {
+                    dialog.step = WorkspaceStep::Edit;
+                    dialog.validated = None;
+                    dialog.status =
+                        "Saisissez un chemin ou choisissez un récent · Entrée sur « Vérifier »"
+                            .into();
+                }
+                KeyCode::Enter => {
+                    if let Some(path) = dialog.validated.clone() {
+                        self.close_workspace_dialog();
+                        self.pending_slash = Some(PendingSlash::ApplyWorkspace { path });
+                    }
+                }
+                _ => {}
+            }
+            return false;
+        }
+
+        match key.code {
+            KeyCode::Esc => {
+                self.close_workspace_dialog();
+                self.state.status_line = "Changement workspace annulé".into();
+            }
+            KeyCode::Tab => self.cycle_workspace_focus(false),
+            KeyCode::BackTab => self.cycle_workspace_focus(true),
+            KeyCode::Up => {
+                if dialog.focus == WorkspaceField::Recents && dialog.recent_cursor > 0 {
+                    dialog.recent_cursor -= 1;
+                } else if dialog.focus == WorkspaceField::ValidateButton {
+                    self.cycle_workspace_focus(true);
+                }
+            }
+            KeyCode::Down => {
+                if dialog.focus == WorkspaceField::Recents
+                    && dialog.recent_cursor + 1 < dialog.recents.len()
+                {
+                    dialog.recent_cursor += 1;
+                } else if dialog.focus != WorkspaceField::ValidateButton {
+                    self.cycle_workspace_focus(false);
+                }
+            }
+            KeyCode::Enter if dialog.focus == WorkspaceField::ValidateButton => {
+                self.validate_workspace_dialog();
+            }
+            KeyCode::Enter if dialog.focus == WorkspaceField::Recents => {
+                if let Some(path) = dialog.recents.get(dialog.recent_cursor).cloned() {
+                    dialog.path = path;
+                    dialog.path_cursor = dialog.path.len();
+                    dialog.focus = WorkspaceField::Path;
+                }
+            }
+            KeyCode::Enter if dialog.focus == WorkspaceField::Path => {
+                self.validate_workspace_dialog();
+            }
+            KeyCode::Left => {
+                if dialog.focus == WorkspaceField::Path && dialog.path_cursor > 0 {
+                    dialog.path_cursor -= 1;
+                }
+            }
+            KeyCode::Right => {
+                if dialog.focus == WorkspaceField::Path
+                    && dialog.path_cursor < dialog.path.len()
+                {
+                    dialog.path_cursor += 1;
+                }
+            }
+            KeyCode::Backspace => {
+                if dialog.focus == WorkspaceField::Path
+                    && dialog.path_cursor > 0
+                    && dialog.path_cursor <= dialog.path.len()
+                {
+                    dialog.path.remove(dialog.path_cursor - 1);
+                    dialog.path_cursor -= 1;
+                }
+            }
+            KeyCode::Delete => {
+                if dialog.focus == WorkspaceField::Path && dialog.path_cursor < dialog.path.len()
+                {
+                    dialog.path.remove(dialog.path_cursor);
+                }
+            }
+            KeyCode::Char(c)
+                if !key.modifiers.contains(KeyModifiers::CONTROL)
+                    && dialog.focus == WorkspaceField::Path =>
+            {
+                dialog.path.insert(dialog.path_cursor, c);
+                dialog.path_cursor += 1;
+            }
+            _ => {}
+        }
+        false
+    }
+
+    async fn apply_workspace_switch(
+        &mut self,
+        workspace: camino::Utf8PathBuf,
+    ) -> anyhow::Result<()> {
+        if self.state.phase == AppPhase::Running {
+            self.state
+                .push_system("Impossible pendant un run agent — annulez d'abord (Esc).");
+            return Ok(());
+        }
+
+        self.config.workspace = workspace.clone();
+        self.config.session = None;
+
+        env_file::load_default(Some(self.config.workspace.as_std_path()));
+
+        let runtime = Arc::new(
+            EngineRuntime::bootstrap(&self.config, Arc::clone(&self.ask))
+                .await
+                .context("re-bootstrap workspace")?,
+        );
+        self.runtime = Some(Arc::clone(&runtime));
+
+        self.paste_store.clear();
+        self.at_file_index = None;
+        self.at_file_roots_key = None;
+        self.message_queue.clear();
+        self.state.queued_messages = 0;
+        self.tool_names.clear();
+        self.history_cursor = None;
+        self.history_search = None;
+        self.state.transcript_search = None;
+        self.state.composer_suggestions = None;
+        self.state.slash_palette = None;
+        self.state.session_title.clear();
+        self.state.composer_buffer.clear();
+        self.state.clear_transcript();
+
+        self.state
+            .push_system(format!("Workspace : {}", runtime.workspace));
+        if self.state.llm_configured {
+            self.state.push_system(format!(
+                "LLM : {} @ {}",
+                self.config.model, self.config.server
+            ));
+        }
+        self.state.push_system(format!(
+            "Nouvelle session : {} ({})",
+            runtime.session_id(),
+            runtime.transcript_path()
+        ));
+
+        record_recent_workspace(workspace.as_str())?;
+        self.tui_prefs = crate::engine::preferences::load_preferences();
+
+        self.refresh_session_title().await;
+        self.sync_terminal_title();
+        self.refresh_status_snapshot().await;
+        self.refresh_mcp_panel().await;
+        self.load_skill_suggestions(&runtime).await;
+        self.state.status_notices = runtime.collect_startup_notices(&self.config);
+        if !self.state.llm_configured {
+            self.state.status_notices.insert(
+                0,
+                StatusNotice {
+                    level: NoticeLevel::Warn,
+                    text: "Serveur IA non configuré — Ctrl+Shift+L ou /server : adresse Ollama, test, choix du modèle."
+                        .into(),
+                },
+            );
+        }
+
+        self.state.status_line = format!("Workspace : {}", runtime.workspace);
+        self.state
+            .push_toast("Workspace changé · nouvelle session");
+        Ok(())
+    }
+
+    fn cycle_ai_server_focus(&mut self, reverse: bool) {
+        let Some(dialog) = self.state.ai_server.as_mut() else {
+            return;
+        };
+        if dialog.step != AiServerStep::Configure {
+            return;
+        }
+        dialog.focus = match (dialog.focus, reverse) {
+            (AiServerField::Server, false) => AiServerField::ApiKey,
+            (AiServerField::ApiKey, false) => AiServerField::NumCtx,
+            (AiServerField::NumCtx, false) => AiServerField::TestButton,
+            (AiServerField::TestButton, false) => AiServerField::Server,
+            (AiServerField::Server, true) => AiServerField::TestButton,
+            (AiServerField::TestButton, true) => AiServerField::NumCtx,
+            (AiServerField::NumCtx, true) => AiServerField::ApiKey,
+            (AiServerField::ApiKey, true) => AiServerField::Server,
+        };
+    }
+
+    fn cycle_ai_server_context_preset(&mut self, reverse: bool) {
+        let Some(dialog) = self.state.ai_server.as_mut() else {
+            return;
+        };
+        dialog.context_preset_index = cycle_preset_index(dialog.context_preset_index, reverse);
+    }
+
+    fn start_ai_server_test(&mut self) {
+        let Some(dialog) = self.state.ai_server.as_mut() else {
+            return;
+        };
+        if dialog.step == AiServerStep::Testing {
+            return;
+        }
+        let server = dialog.server.trim().to_string();
+        if server.is_empty() {
+            dialog.status = "Adresse serveur requise".into();
+            return;
+        }
+        if let Err(e) = dialog.resolved_num_ctx() {
+            dialog.status = e;
+            dialog.focus = AiServerField::NumCtx;
+            return;
+        }
+        let api_key = dialog.api_key.clone();
+        dialog.step = AiServerStep::Testing;
+        dialog.status = "Test de connexion en cours…".into();
+
+        let (tx, rx) = mpsc::channel(1);
+        self.ai_server_test_rx = Some(rx);
+        tokio::spawn(async move {
+            let api = if api_key.trim().is_empty() {
+                None
+            } else {
+                Some(api_key.as_str())
+            };
+            let result = crate::engine::probe_ollama(&server, api)
+                .await
+                .map_err(|e| e.to_string());
+            let _ = tx.send(result).await;
+        });
+    }
+
+    fn poll_ai_server_test(&mut self) {
+        let Some(rx) = self.ai_server_test_rx.as_mut() else {
+            return;
+        };
+        let Ok(result) = rx.try_recv() else {
+            return;
+        };
+        self.ai_server_test_rx = None;
+        let persist_after = match result {
+            Ok(models) if models.is_empty() => {
+                if let Some(dialog) = self.state.ai_server.as_mut() {
+                    dialog.step = AiServerStep::Configure;
+                    dialog.status =
+                        "Serveur joignable mais aucun modele liste (ollama pull …)".into();
+                }
+                None
+            }
+            Ok(models) => {
+                let current = self.config.model.clone();
+                let model_count = models.len();
+                if let Some(dialog) = self.state.ai_server.as_mut() {
+                    dialog.model_cursor =
+                        models.iter().position(|m| m == &current).unwrap_or(0);
+                    dialog.models = models;
+                    dialog.step = AiServerStep::SelectModel;
+                    dialog.select_focus = AiServerSelectFocus::ModelList;
+                    dialog.max_iterations = self.config.max_iterations.to_string();
+                    dialog.max_iterations_cursor = dialog.max_iterations.len();
+                }
+                Some(model_count)
+            }
+            Err(err) => {
+                if let Some(dialog) = self.state.ai_server.as_mut() {
+                    dialog.step = AiServerStep::Configure;
+                    dialog.status = format!("Connexion echouee : {err}");
+                }
+                None
+            }
+        };
+        if let Some(model_count) = persist_after {
+            let save_result = self.persist_ai_server_dialog_draft();
+            if let Some(dialog) = self.state.ai_server.as_mut() {
+                dialog.status = match save_result {
+                    Ok(()) => {
+                        format!("Connexion OK — {model_count} modele(s) · prefs sauvegardees")
+                    }
+                    Err(e) => {
+                        format!("Connexion OK — {model_count} modele(s) · sauvegarde: {e:#}")
+                    }
+                };
+            }
+        }
+    }
+
+    fn persist_ai_server_dialog_draft(&mut self) -> anyhow::Result<()> {
+        let dialog = self
+            .state
+            .ai_server
+            .as_ref()
+            .context("dialogue connexion IA")?;
+        let model = dialog
+            .models
+            .get(dialog.model_cursor)
+            .context("modele non selectionne")?
+            .clone();
+        let server = dialog.server.trim().to_string();
+        let api_key = if dialog.api_key.trim().is_empty() {
+            None
+        } else {
+            Some(dialog.api_key.trim().to_string())
+        };
+        let num_ctx = dialog.resolved_num_ctx().map_err(anyhow::Error::msg)?;
+        let max_iterations = dialog.resolved_max_iterations().map_err(anyhow::Error::msg)?;
+        let prefs = LlmConnectionPrefs {
+            engine: crate::engine::LlmEngineKind::Ollama,
+            server,
+            api_key,
+            model,
+            num_ctx,
+            max_iterations,
+        };
+        save_llm_connection(&prefs)?;
+        self.tui_prefs.llm_connection = Some(prefs);
+        Ok(())
+    }
+
+    async fn apply_ai_server_model(&mut self, index: usize) -> anyhow::Result<()> {
+        let (model, server, api_key, num_ctx, max_iterations) = {
+            let dialog = self
+                .state
+                .ai_server
+                .as_ref()
+                .context("dialogue connexion IA")?;
+            let model = dialog
+                .models
+                .get(index)
+                .context("index modele invalide")?
+                .clone();
+            let server = dialog.server.trim().to_string();
+            let api_key = if dialog.api_key.trim().is_empty() {
+                None
+            } else {
+                Some(dialog.api_key.trim().to_string())
+            };
+            let num_ctx = dialog.resolved_num_ctx().map_err(anyhow::Error::msg)?;
+            let max_iterations = dialog.resolved_max_iterations().map_err(anyhow::Error::msg)?;
+            (model, server, api_key, num_ctx, max_iterations)
+        };
+
+        let prefs = LlmConnectionPrefs {
+            engine: crate::engine::LlmEngineKind::Ollama,
+            server: server.clone(),
+            api_key: api_key.clone(),
+            model: model.clone(),
+            num_ctx,
+            max_iterations,
+        };
+        save_llm_connection(&prefs)?;
+        self.tui_prefs.llm_connection = Some(prefs);
+
+        self.config.server = server.clone();
+        self.config.model = model.clone();
+        self.config.api_key = api_key.clone();
+        self.config.num_ctx = num_ctx;
+        self.config.max_iterations = max_iterations;
+
+        let runtime = self.runtime.as_ref().context("moteur non initialise")?;
+        runtime.apply_llm_connection(&server, &model, api_key.as_deref(), num_ctx)?;
+        runtime.set_max_iterations(max_iterations);
+
+        self.state.llm_configured = true;
+
+        self.close_ai_server_dialog();
+        let prefs_path = preferences_path();
+        self.state.push_system(format!(
+            "Connexion IA : Ollama @ {server} — modele `{model}` — context {num_ctx} — max_iter {max_iterations}"
+        ));
+        self.state
+            .push_system(format!("Preferences persistees : {prefs_path}"));
+        self.state.push_toast("Connexion IA enregistree");
+        self.refresh_status_snapshot().await;
+        self.state.status_line = "Connexion IA enregistree".into();
+
+        if !self.tui_prefs.onboarding_done {
+            self.state.onboarding = Some(OnboardingDialog::default());
+            self.state.phase = AppPhase::Onboarding;
+        }
+        Ok(())
+    }
+
+    fn handle_ai_server_key(&mut self, key: KeyEvent) -> bool {
+        let Some(dialog) = self.state.ai_server.as_mut() else {
+            self.state.phase = AppPhase::Idle;
+            return false;
+        };
+
+        if dialog.step == AiServerStep::Testing {
+            if key.code == KeyCode::Esc {
+                self.close_ai_server_dialog();
+                self.state.status_line = "Test connexion annulé".into();
+            }
+            return false;
+        }
+
+        match dialog.step {
+            AiServerStep::SelectModel => match key.code {
+                KeyCode::Esc => {
+                    dialog.step = AiServerStep::Configure;
+                    dialog.status = "Retour a la configuration".into();
+                }
+                KeyCode::Tab | KeyCode::BackTab => {
+                    dialog.select_focus = match dialog.select_focus {
+                        AiServerSelectFocus::ModelList => AiServerSelectFocus::MaxIterations,
+                        AiServerSelectFocus::MaxIterations => AiServerSelectFocus::ModelList,
+                    };
+                }
+                KeyCode::Up if dialog.select_focus == AiServerSelectFocus::ModelList
+                    && dialog.model_cursor > 0 =>
+                {
+                    dialog.model_cursor -= 1;
+                }
+                KeyCode::Down
+                    if dialog.select_focus == AiServerSelectFocus::ModelList
+                        && dialog.model_cursor + 1 < dialog.models.len() =>
+                {
+                    dialog.model_cursor += 1;
+                }
+                KeyCode::Enter if dialog.select_focus == AiServerSelectFocus::ModelList => {
+                    match dialog.resolved_max_iterations() {
+                        Ok(_) => {
+                            let idx = dialog.model_cursor;
+                            self.pending_slash = Some(PendingSlash::ApplyAiServer { index: idx });
+                        }
+                        Err(e) => {
+                            dialog.select_focus = AiServerSelectFocus::MaxIterations;
+                            dialog.status = e;
+                        }
+                    }
+                }
+                KeyCode::Enter if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
+                    match dialog.resolved_max_iterations() {
+                        Ok(_) => {
+                            let idx = dialog.model_cursor;
+                            self.pending_slash = Some(PendingSlash::ApplyAiServer { index: idx });
+                        }
+                        Err(e) => dialog.status = e,
+                    }
+                }
+                KeyCode::Left if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
+                    if dialog.max_iterations_cursor > 0 {
+                        dialog.max_iterations_cursor -= 1;
+                    }
+                }
+                KeyCode::Right if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
+                    if dialog.max_iterations_cursor < dialog.max_iterations.len() {
+                        dialog.max_iterations_cursor += 1;
+                    }
+                }
+                KeyCode::Backspace if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
+                    if dialog.max_iterations_cursor > 0
+                        && dialog.max_iterations_cursor <= dialog.max_iterations.len()
+                    {
+                        dialog.max_iterations.remove(dialog.max_iterations_cursor - 1);
+                        dialog.max_iterations_cursor -= 1;
+                    }
+                }
+                KeyCode::Delete if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
+                    if dialog.max_iterations_cursor < dialog.max_iterations.len() {
+                        dialog.max_iterations.remove(dialog.max_iterations_cursor);
+                    }
+                }
+                KeyCode::Char(c)
+                    if !key.modifiers.contains(KeyModifiers::CONTROL)
+                        && dialog.select_focus == AiServerSelectFocus::MaxIterations
+                        && c.is_ascii_digit() =>
+                {
+                    dialog
+                        .max_iterations
+                        .insert(dialog.max_iterations_cursor, c);
+                    dialog.max_iterations_cursor += 1;
+                }
+                _ => {}
+            },
+            AiServerStep::Configure => match key.code {
+                KeyCode::Esc => {
+                    self.close_ai_server_dialog();
+                    self.state.status_line = "Connexion IA annulée".into();
+                }
+                KeyCode::Tab => {
+                    self.cycle_ai_server_focus(key.modifiers.contains(KeyModifiers::SHIFT));
+                }
+                KeyCode::BackTab => {
+                    self.cycle_ai_server_focus(true);
+                }
+                KeyCode::Up => {
+                    if dialog.focus == AiServerField::NumCtx {
+                        self.cycle_ai_server_context_preset(true);
+                    } else {
+                        self.cycle_ai_server_focus(true);
+                    }
+                }
+                KeyCode::Down => {
+                    if dialog.focus == AiServerField::NumCtx {
+                        self.cycle_ai_server_context_preset(false);
+                    } else {
+                        self.cycle_ai_server_focus(false);
+                    }
+                }
+                KeyCode::Enter if dialog.focus == AiServerField::TestButton => {
+                    self.start_ai_server_test();
+                }
+                KeyCode::Enter if dialog.focus == AiServerField::Server => {
+                    dialog.focus = AiServerField::ApiKey;
+                }
+                KeyCode::Enter if dialog.focus == AiServerField::ApiKey => {
+                    dialog.focus = AiServerField::NumCtx;
+                }
+                KeyCode::Enter if dialog.focus == AiServerField::NumCtx => {
+                    dialog.focus = AiServerField::TestButton;
+                }
+                KeyCode::Left => {
+                    if dialog.focus == AiServerField::NumCtx
+                        && dialog.context_preset_index != CONTEXT_CUSTOM_INDEX
+                    {
+                        self.cycle_ai_server_context_preset(true);
+                    } else if dialog.focus != AiServerField::TestButton {
+                        let (buf, cur) = dialog.active_buffer_and_cursor();
+                        if *cur > 0 {
+                            *cur -= 1;
+                        }
+                        let _ = buf;
+                    }
+                }
+                KeyCode::Right => {
+                    if dialog.focus == AiServerField::NumCtx
+                        && dialog.context_preset_index != CONTEXT_CUSTOM_INDEX
+                    {
+                        self.cycle_ai_server_context_preset(false);
+                    } else if dialog.focus != AiServerField::TestButton {
+                        let (buf, cur) = dialog.active_buffer_and_cursor();
+                        if *cur < buf.len() {
+                            *cur += 1;
+                        }
+                    }
+                }
+                KeyCode::Backspace => {
+                    if dialog.focus != AiServerField::TestButton {
+                        let (buf, cur) = dialog.active_buffer_and_cursor();
+                        if *cur > 0 && *cur <= buf.len() {
+                            buf.remove(*cur - 1);
+                            *cur -= 1;
+                        }
+                    }
+                }
+                KeyCode::Delete => {
+                    if dialog.focus != AiServerField::TestButton {
+                        let (buf, cur) = dialog.active_buffer_and_cursor();
+                        if *cur < buf.len() {
+                            buf.remove(*cur);
+                        }
+                    }
+                }
+                KeyCode::Char(c)
+                    if !key.modifiers.contains(KeyModifiers::CONTROL)
+                        && dialog.focus != AiServerField::TestButton =>
+                {
+                    if dialog.focus == AiServerField::NumCtx
+                        && dialog.context_preset_index != CONTEXT_CUSTOM_INDEX
+                    {
+                        dialog.context_preset_index = CONTEXT_CUSTOM_INDEX;
+                        dialog.context_custom.clear();
+                        dialog.context_custom_cursor = 0;
+                    }
+                    let (buf, cur) = dialog.active_buffer_and_cursor();
+                    buf.insert(*cur, c);
+                    *cur += 1;
+                }
+                _ => {}
+            },
+            AiServerStep::Testing => {}
+        }
+        false
+    }
+
     fn finish_onboarding(&mut self) {
         self.state.onboarding = None;
         self.state.phase = AppPhase::Idle;
@@ -1874,11 +2723,10 @@ impl App {
     }
 
     fn handle_onboarding_key(&mut self, key: KeyEvent) -> bool {
-        const STEPS: usize = 7;
+        const STEPS: usize = 9;
         match key.code {
             KeyCode::Esc => {
                 self.finish_onboarding();
-                true
             }
             KeyCode::Enter => {
                 if let Some(ref mut d) = self.state.onboarding {
@@ -1888,10 +2736,10 @@ impl App {
                         d.step += 1;
                     }
                 }
-                true
             }
-            _ => false,
+            _ => {}
         }
+        false
     }
 
     fn open_slash_palette(&mut self, filter: String) {
@@ -1913,16 +2761,16 @@ impl App {
         dialog.cursor = dialog.cursor.min(dialog.matches.len().saturating_sub(1));
     }
 
-    fn handle_slash_palette_key(&mut self, key: KeyEvent) -> bool {
+    fn handle_slash_palette_key(&mut self, key: KeyEvent) -> anyhow::Result<bool> {
         let Some(dialog) = self.state.slash_palette.as_mut() else {
             self.state.phase = AppPhase::Idle;
-            return false;
+            return Ok(false);
         };
         match key.code {
             KeyCode::Esc => {
                 self.state.slash_palette = None;
                 self.state.phase = AppPhase::Idle;
-                self.state.status_line = "Palette slash fermée".into();
+                self.state.status_line = "Palette slash fermee".into();
             }
             KeyCode::Up if dialog.cursor > 0 => {
                 dialog.cursor -= 1;
@@ -1932,11 +2780,11 @@ impl App {
             }
             KeyCode::Enter => {
                 if let Some(&idx) = dialog.matches.get(dialog.cursor) {
-                    self.state.composer_buffer = SLASH_PALETTE_ENTRIES[idx].command.to_string();
+                    let command = SLASH_PALETTE_ENTRIES[idx].command.to_string();
+                    self.state.slash_palette = None;
+                    self.state.phase = AppPhase::Idle;
+                    return self.dispatch_slash_command(&command);
                 }
-                self.state.slash_palette = None;
-                self.state.phase = AppPhase::Idle;
-                self.state.status_line = "Commande insérée — Entrée pour exécuter".into();
             }
             KeyCode::Backspace => {
                 dialog.filter.pop();
@@ -1948,7 +2796,7 @@ impl App {
             }
             _ => {}
         }
-        false
+        Ok(false)
     }
 
     /// Recalcule les suggestions unifiées (`@` · `/` · skills).

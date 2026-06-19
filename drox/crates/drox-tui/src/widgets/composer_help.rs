@@ -10,6 +10,8 @@ use crate::app::AppState;
 
 /// Lignes d'aide affichées dans la popup.
 const HELP_LINES: &[&str] = &[
+    "Ctrl+Shift+L  connexion IA (Ollama) · /server",
+    "Ctrl+Shift+W  changer workspace · /workspace",
     "!          mode bash (shell sans agent)",
     "/          commandes slash · /help liste complète",
     "@          référence fichier · Tab compléter",

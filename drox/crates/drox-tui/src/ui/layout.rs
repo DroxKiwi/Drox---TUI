@@ -3,13 +3,52 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
 use crate::app::{AppPhase, AppState};
 use crate::engine::status_bar::StatusBarSnapshot;
 use crate::engine::VimComposer;
-use crate::widgets::{composer, composer_help, composer_suggestions, copy_selector, course_panel, mcp_panel, message_log, onboarding, prompt_modal, rewind_selector, scroll_viewer, search_bar, slash_palette, status_bar, status_notices, theme_picker, toast, todo_panel};
+use crate::widgets::{ai_server_dialog, composer, composer_help, composer_suggestions, copy_selector, course_panel, mcp_panel, message_log, onboarding, prompt_modal, rewind_selector, scroll_viewer, search_bar, slash_palette, status_bar, status_notices, theme_picker, toast, todo_panel, workspace_dialog};
+
+const HEADER_H: u16 = 3;
+const COMPOSER_H: u16 = 5;
+const STATUS_H: u16 = 1;
+const MIN_LOG_H: u16 = 4;
+
+/// Hauteurs des panneaux optionnels, reduits si le terminal est trop petit.
+/// Ordre de masquage : MCP, cours, todos, notices.
+#[must_use]
+fn optional_panel_heights(total_h: u16, state: &AppState) -> (u16, u16, u16, u16) {
+    let fixed = HEADER_H + COMPOSER_H + STATUS_H + MIN_LOG_H;
+    let budget = total_h.saturating_sub(fixed);
+
+    let mut mcp_h = mcp_panel::desired_height(state);
+    let mut course_h = course_panel::desired_height(state);
+    let mut todo_h = todo_panel::desired_height(state);
+    let mut notices_h = status_notices::desired_height(state);
+
+    let mut heights = [mcp_h, course_h, todo_h, notices_h];
+    while heights.iter().sum::<u16>() > budget {
+        let mut hidden = false;
+        for h in &mut heights {
+            if *h > 0 {
+                *h = 0;
+                hidden = true;
+                break;
+            }
+        }
+        if !hidden {
+            break;
+        }
+    }
+
+    mcp_h = heights[0];
+    course_h = heights[1];
+    todo_h = heights[2];
+    notices_h = heights[3];
+    (notices_h, todo_h, course_h, mcp_h)
+}
 
 pub fn draw(
     frame: &mut Frame,
@@ -23,15 +62,15 @@ pub fn draw(
     vim: &VimComposer,
 ) {
     let area = frame.area();
-    let notices_h = status_notices::desired_height(state);
-    let todo_h = todo_panel::desired_height(state);
-    let course_h = course_panel::desired_height(state);
-    let mcp_h = mcp_panel::desired_height(state);
-    let mut constraints = vec![Constraint::Length(3)];
+    // Evite les fantomes quand le layout change (modals, panneaux, resize).
+    frame.render_widget(Clear, area);
+
+    let (notices_h, todo_h, course_h, mcp_h) = optional_panel_heights(area.height, state);
+    let mut constraints = vec![Constraint::Length(HEADER_H)];
     if notices_h > 0 {
         constraints.push(Constraint::Length(notices_h));
     }
-    constraints.push(Constraint::Min(5));
+    constraints.push(Constraint::Min(MIN_LOG_H.into()));
     if todo_h > 0 {
         constraints.push(Constraint::Length(todo_h));
     }
@@ -41,8 +80,8 @@ pub fn draw(
     if mcp_h > 0 {
         constraints.push(Constraint::Length(mcp_h));
     }
-    constraints.push(Constraint::Length(5));
-    constraints.push(Constraint::Length(1));
+    constraints.push(Constraint::Length(COMPOSER_H));
+    constraints.push(Constraint::Length(STATUS_H));
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -101,6 +140,12 @@ pub fn draw(
     if state.phase == AppPhase::Onboarding {
         onboarding::render(frame, area, state);
     }
+    if state.phase == AppPhase::AiServer {
+        ai_server_dialog::render(frame, area, state);
+    }
+    if state.phase == AppPhase::Workspace {
+        workspace_dialog::render(frame, area, state);
+    }
     if let Some(ref viewer) = state.scroll_viewer {
         scroll_viewer::render(frame, area, state, viewer);
     }
@@ -145,4 +190,17 @@ fn draw_header(
             .style(Style::default().fg(state.palette.border)),
     );
     frame.render_widget(paragraph, area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::AppState;
+
+    #[test]
+    fn hides_panels_when_terminal_too_short() {
+        let state = AppState::new();
+        let (n, t, c, m) = optional_panel_heights(12, &state);
+        assert_eq!((n, t, c, m), (0, 0, 0, 0));
+    }
 }

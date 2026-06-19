@@ -91,6 +91,10 @@ pub enum SlashOutcome {
     Statusline,
     /// Réglages TUI (`~/.drox/tui-preferences.json`).
     Settings,
+    /// Modal connexion serveur IA.
+    AiServer,
+    /// Modal changement workspace.
+    Workspace { initial: Option<String> },
     /// Modal onboarding.
     Onboarding,
 }
@@ -129,10 +133,14 @@ pub enum PendingSlash {
     BashExec { command: String },
     MemorySearch { query: String, limit: usize },
     Statusline,
+    /// Applique le modèle choisi dans `/server`.
+    ApplyAiServer { index: usize },
+    /// Applique le workspace validé dans `/workspace`.
+    ApplyWorkspace { path: camino::Utf8PathBuf },
 }
 
-const HELP: &str = "Commandes : /help /clear /exit /status /model /session /sessions \
-/newsession /resume <id> /rename [/rename <titre>] /copy [/copy N] /add-dir <chemin> /vim /settings /onboarding /compact /memory [/memory <slug>|search <q>] /search <q> /permissions /plan [/plan off] /context /hooks [/hooks reload] /config /doctor /mcp [/mcp tools|resources|ping] /skills [/skills <name>] /cost /stats /usage /branch /rewind /export [/export fichier] /theme [/theme dark] /color [/color cyan] /keybindings [/keybindings init] /diff /files /init [/init run] /terminal-setup /sandbox /review [/review PR] /security-review /statusline [/statusline run]";
+const HELP: &str = "Commandes : /help /clear /exit /status /model /server /session /sessions \
+/newsession /resume <id> /rename [/rename <titre>] /copy [/copy N] /add-dir <chemin> /workspace [/workspace <chemin>] /vim /settings /onboarding /compact /memory [/memory <slug>|search <q>] /search <q> /permissions /plan [/plan off] /context /hooks [/hooks reload] /config /doctor /mcp [/mcp tools|resources|ping] /skills [/skills <name>] /cost /stats /usage /branch /rewind /export [/export fichier] /theme [/theme dark] /color [/color cyan] /keybindings [/keybindings init] /diff /files /init [/init run] /terminal-setup /sandbox /review [/review PR] /security-review /statusline [/statusline run]";
 
 pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) -> SlashOutcome {
     let trimmed = input.trim();
@@ -167,7 +175,7 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
             state.push_system(format!(
                 "workspace={} | modèle={} | mode={} | plan={} | session={} | apply={}",
                 runtime.workspace,
-                runtime.model_label,
+                runtime.model_label(),
                 runtime.permission_mode().short_title(),
                 runtime.plan_mode(),
                 runtime.session_id(),
@@ -175,13 +183,7 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
             ));
             SlashOutcome::Handled
         }
-        "/model" => {
-            state.push_system(format!(
-                "Modèle courant : {} (changer via DROX_MODEL ou relance CLI)",
-                runtime.model_label
-            ));
-            SlashOutcome::Handled
-        }
+        "/model" | "/server" => SlashOutcome::AiServer,
         "/session" => {
             state.push_system(format!(
                 "Session : {} | Transcript : {} (id {})",
@@ -364,6 +366,20 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
                 .unwrap_or("")
                 .trim();
             crate::engine::add_dir_cmd::handle_add_dir(args, state, runtime)
+        }
+        "/workspace" | "/ws" => {
+            let args = trimmed
+                .strip_prefix("/workspace")
+                .or_else(|| trimmed.strip_prefix("/ws"))
+                .unwrap_or("")
+                .trim();
+            SlashOutcome::Workspace {
+                initial: if args.is_empty() {
+                    None
+                } else {
+                    Some(args.to_string())
+                },
+            }
         }
         "/diff" => SlashOutcome::Diff,
         "/files" => SlashOutcome::Files,

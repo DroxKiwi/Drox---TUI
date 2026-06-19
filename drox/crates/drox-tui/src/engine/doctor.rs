@@ -303,9 +303,10 @@ impl EngineRuntime {
     }
 
     async fn check_llm(&self) -> Check {
-        let server = self.llm.server_url();
-        let model = self.llm.configured_model();
-        match self.llm.list_installed_models().await {
+        let llm = self.llm();
+        let server = llm.server_url().to_string();
+        let model = llm.configured_model().to_string();
+        match llm.list_installed_models().await {
             Ok(models) => {
                 if models.is_empty() {
                     return check(
@@ -314,7 +315,7 @@ impl EngineRuntime {
                         format!("{server} joignable mais aucun modèle listé"),
                     );
                 }
-                if model_installed(model, &models) {
+                if model_installed(&model, &models) {
                     check(
                         "LLM",
                         CheckStatus::Ok,

@@ -2,23 +2,18 @@
 
 use std::io::{self, Write};
 
-/// Met à jour le titre de l'onglet/fenêtre terminal.
+/// Met a jour le titre de l'onglet/fenetre terminal.
 pub fn set_terminal_title(title: &str) {
     let clean = strip_escape_sequences(title);
     if clean.is_empty() {
         return;
     }
-    // stderr : évite de polluer le buffer ratatui sur stdout.
+    // stderr uniquement : stdout est reserve au buffer ratatui (evite corruption affichage).
     let seq = format!("\x1b]0;{clean}\x07");
     let _ = io::stderr().write_all(seq.as_bytes());
-    #[cfg(windows)]
-    {
-        // Windows Terminal et conhost récents honorent OSC ; `clip` reste sur stdout.
-        let _ = io::stdout().write_all(seq.as_bytes());
-    }
 }
 
-/// Restaure un titre neutre à la sortie.
+/// Restaure un titre neutre a la sortie.
 pub fn clear_terminal_title() {
     set_terminal_title("Drox");
 }

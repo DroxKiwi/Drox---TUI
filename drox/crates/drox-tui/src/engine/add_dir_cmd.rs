@@ -77,6 +77,28 @@ pub fn validate_and_add(runtime: &EngineRuntime, directory_path: &str) -> Result
     ))
 }
 
+/// Canonise et valide un chemin de workspace principal (`/workspace`).
+pub fn validate_workspace_path(input: &str) -> Result<Utf8PathBuf, String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err("chemin requis".into());
+    }
+
+    let expanded = expand_user_path(trimmed);
+    let canonical = fs::canonicalize(&expanded).map_err(|e| {
+        format!(
+            "chemin introuvable ou inaccessible : {} ({e})",
+            expanded.display()
+        )
+    })?;
+
+    if !canonical.is_dir() {
+        return Err(format!("{} n'est pas un répertoire", canonical.display()));
+    }
+
+    Utf8PathBuf::from_path_buf(canonical).map_err(|_| "chemin non UTF-8".to_string())
+}
+
 /// `child` est sous `parent` (chemins canoniques).
 fn path_within(child: &Utf8Path, parent: &Utf8Path) -> bool {
     let Ok(child_c) = fs::canonicalize(child.as_std_path()) else {
@@ -89,7 +111,7 @@ fn path_within(child: &Utf8Path, parent: &Utf8Path) -> bool {
 }
 
 /// Expansion minimale `~` et chemins relatifs au cwd process.
-fn expand_user_path(path: &str) -> PathBuf {
+pub(crate) fn expand_user_path(path: &str) -> PathBuf {
     let trimmed = path.trim();
     if trimmed == "~" {
         return dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
@@ -122,5 +144,13 @@ mod tests {
         std::fs::write(&file, "").unwrap();
         // Runtime minimal non nécessaire — test expand seulement
         assert!(!file.as_std_path().is_dir());
+    }
+
+    #[test]
+    fn validates_workspace_directory() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_string_lossy();
+        let got = validate_workspace_path(path.as_ref()).expect("valid dir");
+        assert!(got.as_std_path().is_dir());
     }
 }

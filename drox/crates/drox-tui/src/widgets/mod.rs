@@ -1,5 +1,6 @@
 //! Widgets TUI (composer, fil, phases, tools).
 
+pub mod ai_server_dialog;
 pub mod composer_footer;
 pub mod composer_help;
 pub mod composer_suggestions;
@@ -18,6 +19,7 @@ pub mod status_notices;
 pub mod course_panel;
 pub mod theme_picker;
 pub mod mcp_panel;
+pub mod workspace_dialog;
 pub mod onboarding;
 pub mod toast;
 pub mod todo_panel;

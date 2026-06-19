@@ -46,15 +46,15 @@ impl EngineRuntime {
         let stats = drox_session::read_session_ui_stats(&path)
             .await
             .unwrap_or_default();
-        let ctx_pct = if stats.ctx > 0 && self.num_ctx > 0 {
+        let ctx_pct = if stats.ctx > 0 && self.num_ctx() > 0 {
             Some(
-                ((u64::from(stats.ctx) * 100) / self.num_ctx as u64).min(100) as u8,
+                ((u64::from(stats.ctx) * 100) / self.num_ctx() as u64).min(100) as u8,
             )
         } else {
             None
         };
         StatusBarSnapshot {
-            model: self.model_label.clone(),
+            model: self.model_label(),
             workspace_short: short_workspace_label(&self.workspace),
             branch: git_branch(&self.workspace).ok(),
             stats,

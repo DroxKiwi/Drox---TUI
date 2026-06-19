@@ -1,7 +1,7 @@
 //! Pied du composer — modèle, mode, suggestions contextuelles (leak : `PromptInputFooter.tsx`).
 
 use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
@@ -23,16 +23,28 @@ pub fn render(
         return;
     }
 
-    let model_label = shorten_model_name(model);
+    let model_label = if state.llm_configured {
+        shorten_model_name(model)
+    } else {
+        "IA non configurée".into()
+    };
     let mut left = vec![
         Span::styled(
-            "● ",
-            Style::default().fg(state.palette.header_primary),
+            if state.llm_configured { "● " } else { "⚠ " },
+            Style::default().fg(if state.llm_configured {
+                state.palette.header_primary
+            } else {
+                Color::Yellow
+            }),
         ),
         Span::styled(
             model_label,
             Style::default()
-                .fg(state.palette.header_primary)
+                .fg(if state.llm_configured {
+                    state.palette.header_primary
+                } else {
+                    Color::Yellow
+                })
                 .add_modifier(Modifier::BOLD),
         ),
     ];
@@ -82,6 +94,9 @@ pub fn render(
 fn footer_hint(state: &AppState, vim: &VimComposer) -> String {
     if state.phase == AppPhase::Running {
         return String::new();
+    }
+    if !state.llm_configured {
+        return "Ctrl+Shift+L · /server — configurer Ollama".into();
     }
     if vim.enabled && vim.mode == VimMode::Normal {
         return "h/j/k/l · i/a · dd · y/p".into();

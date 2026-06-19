@@ -62,6 +62,8 @@ pub struct AppConfig {
     pub no_settings: bool,
     pub max_iterations: usize,
     pub api_key: Option<String>,
+    /// Fenetre de contexte LLM (`num_ctx` Ollama).
+    pub num_ctx: i64,
     /// Reprend un transcript `ses_…` existant.
     pub session: Option<String>,
     /// Répertoire des transcripts (défaut `~/.drox/sessions`).
@@ -80,6 +82,8 @@ pub enum AppPhase {
     SlashPalette,
     Copy,
     Onboarding,
+    AiServer,
+    Workspace,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -120,6 +124,155 @@ pub struct RewindDialog {
 #[derive(Debug, Clone, Default)]
 pub struct OnboardingDialog {
     pub step: usize,
+}
+
+/// Étape du dialogue connexion IA (`/server`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AiServerStep {
+    Configure,
+    Testing,
+    SelectModel,
+}
+
+/// Champ actif du formulaire connexion IA.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AiServerField {
+    Server,
+    ApiKey,
+    NumCtx,
+    TestButton,
+}
+
+/// Focus clavier sur l'etape choix du modele (`/server`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AiServerSelectFocus {
+    #[default]
+    ModelList,
+    MaxIterations,
+}
+
+/// Modal connexion serveur IA (`/server`, Ctrl+Shift+L).
+#[derive(Debug, Clone)]
+pub struct AiServerDialog {
+    pub engine: crate::engine::LlmEngineKind,
+    pub server: String,
+    pub server_cursor: usize,
+    pub api_key: String,
+    pub api_key_cursor: usize,
+    pub focus: AiServerField,
+    pub step: AiServerStep,
+    pub status: String,
+    pub models: Vec<String>,
+    pub model_cursor: usize,
+    pub context_preset_index: usize,
+    pub context_custom: String,
+    pub context_custom_cursor: usize,
+    pub max_iterations: String,
+    pub max_iterations_cursor: usize,
+    pub select_focus: AiServerSelectFocus,
+}
+
+impl AiServerDialog {
+    #[must_use]
+    pub fn from_current(server: String, api_key: String, num_ctx: i64, max_iterations: usize) -> Self {
+        let max_iterations = max_iterations.to_string();
+        let context_preset_index = crate::engine::preset_index_for(num_ctx);
+        let context_custom = if context_preset_index == crate::engine::CONTEXT_CUSTOM_INDEX {
+            num_ctx.to_string()
+        } else {
+            String::new()
+        };
+        Self {
+            engine: crate::engine::LlmEngineKind::Ollama,
+            server_cursor: server.len(),
+            api_key_cursor: api_key.len(),
+            server,
+            api_key,
+            focus: AiServerField::Server,
+            step: AiServerStep::Configure,
+            status: "Adresse serveur - Tab - Entree sur Tester".into(),
+            models: Vec::new(),
+            model_cursor: 0,
+            context_preset_index,
+            context_custom: context_custom.clone(),
+            context_custom_cursor: context_custom.len(),
+            max_iterations: max_iterations.clone(),
+            max_iterations_cursor: max_iterations.len(),
+            select_focus: AiServerSelectFocus::ModelList,
+        }
+    }
+
+    pub fn active_buffer_and_cursor(&mut self) -> (&mut String, &mut usize) {
+        match self.focus {
+            AiServerField::Server => (&mut self.server, &mut self.server_cursor),
+            AiServerField::ApiKey => (&mut self.api_key, &mut self.api_key_cursor),
+            AiServerField::NumCtx if self.context_preset_index == crate::engine::CONTEXT_CUSTOM_INDEX => {
+                (&mut self.context_custom, &mut self.context_custom_cursor)
+            }
+            AiServerField::NumCtx | AiServerField::TestButton => {
+                (&mut self.server, &mut self.server_cursor)
+            }
+        }
+    }
+
+    pub fn resolved_num_ctx(&self) -> Result<i64, String> {
+        crate::engine::resolve_num_ctx(self.context_preset_index, &self.context_custom)
+    }
+
+    pub fn resolved_max_iterations(&self) -> Result<usize, String> {
+        crate::engine::parse_max_iterations(&self.max_iterations)
+    }
+}
+
+/// Étape modal `/workspace`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkspaceStep {
+    Edit,
+    Confirm,
+}
+
+/// Focus clavier dans le modal workspace.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkspaceField {
+    Recents,
+    Path,
+    ValidateButton,
+}
+
+/// Modal changement workspace (`/workspace`, Ctrl+Shift+W).
+#[derive(Debug, Clone)]
+pub struct WorkspaceDialog {
+    pub path: String,
+    pub path_cursor: usize,
+    pub recents: Vec<String>,
+    pub recent_cursor: usize,
+    pub focus: WorkspaceField,
+    pub step: WorkspaceStep,
+    pub status: String,
+    pub validated: Option<Utf8PathBuf>,
+}
+
+impl WorkspaceDialog {
+    #[must_use]
+    pub fn new(current_path: String, recents: Vec<String>, initial: Option<String>) -> Self {
+        let path = initial.unwrap_or(current_path);
+        let path_cursor = path.len();
+        let focus = if recents.is_empty() {
+            WorkspaceField::Path
+        } else {
+            WorkspaceField::Recents
+        };
+        Self {
+            path,
+            path_cursor,
+            recents,
+            recent_cursor: 0,
+            focus,
+            step: WorkspaceStep::Edit,
+            status: "Saisissez un chemin ou choisissez un récent · Entrée sur « Vérifier »".into(),
+            validated: None,
+        }
+    }
 }
 
 /// Entrée affichable dans le sélecteur rewind.
@@ -208,6 +361,10 @@ pub struct AppState {
     pub mcp_snapshot: Option<crate::engine::McpPanelSnapshot>,
     /// Onboarding premier lancement.
     pub onboarding: Option<OnboardingDialog>,
+    /// Connexion serveur IA (`/server`).
+    pub ai_server: Option<AiServerDialog>,
+    /// Changement workspace (`/workspace`).
+    pub workspace_dialog: Option<WorkspaceDialog>,
     /// Toast éphémère (coin bas-droit).
     pub toast: Option<crate::widgets::toast::Toast>,
     /// Recherche dans le fil (`Ctrl+F`).
@@ -239,6 +396,8 @@ pub struct AppState {
     pub active_phase: Option<drox_engine::Phase>,
     /// Compteur d'invalidation du cache de rendu fil.
     pub log_revision: u64,
+    /// Connexion IA validée (`/server` ou CLI explicite).
+    pub llm_configured: bool,
     /// Cache lignes fil (hors streaming / bash live).
     log_render_cache: Option<crate::view::log_cache::LogRenderCache>,
 }
@@ -341,6 +500,8 @@ impl AppState {
             course_snapshot: None,
             mcp_snapshot: None,
             onboarding: None,
+            ai_server: None,
+            workspace_dialog: None,
             toast: None,
             transcript_search: None,
             slash_palette: None,
@@ -362,6 +523,7 @@ impl AppState {
             composer_mode: ComposerMode::Normal,
             composer_buffer: String::new(),
             last_run: RunStatus::None,
+            llm_configured: false,
         }
     }
 

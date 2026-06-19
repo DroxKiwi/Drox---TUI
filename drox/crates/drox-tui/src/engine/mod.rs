@@ -1,5 +1,6 @@
 //! Pont vers `drox-engine` — bootstrap et mapping événements.
 
+pub mod llm_connection;
 mod agent_prompts;
 mod bootstrap;
 mod branch_cmd;
@@ -20,6 +21,7 @@ mod skills;
 pub(crate) mod notices;
 pub(crate) mod paste;
 pub(crate) mod image_paste;
+pub(crate) mod llm_context;
 pub(crate) mod add_dir_cmd;
 pub(crate) mod at_refs;
 pub(crate) mod at_typeahead;
@@ -35,10 +37,23 @@ mod usage;
 
 pub(crate) mod vim;
 pub use vim::{VimComposer, VimKeyResult, VimMode};
-pub use preferences::{format_settings_lines, load_preferences, mark_onboarding_done, persist_from_state, preferences_path, save_preferences, TuiPreferences};
+pub use preferences::{
+    apply_llm_prefs_to_config, format_settings_lines, load_preferences, llm_connection_from_config,
+    mark_onboarding_done,
+    persist_from_state, preferences_path, record_recent_workspace, resolve_llm_startup, save_llm_connection, save_preferences,
+    LlmConnectionPrefs, LLM_BOOT_PLACEHOLDER_MODEL, OLLAMA_DEFAULT_SERVER,
+    LlmEngineKind, TuiPreferences,
+};
 pub use copy_cmd::try_copy_clipboard;
 pub use paste::{prepare_user_prompt, PastedTextStore};
 pub use at_typeahead::{active_at_query, apply_completion, AtFileIndex, AtQuery};
+pub use llm_connection::probe_ollama;
+pub use llm_context::{
+    cycle_preset_index, default_max_iterations, default_num_ctx, parse_max_iterations,
+    preset_index_for, preset_label, preset_count, resolve_num_ctx, CONTEXT_CUSTOM_INDEX,
+    CONTEXT_PRESETS,
+};
+pub use add_dir_cmd::validate_workspace_path;
 pub use bootstrap::{apply_agent_event, EngineRuntime, PlanModeChange};
 pub use agent_prompts::{
     REVIEW_AGENT_PROMPT, SECURITY_REVIEW_AGENT_PROMPT, STATUSLINE_SETUP_PROMPT,

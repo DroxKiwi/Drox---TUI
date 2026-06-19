@@ -22,6 +22,8 @@ pub fn render(
     let blocked = prompt_modal::composer_blocked(state) || state.phase == AppPhase::Running;
     let title = if blocked {
         " Composer (bloqué) "
+    } else if !state.llm_configured {
+        " Composer — Ctrl+Shift+L configurer IA "
     } else if state.composer_mode == ComposerMode::Bash {
         " Composer (! bash · Entrée exécuter · Esc quitter) "
     } else if state.composer_mode == ComposerMode::Multiline {
@@ -47,7 +49,11 @@ pub fn render(
     } else if state.composer_mode == ComposerMode::Bash {
         "Commande shell (sans agent)…"
     } else if state.composer_buffer.is_empty() {
-        "Écrivez votre message, ? aide, @fichier, /help ou ! pour bash…"
+        if !state.llm_configured {
+            "Ctrl+Shift+L ou /server — configurez Ollama, puis écrivez…"
+        } else {
+            "Écrivez votre message, ? aide, @fichier, /help ou ! pour bash…"
+        }
     } else {
         ""
     };

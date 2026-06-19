@@ -13,7 +13,7 @@ impl EngineRuntime {
     /// Lignes pour `/config` — état effectif + fichiers sur disque.
     #[must_use]
     pub fn format_config_lines(&self) -> Vec<String> {
-        format_runtime_config(self.boot_config(), self)
+        format_runtime_config(&self.boot_config(), self)
     }
 }
 
@@ -24,8 +24,8 @@ pub fn format_runtime_config(boot: &AppConfig, rt: &EngineRuntime) -> Vec<String
 
     lines.push("— LLM".into());
     lines.push(format!("  server : {}", boot.server));
-    lines.push(format!("  model : {}", rt.model_label));
-    lines.push(format!("  num_ctx : {}", rt.num_ctx));
+    lines.push(format!("  model : {}", rt.model_label()));
+    lines.push(format!("  num_ctx : {}", rt.num_ctx()));
     lines.push(format!(
         "  api_key : {}",
         if boot.api_key.is_some() || env_set("DROX_API_KEY") {
@@ -39,7 +39,7 @@ pub fn format_runtime_config(boot: &AppConfig, rt: &EngineRuntime) -> Vec<String
     lines.push("— Workspace".into());
     lines.push(format!("  path : {}", rt.workspace));
     lines.push(format!("  apply (--apply) : {}", rt.apply_fs_writes));
-    lines.push(format!("  max_iterations : {}", rt.max_iterations));
+    lines.push(format!("  max_iterations : {}", rt.max_iterations()));
 
     lines.push("— Permissions".into());
     lines.push(format!(

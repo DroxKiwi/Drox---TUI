@@ -30,19 +30,22 @@ use crate::app::AppConfig;
 use crate::asker::{AskCoordinator, TuiUserAsker};
 use crate::view::LogEntry;
 
+struct LlmRuntimeState {
+    client: Arc<OllamaClient>,
+    model_label: String,
+}
+
 /// Runtime moteur partagé entre les tours du REPL TUI.
 pub struct EngineRuntime {
-    pub llm: Arc<OllamaClient>,
+    llm_state: parking_lot::RwLock<LlmRuntimeState>,
     pub registry: Arc<drox_tools::ToolRegistry>,
     pub workspace: Utf8PathBuf,
-    pub model_label: String,
     permission_engine: Arc<PermissionEngine>,
     mutable: Mutex<RuntimeMutable>,
     pub system_prompt: String,
-    pub memory: MemoryRuntime,
+    pub(crate) memory: parking_lot::RwLock<MemoryRuntime>,
     hooks: Mutex<Option<drox_engine::ToolHooksConfig>>,
-    pub num_ctx: usize,
-    pub max_iterations: usize,
+    max_iterations: parking_lot::RwLock<usize>,
     pub apply_fs_writes: bool,
     pub workspace_map: WorkspaceMapStore,
     pub drox_ignore: DroxIgnoreMatcher,
@@ -51,7 +54,8 @@ pub struct EngineRuntime {
     pub scope_deferred: ScopeDeferredHandle,
     pub sessions_dir: Utf8PathBuf,
     session: Mutex<SessionInfo>,
-    boot: AppConfig,
+    boot: parking_lot::RwLock<AppConfig>,
+    num_ctx: parking_lot::RwLock<usize>,
 }
 
 #[derive(Debug, Clone)]
@@ -109,11 +113,67 @@ impl EngineRuntime {
         };
         Ok(())
     }
+
+    /// Remplace le client LLM courant (prochains runs agent).
+    pub fn apply_llm_connection(
+        &self,
+        server: &str,
+        model: &str,
+        api_key: Option<&str>,
+        num_ctx: i64,
+    ) -> anyhow::Result<()> {
+        let api_key_owned = api_key.map(str::to_string);
+        let config = build_llm_config(server, model, &api_key_owned, num_ctx)?;
+        let client = Arc::new(OllamaClient::new(config).context("client LLM")?);
+        let ctx = num_ctx.max(2048) as usize;
+
+        {
+            let mut llm = self.llm_state.write();
+            llm.client = client.clone();
+            llm.model_label = model.to_string();
+        }
+        {
+            let mut memory = self.memory.write();
+            memory.llm = client;
+            memory.model_label = model.to_string();
+        }
+        {
+            let mut boot = self.boot.write();
+            boot.server = server.to_string();
+            boot.model = model.to_string();
+            boot.api_key = api_key_owned;
+            boot.num_ctx = num_ctx;
+        }
+        *self.num_ctx.write() = ctx;
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn num_ctx(&self) -> usize {
+        *self.num_ctx.read()
+    }
+
+    #[must_use]
+    pub fn max_iterations(&self) -> usize {
+        *self.max_iterations.read()
+    }
+
+    pub fn set_max_iterations(&self, value: usize) {
+        let v = value.clamp(1, 256);
+        *self.max_iterations.write() = v;
+        self.boot.write().max_iterations = v;
+    }
+
     pub async fn bootstrap(config: &AppConfig, _ask: Arc<AskCoordinator>) -> anyhow::Result<Self> {
         let workspace = resolve_workspace(Some(config.workspace.clone()))?;
         let workspace_fingerprint = workspace.as_str().to_string();
 
-        let llm_config = build_llm_config(&config.server, &config.model, &config.api_key)?;
+        let llm_config = build_llm_config(
+            &config.server,
+            &config.model,
+            &config.api_key,
+            config.num_ctx,
+        )?;
         let num_ctx = llm_config.num_ctx.max(2048) as usize;
         let llm = Arc::new(OllamaClient::new(llm_config).context("client LLM")?);
         let registry = Arc::new(default_tool_registry());
@@ -161,10 +221,12 @@ impl EngineRuntime {
         let tool_hooks = drox_engine::load_tool_hooks(&workspace);
         let plan_mode = config.plan_mode || mode == PermissionMode::Plan;
         Ok(Self {
-            llm,
+            llm_state: parking_lot::RwLock::new(LlmRuntimeState {
+                client: llm,
+                model_label: config.model.clone(),
+            }),
             registry,
             workspace,
-            model_label: config.model.clone(),
             permission_engine,
             mutable: Mutex::new(RuntimeMutable {
                 permission_mode: mode,
@@ -172,14 +234,13 @@ impl EngineRuntime {
                 pre_plan_mode: None,
             }),
             system_prompt: system,
-            memory,
+            memory: parking_lot::RwLock::new(memory),
             hooks: Mutex::new(if tool_hooks.is_enabled() {
                 Some(tool_hooks)
             } else {
                 None
             }),
-            num_ctx,
-            max_iterations: config.max_iterations,
+            max_iterations: parking_lot::RwLock::new(config.max_iterations),
             apply_fs_writes: config.apply,
             workspace_map,
             drox_ignore,
@@ -190,8 +251,19 @@ impl EngineRuntime {
                 id: session_id,
                 transcript_path,
             }),
-            boot: config.clone(),
+            boot: parking_lot::RwLock::new(config.clone()),
+            num_ctx: parking_lot::RwLock::new(num_ctx),
         })
+    }
+
+    #[must_use]
+    pub fn llm(&self) -> Arc<OllamaClient> {
+        self.llm_state.read().client.clone()
+    }
+
+    #[must_use]
+    pub fn model_label(&self) -> String {
+        self.llm_state.read().model_label.clone()
     }
 
     #[must_use]
@@ -199,8 +271,8 @@ impl EngineRuntime {
         self.hooks.lock().is_some()
     }
 
-    pub(crate) fn boot_config(&self) -> &AppConfig {
-        &self.boot
+    pub(crate) fn boot_config(&self) -> AppConfig {
+        self.boot.read().clone()
     }
 
     /// Racines pour résolution de chemins : workspace principal + `/add-dir`.
@@ -326,20 +398,20 @@ impl EngineRuntime {
         let history_len = read_transcript_line_count(&transcript_path);
         let append_from = history_len + usize::from(!self.system_prompt.is_empty());
         Agent::new(
-            self.llm.clone(),
+            self.llm(),
             self.registry.clone(),
             ctx,
             AgentConfig {
                 system_prompt: Some(self.system_prompt.clone()),
-                max_iterations: self.max_iterations,
+                max_iterations: self.max_iterations(),
                 chat_options: ChatOptions::default(),
                 permissions: Some(self.permission_policy()),
-                context: Some(ContextPolicy::for_model_context_window(self.num_ctx)),
+                context: Some(ContextPolicy::for_model_context_window(self.num_ctx())),
                 transcript: Some(TranscriptSessionConfig {
                     sink,
                     append_from_message_index: append_from,
                 }),
-                memory: Some(self.memory.clone()),
+                memory: Some(self.memory.read().clone()),
                 transcript_session_id: Some(self.session_id()),
                 workspace_fingerprint: self.workspace.as_str().to_string(),
                 max_parallel_tool_calls: DEFAULT_MAX_PARALLEL_TOOL_CALLS,
@@ -473,8 +545,14 @@ fn resolve_workspace(arg: Option<Utf8PathBuf>) -> anyhow::Result<Utf8PathBuf> {
     Utf8PathBuf::try_from(canonical).context("workspace non UTF-8")
 }
 
-fn build_llm_config(server: &str, model: &str, api_key: &Option<String>) -> anyhow::Result<LlmConfig> {
+pub(crate) fn build_llm_config(
+    server: &str,
+    model: &str,
+    api_key: &Option<String>,
+    num_ctx: i64,
+) -> anyhow::Result<LlmConfig> {
     let mut config = LlmConfig::try_from_str(server, model)?;
+    config = config.with_num_ctx(num_ctx.max(2048));
     if let Some(k) = api_key {
         config = config.with_api_key(k.clone());
     } else if let Ok(s) = std::env::var("DROX_API_KEY") {

@@ -81,12 +81,15 @@ impl EngineRuntime {
             anyhow::bail!("transcript vide — envoyez au moins un message avant /compact");
         }
 
-        let policy = ContextPolicy::for_model_context_window(self.num_ctx);
-        let config = self.memory.compaction_config.clone();
+        let policy = ContextPolicy::for_model_context_window(self.num_ctx());
+        let memory = self.memory.read();
+        let config = memory.compaction_config.clone();
+        let compaction_prompt = memory.compaction_prompt.clone();
+        drop(memory);
 
         if let Some(report) = try_live_compact(
-            self.llm.as_ref(),
-            &self.memory.compaction_prompt,
+            self.llm().as_ref(),
+            &compaction_prompt,
             &mut messages,
             &policy,
             &config,
@@ -98,8 +101,8 @@ impl EngineRuntime {
         }
 
         let preview = summarize_run(
-            self.llm.as_ref(),
-            &self.memory.compaction_prompt,
+            self.llm().as_ref(),
+            &compaction_prompt,
             &messages,
             &[],
             &CompactionConfig::default(),
@@ -145,7 +148,7 @@ impl EngineRuntime {
 
     /// Rapport d'usage contexte (`/context`) — estimation alignée moteur.
     pub async fn format_context_lines(&self) -> Vec<String> {
-        let policy = ContextPolicy::for_model_context_window(self.num_ctx);
+        let policy = ContextPolicy::for_model_context_window(self.num_ctx());
         let budget = policy.budget();
         let effective = budget.effective_window();
 
@@ -182,7 +185,7 @@ impl EngineRuntime {
         }
 
         let mut lines = vec![
-            format!("Modèle : {} · fenêtre effective ~{effective} tok", self.model_label),
+            format!("Modèle : {} · fenêtre effective ~{effective} tok", self.model_label()),
             format!("Messages : {} (transcript) + system prompt", messages.len().saturating_sub(1)),
             format!("Tokens estimés (après microcompact) : {total} / {effective} ({pct} %)"),
             format!(

@@ -4,6 +4,8 @@ use anyhow::Context;
 use camino::Utf8PathBuf;
 use clap::Parser;
 use drox_tui::{print_sessions_list, App, AppConfig};
+use std::fs::OpenOptions;
+use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Debug, Parser)]
@@ -14,13 +16,13 @@ use tracing_subscriber::EnvFilter;
 )]
 #[allow(clippy::struct_excessive_bools)]
 struct Cli {
-    /// URL du serveur LLM (Ollama par défaut).
-    #[arg(long, env = "DROX_SERVER", default_value = "http://localhost:11434")]
-    server: String,
+    /// URL du serveur LLM (sinon `/server` ou `~/.drox/tui-preferences.json`).
+    #[arg(long, env = "DROX_SERVER")]
+    server: Option<String>,
 
-    /// Modèle LLM.
-    #[arg(long, env = "DROX_MODEL", default_value = "llama3.2")]
-    model: String,
+    /// Modèle LLM (sinon choix dans `/server`).
+    #[arg(long, env = "DROX_MODEL")]
+    model: Option<String>,
 
     /// Racine workspace exposée aux tools.
     #[arg(long, env = "DROX_WORKSPACE")]
@@ -74,20 +76,38 @@ struct Cli {
     verbose: u8,
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
-    let filter = match cli.verbose {
+fn init_tracing(verbose: u8) -> anyhow::Result<PathBuf> {
+    let filter = match verbose {
         0 => "warn",
         1 => "info",
         _ => "debug",
     };
+    let log_path = dirs::home_dir()
+        .map(|h| h.join(".drox").join("tui.log"))
+        .context("home dir pour ~/.drox/tui.log")?;
+    if let Some(parent) = log_path.parent() {
+        std::fs::create_dir_all(parent).context("creation ~/.drox")?;
+    }
+    let file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .context("ouverture ~/.drox/tui.log")?;
+    // Ne jamais ecrire sur stderr pendant le TUI : ca corrompt l'ecran alternatif.
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter)),
         )
-        .with_writer(std::io::stderr)
+        .with_writer(file)
+        .with_ansi(false)
         .init();
+    Ok(log_path)
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
+    let _log_path = init_tracing(cli.verbose)?;
 
     if cli.list_sessions {
         return print_sessions_list(cli.session_dir).await;
@@ -99,8 +119,8 @@ async fn main() -> anyhow::Result<()> {
         .context("impossible de déterminer le workspace (cwd ou --workspace)")?;
 
     let config = AppConfig {
-        server: cli.server,
-        model: cli.model,
+        server: cli.server.unwrap_or_default(),
+        model: cli.model.unwrap_or_default(),
         workspace,
         apply: cli.apply,
         plan_mode: cli.plan,
@@ -109,8 +129,9 @@ async fn main() -> anyhow::Result<()> {
         ask: cli.ask,
         deny: cli.deny,
         no_settings: cli.no_settings,
-        max_iterations: cli.max_iterations,
+        max_iterations: cli.max_iterations.max(1),
         api_key: cli.api_key,
+        num_ctx: drox_tui::engine::default_num_ctx(),
         session: cli.session,
         session_dir: cli.session_dir,
     };

@@ -29,6 +29,8 @@ pub enum BindingAction {
     CancelRun,
     Quit,
     QuitConfirm,
+    AiServer,
+    Workspace,
 }
 
 impl BindingAction {
@@ -67,6 +69,8 @@ impl BindingAction {
             Self::CancelRun => "cancel_run",
             Self::Quit => "quit",
             Self::QuitConfirm => "quit_confirm",
+            Self::AiServer => "ai_server",
+            Self::Workspace => "workspace",
         }
     }
 }
@@ -180,6 +184,8 @@ fn default_bindings() -> HashMap<BindingAction, ParsedKey> {
         (BindingAction::CancelRun, "escape"),
         (BindingAction::Quit, "ctrl+q"),
         (BindingAction::QuitConfirm, "ctrl+c"),
+        (BindingAction::AiServer, "ctrl+shift+l"),
+        (BindingAction::Workspace, "ctrl+shift+w"),
     ];
     defaults
         .into_iter()
@@ -239,7 +245,7 @@ fn parse_key_spec(spec: &str) -> Option<ParsedKey> {
 }
 
 fn key_matches(parsed: &ParsedKey, event: &KeyEvent) -> bool {
-    if event.code != parsed.code {
+    if !codes_match(parsed.code, event.code) {
         return false;
     }
     if !event.modifiers.contains(parsed.modifiers) {
@@ -253,6 +259,14 @@ fn key_matches(parsed: &ParsedKey, event: &KeyEvent) -> bool {
         return false;
     }
     true
+}
+
+/// Windows envoie souvent `Char('L')` pour Ctrl+Shift+L alors que le binding est `Char('l')`.
+fn codes_match(expected: KeyCode, actual: KeyCode) -> bool {
+    match (expected, actual) {
+        (KeyCode::Char(a), KeyCode::Char(b)) => a.eq_ignore_ascii_case(&b),
+        _ => expected == actual,
+    }
 }
 
 fn file_mtime(path: &Utf8Path) -> Option<SystemTime> {
@@ -302,5 +316,18 @@ mod tests {
         let p = parse_key_spec("e").unwrap();
         let key = KeyEvent::new(KeyCode::Char('e'), KeyModifiers::CONTROL);
         assert!(!key_matches(&p, &key));
+    }
+
+    #[test]
+    fn matches_ctrl_shift_l_case_insensitive() {
+        let kb = TuiKeybindings {
+            map: default_bindings(),
+            path: Utf8PathBuf::from("."),
+            mtime: None,
+        };
+        let lower = KeyEvent::new(KeyCode::Char('l'), KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+        let upper = KeyEvent::new(KeyCode::Char('L'), KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+        assert!(kb.matches(BindingAction::AiServer, &lower));
+        assert!(kb.matches(BindingAction::AiServer, &upper));
     }
 }

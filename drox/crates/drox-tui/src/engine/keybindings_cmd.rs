@@ -29,6 +29,7 @@ pub fn format_builtin_keybindings_lines() -> Vec<String> {
         "  Ctrl+C (run)    annuler le run".into(),
         "  Ctrl+C ×2       quitter (idle)".into(),
         "  Ctrl+Q          quitter".into(),
+        "  Ctrl+Shift+L    connexion serveur IA (/server)".into(),
         format!("  Fichier config : {}", keybindings_path()),
         "  `/keybindings init` — template JSON · `/keybindings reload` — rechargement à chaud".into(),
     ]
@@ -55,7 +56,9 @@ pub fn generate_keybindings_template() -> String {
             "scroll_down": "pagedown",
             "cancel_run": "escape",
             "quit": "ctrl+q",
-            "quit_confirm": "ctrl+c"
+            "quit_confirm": "ctrl+c",
+            "ai_server": "ctrl+shift+l",
+            "workspace": "ctrl+shift+w"
         }
     });
     format!("{}\n", serde_json::to_string_pretty(&doc).unwrap_or_default())

@@ -1,0 +1,18 @@
+# Drox — chemins interdits à la lecture agent (obligatoire)
+# Syntaxe gitignore. Ne pas retirer les motifs secrets sans revue équipe.
+
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/secrets/
+**/.aws/credentials
+**/.ssh/id_*
+
+# Dumps / artefacts volumineux (adapter)
+**/*.sql
+**/*.dump
+**/backups/

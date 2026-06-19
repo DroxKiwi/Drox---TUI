@@ -9,6 +9,8 @@ pub struct SlashPaletteEntry {
 
 pub const ENTRIES: &[SlashPaletteEntry] = &[
     SlashPaletteEntry { command: "/help", description: "aide — liste des commandes" },
+    SlashPaletteEntry { command: "/server", description: "connexion IA Ollama (Ctrl+Shift+L)" },
+    SlashPaletteEntry { command: "/workspace", description: "changer workspace (Ctrl+Shift+W)" },
     SlashPaletteEntry { command: "/clear", description: "effacer le fil UI" },
     SlashPaletteEntry { command: "/status", description: "workspace, modèle, session" },
     SlashPaletteEntry { command: "/context", description: "tokens et marge contexte" },

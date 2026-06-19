@@ -9,13 +9,15 @@ use ratatui::Frame;
 use crate::app::AppState;
 
 const STEPS: &[&str] = &[
+    "Connexion IA — Ctrl+Shift+L ou `/server` : adresse Ollama, test de connexion, choix du modèle. Obligatoire avant d'envoyer un message.",
+    "Workspace — Ctrl+Shift+W ou `/workspace` : changer le dossier de travail (nouvelle session). `/add-dir` ajoute un dossier en plus pour la session.",
     "Bienvenue dans Drox TUI — REPL terminal branché sur le moteur Rust local.",
     "Workspace — vérifiez le chemin dans le header. Sans --apply, les écritures fichier sont simulées.",
     "Démarrage — /init puis /init run pour créer DROX.md et .drox/.",
     "Composer — Entrée envoie · Shift+Entrée nouvelle ligne · ! mode bash · @ fichiers.",
     "Navigation — / palette · Ctrl+F fil · Ctrl+R historique · e viewer outil.",
     "Sessions — /sessions · /resume ses_… · mémoire /search · /rewind.",
-    "Personnalisation — /theme · /color · /vim · /keybindings init.",
+    "Personnalisation — /theme · /color · /vim · /keybindings init · Ctrl+Shift+L connexion IA.",
 ];
 
 pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
