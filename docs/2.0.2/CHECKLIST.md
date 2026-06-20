@@ -25,6 +25,7 @@
 - [x] `phosphor-pulse` bordure run actif
 - [x] `modal-in` apparition modales
 - [x] `handshake` test connexion
+- [x] `boot-splash` lancement TUI (dissolve pixelisé)
 - [x] `/settings animations: off`
 
 ## i18n

@@ -156,6 +156,9 @@ impl App {
         let backend = CrosstermBackend::new(&mut stdout);
         let mut term = Terminal::new(backend).context("création terminal ratatui")?;
 
+        ui::boot_splash::play(&mut term, &self.state.palette, self.state.animations_enabled)
+            .context("animation démarrage")?;
+
         let runtime = Arc::new(
             EngineRuntime::bootstrap(&self.config, Arc::clone(&self.ask))
                 .await
