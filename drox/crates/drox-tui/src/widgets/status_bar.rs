@@ -1,7 +1,7 @@
 //! Barre de statut enrichie (modèle, git, tokens, run).
 
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
@@ -75,6 +75,7 @@ pub fn render(
         String::new()
     };
 
+    let theme_tag = state.theme.label();
     let mouse_tag = if state.mouse_enabled { "souris: on" } else { "souris: off" };
 
     let line = Line::from(vec![
@@ -85,11 +86,11 @@ pub fn render(
                 .add_modifier(Modifier::BOLD),
         ),
         Span::styled(workspace, Style::default().fg(state.palette.header_muted)),
-        Span::styled(session, Style::default().fg(Color::Magenta)),
-        Span::styled(branch, Style::default().fg(Color::Cyan)),
-        Span::styled(tokens, Style::default().fg(Color::DarkGray)),
+        Span::styled(session, Style::default().fg(state.palette.accent_bright)),
+        Span::styled(branch, Style::default().fg(state.palette.text_muted)),
+        Span::styled(tokens, Style::default().fg(state.palette.header_muted)),
         Span::styled(
-            format!(" · {permission_mode} · {run}{queue} · {elapsed} · {mouse_tag}{hint}"),
+            format!(" · {permission_mode} · {run}{queue} · {elapsed} · {theme_tag} · {mouse_tag}{hint}"),
             Style::default().fg(state.palette.status_muted),
         ),
     ]);

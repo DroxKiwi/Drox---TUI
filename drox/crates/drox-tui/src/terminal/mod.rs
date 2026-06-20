@@ -1,7 +1,9 @@
 //! Gestion du terminal brut (raw mode, alternate screen).
 
 mod title;
+mod keys;
 
+pub use keys::typed_char;
 pub use title::{clear_terminal_title, set_terminal_title};
 
 use std::io::{self, Stdout};

@@ -19,8 +19,8 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
         })
         .style(
             Style::default()
-                .fg(state.palette.text)
-                .bg(state.palette.bg),
+                .fg(state.palette.border_inactive)
+                .bg(state.palette.bg_panel),
         );
 
     let lines = state.flattened_log_lines_display();

@@ -1,7 +1,7 @@
 //! Bandeau notices sous le header (§11.4).
 
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
@@ -29,9 +29,9 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         .take(3)
         .map(|n| {
             let (prefix, color) = match n.level {
-                NoticeLevel::Warn => ("⚠ ", Color::Yellow),
-                NoticeLevel::Tip => ("💡 ", Color::Cyan),
-                NoticeLevel::Info => ("ℹ ", Color::Blue),
+                NoticeLevel::Warn => ("⚠ ", state.palette.warning),
+                NoticeLevel::Tip => ("💡 ", state.palette.accent_bright),
+                NoticeLevel::Info => ("ℹ ", state.palette.header_primary),
             };
             Line::from(vec![
                 Span::styled(prefix, Style::default().fg(color).add_modifier(Modifier::BOLD)),

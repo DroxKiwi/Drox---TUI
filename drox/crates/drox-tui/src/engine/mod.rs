@@ -24,6 +24,7 @@ pub(crate) mod paste;
 pub(crate) mod image_paste;
 pub(crate) mod llm_context;
 pub(crate) mod add_dir_cmd;
+pub(crate) mod dir_browser;
 pub(crate) mod at_refs;
 pub(crate) mod at_typeahead;
 pub(crate) mod unified_suggestions;

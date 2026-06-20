@@ -43,7 +43,9 @@ use crate::engine::at_typeahead::{self, AtFileIndex};
 use crate::engine::unified_suggestions::{
     self, preserve_cursor, ComposerSuggestionItem, SkillSuggestionEntry, SuggestionKind,
 };
-use crate::engine::preferences::{load_preferences, preferences_path, record_recent_workspace, resolve_llm_startup, save_llm_connection, llm_connection_from_config, TuiPreferences};
+use crate::engine::preferences::{load_preferences, load_preferences_detailed, preferences_path, record_recent_workspace, resolve_llm_startup, save_llm_connection, llm_connection_from_config, TuiPreferences};
+use crate::terminal::typed_char;
+use crate::ui::resolve_palette;
 use crate::engine::notices::{NoticeLevel, StatusNotice};
 use crate::terminal::set_terminal_title;
 
@@ -133,12 +135,20 @@ impl App {
     pub async fn run(&mut self) -> anyhow::Result<()> {
         env_file::load_default(Some(self.config.workspace.as_std_path()));
 
-        self.tui_prefs = crate::engine::preferences::load_preferences();
+        let loaded = load_preferences_detailed();
+        self.tui_prefs = loaded.prefs.clone();
         let llm_configured = resolve_llm_startup(&mut self.config, &self.tui_prefs);
         self.state.llm_configured = llm_configured;
 
+        self.state.theme = self.tui_prefs.theme;
+        self.state.session_accent = self.tui_prefs.session_color;
+        self.state.palette = resolve_palette(self.state.theme, self.state.session_accent);
         self.state.animations_enabled = self.tui_prefs.animations_enabled;
         self.state.mouse_enabled = self.tui_prefs.mouse_enabled;
+        if loaded.theme_migrated_to_drox {
+            self.state.status_line =
+                "Thème Drox appliqué (charte 2.0.2) — /theme pour changer".into();
+        }
 
         let _guard = terminal::setup(self.tui_prefs.mouse_enabled)
             .context("échec initialisation terminal")?;
@@ -994,7 +1004,7 @@ impl App {
             } else {
                 self.state.push_system("Aucune réponse assistant à copier.");
             }
-        } else if let KeyCode::Char(c) = key.code {
+        } else if let Some(c) = typed_char(&key) {
             if self.state.phase != AppPhase::Running {
                 if self.try_composer_special_char(c, &key)? {
                     return Ok(false);
@@ -1003,10 +1013,8 @@ impl App {
                     self.apply_vim_key(&key);
                     return Ok(false);
                 }
-                if !key.modifiers.contains(KeyModifiers::CONTROL) {
-                    self.state.composer_buffer.push(c);
-                    self.refresh_composer_suggestions();
-                }
+                self.state.composer_buffer.push(c);
+                self.refresh_composer_suggestions();
             }
         } else if key.code == KeyCode::Backspace && self.state.phase != AppPhase::Running {
             if self.vim.enabled {
@@ -2109,7 +2117,7 @@ impl App {
             .as_ref()
             .map(|r| r.workspace.to_string())
             .unwrap_or_else(|| self.config.workspace.to_string());
-        let recents = self.tui_prefs.recent_workspaces.clone();
+        let recents = vec![];
         self.state.workspace_dialog =
             Some(WorkspaceDialog::new(current, recents, initial));
         self.state.reset_modal_anim();
@@ -2132,22 +2140,18 @@ impl App {
         if dialog.step != WorkspaceStep::Edit {
             return;
         }
-        if dialog.recents.is_empty() {
-            dialog.focus = match (dialog.focus, reverse) {
-                (WorkspaceField::Path, false) => WorkspaceField::ValidateButton,
-                (WorkspaceField::ValidateButton, true) => WorkspaceField::Path,
-                _ => WorkspaceField::Path,
-            };
-            return;
-        }
         dialog.focus = match (dialog.focus, reverse) {
-            (WorkspaceField::Recents, false) => WorkspaceField::Path,
-            (WorkspaceField::Path, false) => WorkspaceField::ValidateButton,
-            (WorkspaceField::ValidateButton, false) => WorkspaceField::Recents,
-            (WorkspaceField::Recents, true) => WorkspaceField::ValidateButton,
-            (WorkspaceField::Path, true) => WorkspaceField::Recents,
-            (WorkspaceField::ValidateButton, true) => WorkspaceField::Path,
+            (WorkspaceField::Browser, false) => WorkspaceField::SelectButton,
+            (WorkspaceField::SelectButton, false) => WorkspaceField::Path,
+            (WorkspaceField::Path, false) => WorkspaceField::Browser,
+            (WorkspaceField::Browser, true) => WorkspaceField::Path,
+            (WorkspaceField::SelectButton, true) => WorkspaceField::Browser,
+            (WorkspaceField::Path, true) => WorkspaceField::SelectButton,
         };
+        if dialog.focus == WorkspaceField::Path {
+            dialog.path = dialog.location.display_path();
+            dialog.path_cursor = dialog.path.len();
+        }
     }
 
     fn validate_workspace_dialog(&mut self) {
@@ -2201,8 +2205,7 @@ impl App {
                     dialog.step = WorkspaceStep::Edit;
                     dialog.validated = None;
                     dialog.status =
-                        "Saisissez un chemin ou choisissez un récent · Entrée sur « Vérifier »"
-                            .into();
+                        "↑↓ naviguer · Entrée ouvrir · Tab · Choisir ce dossier".into();
                 }
                 KeyCode::Enter => {
                     if let Some(path) = dialog.validated.clone() {
@@ -2222,38 +2225,55 @@ impl App {
             }
             KeyCode::Tab => self.cycle_workspace_focus(false),
             KeyCode::BackTab => self.cycle_workspace_focus(true),
-            KeyCode::Up => {
-                if dialog.focus == WorkspaceField::Recents && dialog.recent_cursor > 0 {
-                    dialog.recent_cursor -= 1;
-                } else if dialog.focus == WorkspaceField::ValidateButton {
-                    self.cycle_workspace_focus(true);
-                }
+            KeyCode::Up if dialog.focus == WorkspaceField::Browser && dialog.browse_cursor > 0 => {
+                dialog.browse_cursor -= 1;
             }
-            KeyCode::Down => {
-                if dialog.focus == WorkspaceField::Recents
-                    && dialog.recent_cursor + 1 < dialog.recents.len()
-                {
-                    dialog.recent_cursor += 1;
-                } else if dialog.focus != WorkspaceField::ValidateButton {
-                    self.cycle_workspace_focus(false);
-                }
+            KeyCode::Down
+                if dialog.focus == WorkspaceField::Browser
+                    && dialog.browse_cursor + 1 < dialog.entries.len() =>
+            {
+                dialog.browse_cursor += 1;
             }
-            KeyCode::Enter if dialog.focus == WorkspaceField::ValidateButton => {
-                self.validate_workspace_dialog();
-            }
-            KeyCode::Enter if dialog.focus == WorkspaceField::Recents => {
-                if let Some(path) = dialog.recents.get(dialog.recent_cursor).cloned() {
-                    dialog.path = path;
+            KeyCode::Enter if dialog.focus == WorkspaceField::SelectButton => {
+                if dialog.location.selected_dir().is_some() {
+                    dialog.path = dialog.location.display_path();
                     dialog.path_cursor = dialog.path.len();
-                    dialog.focus = WorkspaceField::Path;
+                    self.validate_workspace_dialog();
+                } else {
+                    dialog.status =
+                        "Ouvrez un lecteur (Entrée) puis choisissez le dossier".into();
+                }
+            }
+            KeyCode::Enter
+                if dialog.focus == WorkspaceField::Browser
+                    && key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                if dialog.location.selected_dir().is_some() {
+                    dialog.path = dialog.location.display_path();
+                    dialog.path_cursor = dialog.path.len();
+                    self.validate_workspace_dialog();
+                }
+            }
+            KeyCode::Enter if dialog.focus == WorkspaceField::Browser => {
+                if let Some(entry) = dialog.entries.get(dialog.browse_cursor).cloned() {
+                    if dialog.location.enter(&entry) {
+                        dialog.reload_browser();
+                    }
                 }
             }
             KeyCode::Enter if dialog.focus == WorkspaceField::Path => {
                 self.validate_workspace_dialog();
             }
+            KeyCode::Backspace if dialog.focus == WorkspaceField::Browser => {
+                dialog.location = dialog.location.parent_location();
+                dialog.reload_browser();
+            }
             KeyCode::Left => {
                 if dialog.focus == WorkspaceField::Path && dialog.path_cursor > 0 {
                     dialog.path_cursor -= 1;
+                } else if dialog.focus == WorkspaceField::Browser {
+                    dialog.location = dialog.location.parent_location();
+                    dialog.reload_browser();
                 }
             }
             KeyCode::Right => {
@@ -2263,27 +2283,22 @@ impl App {
                     dialog.path_cursor += 1;
                 }
             }
-            KeyCode::Backspace => {
-                if dialog.focus == WorkspaceField::Path
-                    && dialog.path_cursor > 0
-                    && dialog.path_cursor <= dialog.path.len()
-                {
+            KeyCode::Backspace if dialog.focus == WorkspaceField::Path => {
+                if dialog.path_cursor > 0 && dialog.path_cursor <= dialog.path.len() {
                     dialog.path.remove(dialog.path_cursor - 1);
                     dialog.path_cursor -= 1;
                 }
             }
-            KeyCode::Delete => {
-                if dialog.focus == WorkspaceField::Path && dialog.path_cursor < dialog.path.len()
-                {
+            KeyCode::Delete if dialog.focus == WorkspaceField::Path => {
+                if dialog.path_cursor < dialog.path.len() {
                     dialog.path.remove(dialog.path_cursor);
                 }
             }
-            KeyCode::Char(c)
-                if !key.modifiers.contains(KeyModifiers::CONTROL)
-                    && dialog.focus == WorkspaceField::Path =>
-            {
-                dialog.path.insert(dialog.path_cursor, c);
-                dialog.path_cursor += 1;
+            _ if dialog.focus == WorkspaceField::Path => {
+                if let Some(c) = typed_char(&key) {
+                    dialog.path.insert(dialog.path_cursor, c);
+                    dialog.path_cursor += 1;
+                }
             }
             _ => {}
         }

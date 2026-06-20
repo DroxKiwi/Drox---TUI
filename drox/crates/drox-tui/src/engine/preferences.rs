@@ -1,5 +1,6 @@
 //! Préférences TUI persistantes (`~/.drox/tui-preferences.json`).
 
+use std::collections::HashSet;
 use std::io;
 use std::sync::Mutex;
 
@@ -11,6 +12,7 @@ use crate::ui::{SessionAccent, TuiThemeSetting};
 use super::connection_library::{
     migrate_library_from_legacy, profile_to_legacy_prefs, ConnectionLibrary,
 };
+use super::validate_workspace_path;
 
 static PREFS_PATH_OVERRIDE: Mutex<Option<Utf8PathBuf>> = Mutex::new(None);
 
@@ -90,6 +92,19 @@ pub struct TuiPreferences {
     /// Workspaces récents (`/workspace`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub recent_workspaces: Vec<String>,
+    /// Version schéma prefs UI (migrations charte 2.0.2+).
+    #[serde(default)]
+    pub ui_prefs_version: u32,
+}
+
+/// Version courante du schéma `tui-preferences.json`.
+pub const UI_PREFS_VERSION: u32 = 2;
+
+/// Résultat de chargement (migration thème éventuelle).
+pub struct LoadedPreferences {
+    pub prefs: TuiPreferences,
+    /// `dark`/`dark-ansi` migré vers `drox` à l'ouverture.
+    pub theme_migrated_to_drox: bool,
 }
 
 fn default_true() -> bool {
@@ -110,6 +125,7 @@ impl Default for TuiPreferences {
             llm_connection: None,
             connection_library: ConnectionLibrary::default(),
             recent_workspaces: Vec::new(),
+            ui_prefs_version: UI_PREFS_VERSION,
         }
     }
 }
@@ -131,7 +147,27 @@ pub fn apply_llm_prefs_to_config(config: &mut crate::app::AppConfig, prefs: &Llm
 
 /// Normalise prefs (migration bibliothèque, sync legacy ↔ profil actif).
 #[must_use]
-pub fn normalize_preferences(mut prefs: TuiPreferences) -> TuiPreferences {
+pub fn normalize_preferences(prefs: TuiPreferences) -> TuiPreferences {
+    normalize_preferences_inner(prefs).0
+}
+
+fn normalize_preferences_inner(mut prefs: TuiPreferences) -> (TuiPreferences, bool, bool) {
+    let mut theme_migrated = false;
+
+    if prefs.ui_prefs_version < UI_PREFS_VERSION {
+        if matches!(
+            prefs.theme,
+            TuiThemeSetting::Dark | TuiThemeSetting::DarkAnsi
+        ) {
+            prefs.theme = TuiThemeSetting::Drox;
+            theme_migrated = true;
+        }
+        prefs.ui_prefs_version = UI_PREFS_VERSION;
+    }
+
+    let (recents, recents_pruned) = sanitize_recent_workspaces(prefs.recent_workspaces);
+    prefs.recent_workspaces = recents;
+
     prefs.connection_library =
         migrate_library_from_legacy(prefs.connection_library.clone(), prefs.llm_connection.as_ref());
     prefs.connection_library.ensure_builtin_presets();
@@ -155,7 +191,39 @@ pub fn normalize_preferences(mut prefs: TuiPreferences) -> TuiPreferences {
         }
     }
 
-    prefs
+    (prefs, theme_migrated, recents_pruned)
+}
+
+/// Garde uniquement les répertoires existants (chemins canoniques), ordre préservé.
+#[must_use]
+pub fn usable_recent_workspaces(recents: &[String], exclude: Option<&str>) -> Vec<String> {
+    let exclude_key = exclude.and_then(|p| validate_workspace_path(p).ok().map(|c| c.to_string()));
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+    for p in recents {
+        let Ok(canonical) = validate_workspace_path(p) else {
+            continue;
+        };
+        let key = canonical.to_string();
+        if exclude_key.as_ref() == Some(&key) {
+            continue;
+        }
+        if seen.insert(key.clone()) {
+            out.push(key);
+        }
+    }
+    out.truncate(MAX_RECENT_WORKSPACES);
+    out
+}
+
+fn sanitize_recent_workspaces(recents: Vec<String>) -> (Vec<String>, bool) {
+    let cleaned = usable_recent_workspaces(&recents, None);
+    let changed = cleaned.len() != recents.len()
+        || cleaned
+            .iter()
+            .zip(recents.iter())
+            .any(|(a, b)| a != b);
+    (cleaned, changed)
 }
 
 /// Résout la connexion IA au démarrage TUI.
@@ -269,11 +337,13 @@ fn merge_with_disk(mut prefs: TuiPreferences) -> TuiPreferences {
 
 const MAX_RECENT_WORKSPACES: usize = 10;
 
-/// Enregistre un workspace dans l'historique récent.
+/// Enregistre un workspace dans l'historique récent (répertoire existant uniquement).
 pub fn record_recent_workspace(path: &str) -> anyhow::Result<()> {
+    let canonical = validate_workspace_path(path).map_err(anyhow::Error::msg)?;
+    let path_str = canonical.to_string();
     let mut prefs = load_preferences();
-    prefs.recent_workspaces.retain(|p| p != path);
-    prefs.recent_workspaces.insert(0, path.to_string());
+    prefs.recent_workspaces.retain(|p| p != &path_str);
+    prefs.recent_workspaces.insert(0, path_str);
     prefs.recent_workspaces.truncate(MAX_RECENT_WORKSPACES);
     save_preferences(&prefs)
 }
@@ -296,28 +366,44 @@ pub fn preferences_path() -> Utf8PathBuf {
 }
 
 pub fn load_preferences() -> TuiPreferences {
+    load_preferences_detailed().prefs
+}
+
+/// Charge les prefs et persiste les migrations one-shot (ex. thème Drox 2.0.2).
+#[must_use]
+pub fn load_preferences_detailed() -> LoadedPreferences {
     let path = preferences_path();
-    match std::fs::read_to_string(path.as_std_path()) {
+    let raw_prefs = match std::fs::read_to_string(path.as_std_path()) {
         Ok(raw) => match serde_json::from_str::<TuiPreferences>(&raw) {
-            Ok(prefs) => normalize_preferences(prefs),
+            Ok(prefs) => Some(prefs),
             Err(e) => {
                 tracing::warn!(
                     path = %path,
                     error = %e,
                     "tui-preferences.json illisible — valeurs par defaut"
                 );
-                TuiPreferences::default()
+                None
             }
         },
-        Err(e) if e.kind() == io::ErrorKind::NotFound => TuiPreferences::default(),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => None,
         Err(e) => {
             tracing::warn!(
                 path = %path,
                 error = %e,
                 "lecture tui-preferences.json impossible"
             );
-            TuiPreferences::default()
+            None
         }
+    };
+
+    let base = raw_prefs.unwrap_or_default();
+    let (prefs, theme_migrated, recents_pruned) = normalize_preferences_inner(base);
+    if theme_migrated || recents_pruned {
+        let _ = save_preferences(&prefs);
+    }
+    LoadedPreferences {
+        prefs,
+        theme_migrated_to_drox: theme_migrated,
     }
 }
 
@@ -440,6 +526,7 @@ pub fn persist_from_state(state: &crate::app::AppState) -> anyhow::Result<()> {
         llm_connection: existing.llm_connection.clone(),
         connection_library: existing.connection_library.clone(),
         recent_workspaces: existing.recent_workspaces.clone(),
+        ui_prefs_version: existing.ui_prefs_version.max(UI_PREFS_VERSION),
     })
 }
 
@@ -545,18 +632,46 @@ mod tests {
 
         let mut prefs = TuiPreferences::default();
         for i in 0..12 {
-            prefs.recent_workspaces.push(format!("/tmp/w{i}"));
+            let ws = dir.path().join(format!("w{i}"));
+            std::fs::create_dir_all(&ws).unwrap();
+            prefs
+                .recent_workspaces
+                .push(ws.to_string_lossy().into_owned());
         }
         save_preferences(&prefs).unwrap();
-        record_recent_workspace("/tmp/new").unwrap();
+        let new_ws = dir.path().join("new");
+        std::fs::create_dir_all(&new_ws).unwrap();
+        record_recent_workspace(new_ws.to_str().unwrap()).unwrap();
         let loaded = load_preferences();
+        let first = loaded.recent_workspaces.first().expect("recent");
         assert_eq!(
-            loaded.recent_workspaces.first().map(String::as_str),
-            Some("/tmp/new")
+            validate_workspace_path(first).expect("canonical"),
+            validate_workspace_path(new_ws.to_str().unwrap()).expect("canonical new")
         );
         assert!(loaded.recent_workspaces.len() <= MAX_RECENT_WORKSPACES);
 
         clear_preferences_path_for_tests();
+    }
+
+    #[test]
+    fn sanitize_recent_workspaces_drops_missing_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("proj");
+        std::fs::create_dir_all(&real).unwrap();
+        let real_str = real.to_string_lossy().into_owned();
+        let prefs = normalize_preferences(TuiPreferences {
+            recent_workspaces: vec![
+                "/tmp/ghost".into(),
+                real_str.clone(),
+                "/tmp/w0".into(),
+            ],
+            ..Default::default()
+        });
+        assert_eq!(prefs.recent_workspaces.len(), 1);
+        assert_eq!(
+            validate_workspace_path(&prefs.recent_workspaces[0]).expect("canonical"),
+            validate_workspace_path(&real_str).expect("canonical real")
+        );
     }
 
     #[test]
@@ -635,6 +750,27 @@ mod tests {
         let loaded = load_preferences();
         assert_eq!(loaded.llm_connection.as_ref(), Some(&conn));
         assert_eq!(loaded.theme, TuiThemeSetting::Light);
+
+        clear_preferences_path_for_tests();
+    }
+
+    #[test]
+    fn migrates_legacy_dark_theme_to_drox() {
+        let _lock = PREFS_TEST_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let path = Utf8PathBuf::from_path_buf(dir.path().join("tui-preferences.json")).unwrap();
+        set_preferences_path_for_tests(path.clone());
+
+        let legacy = r#"{"theme":"dark","onboarding_done":true}"#;
+        std::fs::write(path.as_std_path(), legacy).unwrap();
+
+        let loaded = load_preferences_detailed();
+        assert_eq!(loaded.prefs.theme, TuiThemeSetting::Drox);
+        assert!(loaded.theme_migrated_to_drox);
+        assert_eq!(loaded.prefs.ui_prefs_version, UI_PREFS_VERSION);
+
+        let on_disk = load_preferences();
+        assert_eq!(on_disk.theme, TuiThemeSetting::Drox);
 
         clear_preferences_path_for_tests();
     }

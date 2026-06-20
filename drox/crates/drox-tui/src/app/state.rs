@@ -752,18 +752,19 @@ pub enum WorkspaceStep {
 /// Focus clavier dans le modal workspace.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkspaceField {
-    Recents,
+    Browser,
+    SelectButton,
     Path,
-    ValidateButton,
 }
 
 /// Modal changement workspace (`/workspace`, Ctrl+Shift+W).
 #[derive(Debug, Clone)]
 pub struct WorkspaceDialog {
+    pub location: crate::engine::dir_browser::BrowseLocation,
+    pub entries: Vec<crate::engine::dir_browser::BrowseEntry>,
+    pub browse_cursor: usize,
     pub path: String,
     pub path_cursor: usize,
-    pub recents: Vec<String>,
-    pub recent_cursor: usize,
     pub focus: WorkspaceField,
     pub step: WorkspaceStep,
     pub status: String,
@@ -772,23 +773,40 @@ pub struct WorkspaceDialog {
 
 impl WorkspaceDialog {
     #[must_use]
-    pub fn new(current_path: String, recents: Vec<String>, initial: Option<String>) -> Self {
-        let path = initial.unwrap_or(current_path);
-        let path_cursor = path.len();
-        let focus = if recents.is_empty() {
-            WorkspaceField::Path
-        } else {
-            WorkspaceField::Recents
-        };
+    pub fn new(current_path: String, _recents: Vec<String>, initial: Option<String>) -> Self {
+        use crate::engine::dir_browser::{list_location, BrowseEntryKind, BrowseLocation};
+
+        let hint = initial.unwrap_or(current_path);
+        let location = BrowseLocation::from_hint(&hint);
+        let entries = list_location(&location);
+        let browse_cursor = entries
+            .iter()
+            .position(|e| e.kind != BrowseEntryKind::Parent)
+            .unwrap_or(0);
+        let path = location.display_path();
         Self {
-            path,
-            path_cursor,
-            recents,
-            recent_cursor: 0,
-            focus,
+            location,
+            entries,
+            browse_cursor,
+            path: path.clone(),
+            path_cursor: path.len(),
+            focus: WorkspaceField::Browser,
             step: WorkspaceStep::Edit,
-            status: "Saisissez un chemin ou choisissez un récent · Entrée sur « Vérifier »".into(),
+            status: "↑↓ naviguer · Entrée ouvrir · Tab · Choisir ce dossier".into(),
             validated: None,
+        }
+    }
+
+    pub fn reload_browser(&mut self) {
+        use crate::engine::dir_browser::list_location;
+
+        self.entries = list_location(&self.location);
+        if self.browse_cursor >= self.entries.len() {
+            self.browse_cursor = self.entries.len().saturating_sub(1);
+        }
+        if self.focus != WorkspaceField::Path {
+            self.path = self.location.display_path();
+            self.path_cursor = self.path.len();
         }
     }
 }
