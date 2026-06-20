@@ -5,9 +5,9 @@
 - [x] Thème `drox` défaut — palette noir / vert phosphore
 - [x] Variante `drox-ansi` 16 couleurs
 - [x] Doc normative portable — [docs/THEME.md](../THEME.md)
-- [ ] Header statut connexion (pastille)
-- [ ] Cadres modales style Pip-Boy (coins arrondis simulés)
-- [ ] Composer : curseur block + bordure pulse
+- [x] Header statut connexion (pastille)
+- [x] Cadres modales style Pip-Boy (coins arrondis)
+- [x] Composer : curseur block + bordure pulse
 
 ## Souris
 
@@ -21,11 +21,11 @@
 
 ## Animations
 
-- [ ] `cursor-blink` composer
-- [ ] `phosphor-pulse` bordure run actif
-- [ ] `modal-in` apparition modales
-- [ ] `handshake` test connexion
-- [ ] `/settings animations: off`
+- [x] `cursor-blink` composer
+- [x] `phosphor-pulse` bordure run actif
+- [x] `modal-in` apparition modales
+- [x] `handshake` test connexion
+- [x] `/settings animations: off`
 
 ## i18n
 

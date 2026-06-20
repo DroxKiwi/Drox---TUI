@@ -20,6 +20,7 @@ pub mod course_panel;
 pub mod theme_picker;
 pub mod mcp_panel;
 pub mod workspace_dialog;
+pub mod modal_frame;
 pub mod onboarding;
 pub mod toast;
 pub mod todo_panel;

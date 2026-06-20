@@ -3,7 +3,7 @@
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::{
@@ -12,6 +12,8 @@ use crate::app::{
 };
 use crate::engine::{preset_label, CONTEXT_CUSTOM_INDEX, CONTEXT_PRESETS};
 use crate::ui::ThemePalette;
+use crate::ui::animation;
+use crate::widgets::modal_frame;
 
 fn field_line(
     palette: &ThemePalette,
@@ -299,6 +301,18 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
                 dialog.configure_focus == ConfigureField::BackButton
                     && dialog.step == AiServerStep::ConfigureConnection,
             ));
+            if testing {
+                lines.push(Line::from(""));
+                let bar = animation::handshake_bar(
+                    state.ui_frame_tick,
+                    14,
+                    state.animations_enabled,
+                );
+                lines.push(Line::from(Span::styled(
+                    bar,
+                    Style::default().fg(p.warning),
+                )));
+            }
         }
         AiServerStep::SelectModel => {
             lines.push(Line::from(Span::styled(
@@ -399,16 +413,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 
     frame.render_widget(
         Paragraph::new(lines)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" /server · Ctrl+Shift+L ")
-                    .style(
-                        Style::default()
-                            .fg(p.border)
-                            .bg(p.bg_panel),
-                    ),
-            )
+            .block(modal_frame::pip_boy_block_animated(
+                "/server · Ctrl+Shift+L",
+                p,
+                state.modal_anim_tick,
+                state.animations_enabled,
+            ))
             .wrap(Wrap { trim: true })
             .alignment(Alignment::Left),
         popup,

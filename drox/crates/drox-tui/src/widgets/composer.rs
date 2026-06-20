@@ -8,6 +8,7 @@ use ratatui::Frame;
 
 use crate::app::{AppPhase, AppState, ComposerMode};
 use crate::engine::VimComposer;
+use crate::ui::animation;
 use crate::widgets::{composer_footer, prompt_modal};
 
 pub fn render(
@@ -36,6 +37,13 @@ pub fn render(
         state.palette.composer_border_blocked
     } else if state.composer_mode == ComposerMode::Bash {
         state.palette.warning
+    } else if state.phase == AppPhase::Running {
+        animation::phosphor_pulse(
+            state.palette.composer_border,
+            state.palette.accent_glow,
+            state.ui_frame_tick,
+            state.animations_enabled,
+        )
     } else {
         state.palette.composer_border
     };
@@ -120,19 +128,25 @@ fn render_input_line(
     }
 
     let cursor = vim.cursor.index;
+    let blink = animation::cursor_visible(state.ui_frame_tick, state.animations_enabled);
     let chars: Vec<char> = display.chars().collect();
     let mut spans = Vec::new();
     for (i, ch) in chars.iter().enumerate() {
         let mut s = *style;
-        if i == cursor {
-            s = s.add_modifier(Modifier::REVERSED);
+        if i == cursor && blink {
+            s = Style::default()
+                .fg(state.palette.selection_fg)
+                .bg(state.palette.accent_glow)
+                .add_modifier(Modifier::BOLD);
         }
         spans.push(Span::styled(ch.to_string(), s));
     }
-    if cursor == chars.len() {
+    if cursor == chars.len() && blink {
         spans.push(Span::styled(
-            " ",
-            style.add_modifier(Modifier::REVERSED),
+            "▌",
+            Style::default()
+                .fg(state.palette.accent_glow)
+                .add_modifier(Modifier::BOLD),
         ));
     }
     Paragraph::new(Line::from(spans)).wrap(Wrap { trim: false })

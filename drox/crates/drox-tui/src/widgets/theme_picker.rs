@@ -3,11 +3,12 @@
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::AppState;
 use crate::ui::TuiThemeSetting;
+use crate::widgets::modal_frame;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let Some(dialog) = state.theme_dialog.as_ref() else {
@@ -55,16 +56,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     )));
 
     let paragraph = Paragraph::new(lines)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(" /theme ")
-                .style(
-                    Style::default()
-                        .fg(state.palette.border)
-                        .bg(state.palette.bg_panel),
-                ),
-        )
+        .block(modal_frame::pip_boy_block_animated(
+            "/theme",
+            &state.palette,
+            state.modal_anim_tick,
+            state.animations_enabled,
+        ))
         .wrap(Wrap { trim: true })
         .alignment(Alignment::Left);
 

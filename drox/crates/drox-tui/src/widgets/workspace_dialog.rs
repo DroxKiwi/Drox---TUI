@@ -3,10 +3,11 @@
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::{AppState, WorkspaceField, WorkspaceStep};
+use crate::widgets::modal_frame;
 
 fn field_line(label: &str, value: &str, cursor: usize, focused: bool) -> Line<'static> {
     let display = value.to_string();
@@ -152,12 +153,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 
     frame.render_widget(
         Paragraph::new(lines)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" /workspace - Ctrl+Shift+W ")
-                    .style(Style::default().fg(state.palette.border)),
-            )
+            .block(modal_frame::pip_boy_block_animated(
+                "/workspace · Ctrl+Shift+W",
+                &state.palette,
+                state.modal_anim_tick,
+                state.animations_enabled,
+            ))
             .wrap(Wrap { trim: true })
             .alignment(Alignment::Left),
         popup,

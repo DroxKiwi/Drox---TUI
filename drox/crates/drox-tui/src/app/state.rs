@@ -86,6 +86,23 @@ pub enum AppPhase {
     Workspace,
 }
 
+impl AppPhase {
+    #[must_use]
+    pub const fn is_modal(self) -> bool {
+        matches!(
+            self,
+            Self::Prompt
+                | Self::Rewind
+                | Self::Theme
+                | Self::SlashPalette
+                | Self::Copy
+                | Self::Onboarding
+                | Self::AiServer
+                | Self::Workspace
+        )
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ComposerMode {
     #[default]
@@ -887,6 +904,10 @@ pub struct AppState {
     pub scroll_viewer: Option<ScrollViewerState>,
     /// Compteur frame pour spinner bash.
     pub ui_frame_tick: u8,
+    /// Animation entrée modale (0–4).
+    pub modal_anim_tick: u8,
+    /// Animations UI (cursor-blink, pulse, modal-in).
+    pub animations_enabled: bool,
     /// Permissions/questions encore en file (hors modal courante).
     pub permission_queue_waiting: usize,
     /// Titre affichable (`ses_*.meta.json` ou id session).
@@ -1014,6 +1035,8 @@ impl AppState {
             hook_progress: None,
             scroll_viewer: None,
             ui_frame_tick: 0,
+            modal_anim_tick: 0,
+            animations_enabled: prefs.animations_enabled,
             permission_queue_waiting: 0,
             session_title: String::new(),
             run_started: None,
@@ -1025,6 +1048,20 @@ impl AppState {
             composer_buffer: String::new(),
             last_run: RunStatus::None,
             llm_configured: false,
+        }
+    }
+
+    pub fn reset_modal_anim(&mut self) {
+        self.modal_anim_tick = 0;
+    }
+
+    pub fn tick_modal_anim(&mut self) {
+        if self.phase.is_modal() {
+            if self.modal_anim_tick < 4 {
+                self.modal_anim_tick = self.modal_anim_tick.saturating_add(1);
+            }
+        } else {
+            self.modal_anim_tick = 0;
         }
     }
 

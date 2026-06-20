@@ -1,12 +1,13 @@
 //! Modal question / permission (outil `ask_user_question` ou gate Ask).
 
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::{AppPhase, AppState};
+use crate::widgets::modal_frame;
 use crate::view::{
     bash_kind_color, bash_kind_label, preview_body_line_count, PermissionPreview,
     PermissionPreviewBody,
@@ -66,11 +67,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     } else {
         " Question ".to_string()
     };
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(title)
-        .title_alignment(Alignment::Center)
-        .style(Style::default().fg(Color::Magenta));
+    let block = modal_frame::pip_boy_block_animated(
+        title.trim(),
+        &state.palette,
+        state.modal_anim_tick,
+        state.animations_enabled,
+    );
 
     let inner = block.inner(popup);
     frame.render_widget(block, popup);

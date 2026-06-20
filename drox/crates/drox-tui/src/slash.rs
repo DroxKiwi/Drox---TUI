@@ -91,6 +91,8 @@ pub enum SlashOutcome {
     Statusline,
     /// Réglages TUI (`~/.drox/tui-preferences.json`).
     Settings,
+    /// Bascule animations UI.
+    SettingsAnimations { enabled: bool },
     /// Modal connexion serveur IA.
     AiServer,
     /// Modal changement workspace.
@@ -422,7 +424,15 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
                 SlashOutcome::Statusline
             }
         }
-        "/settings" => SlashOutcome::Settings,
+        "/settings" => match parts.as_slice() {
+            [_, "animations", "off" | "false" | "0"] => SlashOutcome::SettingsAnimations {
+                enabled: false,
+            },
+            [_, "animations", "on" | "true" | "1"] | [_, "animations"] => {
+                SlashOutcome::SettingsAnimations { enabled: true }
+            }
+            _ => SlashOutcome::Settings,
+        },
         "/onboarding" => SlashOutcome::Onboarding,
         _ => {
             state.push_system(format!("Commande inconnue : {cmd}. {HELP}"));

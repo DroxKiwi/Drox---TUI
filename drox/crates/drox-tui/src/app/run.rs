@@ -219,6 +219,7 @@ impl App {
                 self.status_tick = 0;
             }
             self.state.ui_frame_tick = self.state.ui_frame_tick.wrapping_add(1);
+            self.state.tick_modal_anim();
             self.state.clear_expired_toast();
             if let Some(ref bash) = self.state.active_bash {
                 self.state.status_line = bash_progress::status_hint(bash);
@@ -455,6 +456,7 @@ impl App {
             body_scroll: 0,
         };
         self.state.phase = AppPhase::Prompt;
+        self.state.reset_modal_anim();
         self.state.pending_ask = true;
         self.state.prompt = Some(dialog);
         self.pending_reply = Some(pending);
@@ -1191,6 +1193,7 @@ impl App {
                     .position(|t| *t == self.state.theme)
                     .unwrap_or(0);
                 self.state.theme_dialog = Some(ThemeDialog { cursor });
+                self.state.reset_modal_anim();
                 self.state.phase = AppPhase::Theme;
                 self.state.status_line = "/theme — choisir un thème".into();
             }
@@ -1226,8 +1229,26 @@ impl App {
                     self.state.push_system(line);
                 }
             }
+            SlashOutcome::SettingsAnimations { enabled } => {
+                self.state.animations_enabled = enabled;
+                self.tui_prefs.animations_enabled = enabled;
+                let mut prefs = crate::engine::preferences::load_preferences();
+                prefs.animations_enabled = enabled;
+                if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
+                    self.state.push_system(format!(
+                        "Animations {} (échec persistance : {e})",
+                        if enabled { "activées" } else { "désactivées" }
+                    ));
+                } else {
+                    self.state.push_system(format!(
+                        "Animations UI {}",
+                        if enabled { "activées" } else { "désactivées" }
+                    ));
+                }
+            }
             SlashOutcome::Onboarding => {
                 self.state.onboarding = Some(OnboardingDialog::default());
+                self.state.reset_modal_anim();
                 self.state.phase = AppPhase::Onboarding;
             }
             SlashOutcome::AiServer => {
@@ -2041,6 +2062,7 @@ impl App {
         );
         let needs_model_refresh = dialog.step == AiServerStep::SelectModel && dialog.models.is_empty();
         self.state.ai_server = Some(dialog);
+        self.state.reset_modal_anim();
         self.state.phase = AppPhase::AiServer;
         self.state.status_line = "/server — assistant connexion IA (Ctrl+Shift+L)".into();
         if needs_model_refresh {
@@ -2080,6 +2102,7 @@ impl App {
         let recents = self.tui_prefs.recent_workspaces.clone();
         self.state.workspace_dialog =
             Some(WorkspaceDialog::new(current, recents, initial));
+        self.state.reset_modal_anim();
         self.state.phase = AppPhase::Workspace;
         self.state.status_line =
             "/workspace — changer le répertoire de travail (Ctrl+Shift+W)".into();
@@ -2906,6 +2929,7 @@ impl App {
             matches,
             cursor: 0,
         });
+        self.state.reset_modal_anim();
         self.state.phase = AppPhase::SlashPalette;
         self.state.status_line = "Palette slash — /".into();
     }

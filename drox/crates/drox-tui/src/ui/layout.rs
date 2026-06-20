@@ -168,6 +168,13 @@ fn draw_header(
     } else {
         permission_mode.to_string()
     };
+    let (pill_sym, pill_label, pill_color) = if !state.llm_configured {
+        ("○", "NON CONFIG", state.palette.error)
+    } else if plan_mode {
+        ("●", "PLAN", state.palette.warning)
+    } else {
+        ("●", "CONNECTE", state.palette.accent_glow)
+    };
     let line = Line::from(vec![
         Span::styled(
             model,
@@ -183,7 +190,13 @@ fn draw_header(
             format!(" · {workspace}"),
             Style::default().fg(state.palette.header_muted),
         ),
-        Span::raw(" · Ctrl+Q quitter"),
+        Span::raw(" · Ctrl+Q quitter · "),
+        Span::styled(
+            format!("[{pill_sym}] {pill_label}"),
+            Style::default()
+                .fg(pill_color)
+                .add_modifier(Modifier::BOLD),
+        ),
     ]);
     let paragraph = Paragraph::new(line).block(
         Block::default()
