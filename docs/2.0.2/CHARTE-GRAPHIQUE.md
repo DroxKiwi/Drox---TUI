@@ -54,19 +54,19 @@ flowchart LR
 - **Contraste WCAG** — viser ratio ≥ 4.5:1 entre `phosphor-primary` et `bg-deep` (ajuster si besoin sur terminaux 16 couleurs).
 - **Fallback ANSI** — variante `drox-ansi` : Green + Black pour terminaux sans truecolor.
 
-### 2.3 Mapping ratatui (implémentation future)
+### 2.3 Mapping ratatui
 
-Nouveau variant `TuiThemeSetting::Drox` dans `theme.rs`, palette dédiée `DroxPalette` :
+Implémenté dans `theme.rs` — voir **[THEME.md](../THEME.md)** (document normatif portable).
 
 | Composant UI | Couleurs |
 |---|---|
 | Header | `phosphor-primary` / `phosphor-dim` |
-| Bordures inactives | `phosphor-dim` à 50 % |
-| Bordures focus | `phosphor-bright` + animation pulse légère |
-| Composer | bordure `phosphor-glow` quand actif ; `phosphor-dim` quand bloqué (run en cours) |
+| Bordures inactives | `phosphor-dim` |
+| Bordures focus | `phosphor-bright` |
+| Composer | bordure `phosphor-glow` actif ; `phosphor-dim` bloqué |
 | Fil assistant | texte `phosphor-primary` ; code blocks fond `bg-panel` |
-| Outils / phases | badges `phosphor-dim` ; phase active `phosphor-bright` |
-| Status line | `phosphor-dim` ; tokens/durée en `phosphor-primary` |
+| Modales | fond `bg-panel`, sélection `phosphor-bright` |
+| Status line | `phosphor-dim` ; tokens en `phosphor-primary` |
 
 `/color` (accent session) reste disponible mais **désactivé ou limité** en thème Drox strict (option : teinte légère du phosphore uniquement).
 

@@ -2,10 +2,11 @@
 
 ## Charte graphique
 
-- [ ] Thème `drox` défaut — palette noir / vert phosphore
-- [ ] Variante `drox-ansi` 16 couleurs
+- [x] Thème `drox` défaut — palette noir / vert phosphore
+- [x] Variante `drox-ansi` 16 couleurs
+- [x] Doc normative portable — [docs/THEME.md](../THEME.md)
 - [ ] Header statut connexion (pastille)
-- [ ] Cadres modales style Pip-Boy
+- [ ] Cadres modales style Pip-Boy (coins arrondis simulés)
 - [ ] Composer : curseur block + bordure pulse
 
 ## Souris
@@ -42,7 +43,7 @@
 - [x] Migration prefs 2.0.1
 - [x] Modal `/server` refonte (assistant 3 étapes + persistance connexion validée)
 - [x] Test connexion par profil
-- [ ] Charte Drox sur modal `/server`
+- [x] Charte Drox — thème de base + modal `/server`
 
 ## Non-régression
 

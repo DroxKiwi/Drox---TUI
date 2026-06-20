@@ -33,6 +33,7 @@ flowchart TB
 
 | Document | Rôle |
 |---|---|
+| [**THEME.md**](../THEME.md) | **Design system portable** — tokens couleur, sémantique, composants, implémentation multi-plateforme |
 | [**CHARTE-GRAPHIQUE.md**](CHARTE-GRAPHIQUE.md) | **Charte visuelle et UX** — couleurs, typographie, références Quake 2 / Pip-Boy / CRT 80s, souris, animations |
 | [PLAN-I18N.md](PLAN-I18N.md) | Internationalisation FR/EN, choix utilisateur, architecture strings |
 | [PLAN-CONNEXIONS-LLM.md](PLAN-CONNEXIONS-LLM.md) | Bibliothèque de profils LLM (Ollama cloud/local, vLLM, custom headers) |

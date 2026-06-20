@@ -93,7 +93,7 @@ fn default_true() -> bool {
 impl Default for TuiPreferences {
     fn default() -> Self {
         Self {
-            theme: TuiThemeSetting::Dark,
+            theme: TuiThemeSetting::default(),
             session_color: None,
             terminal_title_from_rename: true,
             copy_full_response: false,
@@ -439,7 +439,7 @@ mod tests {
     fn default_preferences_json() {
         let prefs = TuiPreferences::default();
         let json = serde_json::to_string(&prefs).unwrap();
-        assert!(json.contains("dark"));
+        assert!(json.contains("drox"));
     }
 
     #[test]

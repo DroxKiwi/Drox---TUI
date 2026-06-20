@@ -1,7 +1,7 @@
 ﻿//! Modal connexion serveur IA (`/server`) — assistant 3 étapes.
 
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::Frame;
@@ -11,16 +11,25 @@ use crate::app::{
     PersonalEngineChoice,
 };
 use crate::engine::{preset_label, CONTEXT_CUSTOM_INDEX, CONTEXT_PRESETS};
+use crate::ui::ThemePalette;
 
-fn field_line(label: &str, value: &str, cursor: usize, focused: bool, secret: bool) -> Line<'static> {
+fn field_line(
+    palette: &ThemePalette,
+    label: &str,
+    value: &str,
+    cursor: usize,
+    focused: bool,
+    secret: bool,
+) -> Line<'static> {
     let display = if secret && !value.is_empty() {
         "*".repeat(value.len())
     } else {
         value.to_string()
     };
-    let mut spans = vec![
-        Span::styled(format!("{label}: "), Style::default().fg(Color::DarkGray)),
-    ];
+    let mut spans = vec![Span::styled(
+        format!("{label}: "),
+        Style::default().fg(palette.header_muted),
+    )];
     if focused {
         let before = display.get(..cursor.min(display.len())).unwrap_or("");
         let at = display
@@ -29,74 +38,86 @@ fn field_line(label: &str, value: &str, cursor: usize, focused: bool, secret: bo
             .map(|c| c.to_string())
             .unwrap_or_else(|| " ".into());
         let after = display.get(cursor.saturating_add(at.len())..).unwrap_or("");
-        spans.push(Span::styled(before.to_string(), Style::default().fg(Color::White)));
+        spans.push(Span::styled(
+            before.to_string(),
+            Style::default().fg(palette.text),
+        ));
         spans.push(Span::styled(
             at,
             Style::default()
-                .fg(Color::Black)
-                .bg(Color::Cyan)
+                .fg(palette.selection_fg)
+                .bg(palette.selection_bg)
                 .add_modifier(Modifier::BOLD),
         ));
-        spans.push(Span::styled(after.to_string(), Style::default().fg(Color::White)));
+        spans.push(Span::styled(
+            after.to_string(),
+            Style::default().fg(palette.text),
+        ));
     } else {
-        spans.push(Span::styled(display, Style::default().fg(Color::Gray)));
+        spans.push(Span::styled(
+            display,
+            Style::default().fg(palette.text_muted),
+        ));
     }
     Line::from(spans)
 }
 
-fn list_line(label: &str, selected: bool, accent: Color) -> Line<'static> {
+fn list_line(palette: &ThemePalette, label: &str, selected: bool) -> Line<'static> {
     let marker = if selected { ">" } else { " " };
     let style = if selected {
         Style::default()
-            .fg(Color::Black)
-            .bg(accent)
+            .fg(palette.selection_fg)
+            .bg(palette.accent_bright)
             .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(Color::Gray)
+        Style::default().fg(palette.text_muted)
     };
     Line::from(Span::styled(format!(" {marker} {label} "), style))
 }
 
-fn button_line(label: &str, focused: bool, accent: Color) -> Line<'static> {
+fn button_line(palette: &ThemePalette, label: &str, focused: bool) -> Line<'static> {
     let style = if focused {
         Style::default()
-            .fg(Color::Black)
-            .bg(accent)
+            .fg(palette.selection_fg)
+            .bg(palette.accent_bright)
             .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(Color::Gray)
+        Style::default().fg(palette.text_muted)
     };
     Line::from(Span::styled(format!(" {label} "), style))
 }
 
-fn auth_type_line(auth: AuthTypeChoice, focused: bool, accent: Color) -> Line<'static> {
+fn auth_type_line(palette: &ThemePalette, auth: AuthTypeChoice, focused: bool) -> Line<'static> {
     let value = auth.label();
-    let mut spans = vec![Span::styled("Auth: ", Style::default().fg(Color::DarkGray))];
+    let mut spans = vec![Span::styled(
+        "Auth: ",
+        Style::default().fg(palette.header_muted),
+    )];
     if focused {
         spans.push(Span::styled(
             value.to_string(),
             Style::default()
-                .fg(Color::Black)
-                .bg(accent)
+                .fg(palette.selection_fg)
+                .bg(palette.accent_bright)
                 .add_modifier(Modifier::BOLD),
         ));
         spans.push(Span::styled(
             "  <-/->",
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(palette.header_muted),
         ));
     } else {
-        spans.push(Span::styled(value.to_string(), Style::default().fg(Color::Gray)));
+        spans.push(Span::styled(
+            value.to_string(),
+            Style::default().fg(palette.text_muted),
+        ));
     }
     Line::from(spans)
 }
 
-fn context_line(
-    dialog: &crate::app::AiServerDialog,
-    focused: bool,
-    accent: Color,
-) -> Line<'static> {
+fn context_line(palette: &ThemePalette, dialog: &crate::app::AiServerDialog, focused: bool) -> Line<'static> {
     if dialog.context_preset_index == CONTEXT_CUSTOM_INDEX {
         return field_line(
+            palette,
             "Context max",
             &dialog.context_custom,
             dialog.context_custom_cursor,
@@ -109,22 +130,25 @@ fn context_line(
     let value = format!("{preset} ({tokens} tokens)");
     let mut spans = vec![Span::styled(
         "Context max: ",
-        Style::default().fg(Color::DarkGray),
+        Style::default().fg(palette.header_muted),
     )];
     if focused {
         spans.push(Span::styled(
             value,
             Style::default()
-                .fg(Color::Black)
-                .bg(accent)
+                .fg(palette.selection_fg)
+                .bg(palette.accent_bright)
                 .add_modifier(Modifier::BOLD),
         ));
         spans.push(Span::styled(
             "  <-/->",
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(palette.header_muted),
         ));
     } else {
-        spans.push(Span::styled(value, Style::default().fg(Color::Gray)));
+        spans.push(Span::styled(
+            value,
+            Style::default().fg(palette.text_muted),
+        ));
     }
     Line::from(spans)
 }
@@ -153,15 +177,17 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let popup = Rect::new(x, y, popup_w, popup_h);
     frame.render_widget(Clear, popup);
 
-    let accent = state.palette.header_primary;
+    let p = &state.palette;
     let mut lines = vec![
         Line::from(Span::styled(
-            "Connexion serveur IA",
-            Style::default().fg(accent).add_modifier(Modifier::BOLD),
+            "CONNEXION SERVEUR IA",
+            Style::default()
+                .fg(p.header_primary)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             step_title(dialog.step),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(p.header_muted),
         )),
         Line::from(""),
     ];
@@ -169,21 +195,22 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     match dialog.step {
         AiServerStep::ChooseDeployment => {
             for (i, kind) in DeploymentKind::ALL.iter().enumerate() {
-                lines.push(list_line(kind.label(), i == dialog.list_cursor, accent));
+                lines.push(list_line(p, kind.label(), i == dialog.list_cursor));
             }
         }
         AiServerStep::ChoosePersonalEngine => {
             for (i, engine) in PersonalEngineChoice::ALL.iter().enumerate() {
-                lines.push(list_line(engine.label(), i == dialog.list_cursor, accent));
+                lines.push(list_line(p, engine.label(), i == dialog.list_cursor));
             }
         }
         AiServerStep::ChooseCloudProvider => {
             for (i, provider) in crate::app::CloudProviderChoice::ALL.iter().enumerate() {
-                lines.push(list_line(provider.label(), i == dialog.list_cursor, accent));
+                lines.push(list_line(p, provider.label(), i == dialog.list_cursor));
             }
         }
         AiServerStep::ConfigureConnection | AiServerStep::Testing => {
             lines.push(field_line(
+                p,
                 "URL",
                 &dialog.server,
                 dialog.server_cursor,
@@ -192,13 +219,14 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
                 false,
             ));
             lines.push(auth_type_line(
+                p,
                 dialog.auth_type,
                 dialog.configure_focus == ConfigureField::AuthType
                     && dialog.step == AiServerStep::ConfigureConnection,
-                accent,
             ));
             if dialog.auth_type == AuthTypeChoice::ApiKeyHeader {
                 lines.push(field_line(
+                    p,
                     "Nom header",
                     &dialog.auth_header_name,
                     dialog.auth_header_name_cursor,
@@ -209,6 +237,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             }
             if dialog.auth_type != AuthTypeChoice::None {
                 lines.push(field_line(
+                    p,
                     "Token / cle",
                     &dialog.auth_token,
                     dialog.auth_token_cursor,
@@ -220,16 +249,17 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             if !dialog.extra_headers.is_empty() {
                 lines.push(Line::from(Span::styled(
                     "Headers supplementaires:",
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(p.header_muted),
                 )));
                 for (name, _) in &dialog.extra_headers {
                     lines.push(Line::from(Span::styled(
                         format!("  · {name}"),
-                        Style::default().fg(Color::Gray),
+                        Style::default().fg(p.text_muted),
                     )));
                 }
             }
             lines.push(field_line(
+                p,
                 "Header + nom",
                 &dialog.extra_header_name,
                 dialog.extra_header_name_cursor,
@@ -238,6 +268,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
                 false,
             ));
             lines.push(field_line(
+                p,
                 "Header + valeur",
                 &dialog.extra_header_value,
                 dialog.extra_header_value_cursor,
@@ -246,33 +277,33 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
                 false,
             ));
             lines.push(button_line(
+                p,
                 "[+] Ajouter header",
                 dialog.configure_focus == ConfigureField::AddExtraHeader
                     && dialog.step == AiServerStep::ConfigureConnection,
-                accent,
             ));
             lines.push(Line::from(""));
             let testing = dialog.step == AiServerStep::Testing;
             lines.push(button_line(
+                p,
                 if testing {
                     " Tester connexion… "
                 } else {
                     " Tester connexion "
                 },
                 dialog.configure_focus == ConfigureField::TestButton && !testing,
-                accent,
             ));
             lines.push(button_line(
+                p,
                 " <- Retour ",
                 dialog.configure_focus == ConfigureField::BackButton
                     && dialog.step == AiServerStep::ConfigureConnection,
-                accent,
             ));
         }
         AiServerStep::SelectModel => {
             lines.push(Line::from(Span::styled(
                 "Modeles disponibles",
-                Style::default().fg(accent),
+                Style::default().fg(p.header_primary),
             )));
             lines.push(Line::from(""));
             let max = dialog.models.len().min(8);
@@ -281,25 +312,26 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             for (i, name) in dialog.models[start..end].iter().enumerate() {
                 let idx = start + i;
                 lines.push(list_line(
+                    p,
                     name,
                     idx == dialog.model_cursor
                         && dialog.select_focus == AiServerSelectFocus::ModelList,
-                    accent,
                 ));
             }
             if dialog.models.len() > max {
                 lines.push(Line::from(Span::styled(
                     format!("… {} modele(s) au total", dialog.models.len()),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(p.header_muted),
                 )));
             }
             lines.push(Line::from(""));
             lines.push(context_line(
+                p,
                 dialog,
                 dialog.select_focus == AiServerSelectFocus::NumCtx,
-                accent,
             ));
             lines.push(field_line(
+                p,
                 "Max iterations",
                 &dialog.max_iterations,
                 dialog.max_iterations_cursor,
@@ -308,39 +340,41 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             ));
             lines.push(Line::from(""));
             lines.push(button_line(
+                p,
                 " Nouvelle configuration ",
                 dialog.select_focus == AiServerSelectFocus::ResetWizard,
-                accent,
             ));
         }
         AiServerStep::ConfirmReset => {
             lines.push(Line::from(Span::styled(
                 "Recommencer la configuration ?",
-                Style::default().fg(accent).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(p.header_primary)
+                    .add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "L'assistant repartira de l'etape 1 (perso ou cloud).",
-                Style::default().fg(Color::Gray),
+                Style::default().fg(p.text_muted),
             )));
             lines.push(Line::from(Span::styled(
                 "La connexion actuelle reste active tant que la nouvelle n'est pas validee.",
-                Style::default().fg(Color::Yellow),
+                Style::default().fg(p.warning),
             )));
             lines.push(Line::from(""));
-            lines.push(button_line(" Confirmer ", true, accent));
-            lines.push(button_line(" <- Annuler (Esc) ", false, accent));
+            lines.push(button_line(p, " Confirmer ", true));
+            lines.push(button_line(p, " <- Annuler (Esc) ", false));
         }
     }
 
     if !dialog.status.is_empty() {
         lines.push(Line::from(""));
         let color = if dialog.step == AiServerStep::Testing {
-            Color::Yellow
+            p.warning
         } else if dialog.status.starts_with("Connexion echouee") {
-            Color::Red
+            p.error
         } else {
-            Color::DarkGray
+            p.header_muted
         };
         lines.push(Line::from(Span::styled(
             dialog.status.clone(),
@@ -358,7 +392,10 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         AiServerStep::SelectModel => "Tab · fleches · Entree appliquer · Esc retour connexion",
         AiServerStep::ConfirmReset => "Entree confirmer · Esc annuler",
     };
-    lines.push(Line::from(Span::styled(hints, Style::default().fg(Color::DarkGray))));
+    lines.push(Line::from(Span::styled(
+        hints,
+        Style::default().fg(p.header_muted),
+    )));
 
     frame.render_widget(
         Paragraph::new(lines)
@@ -366,7 +403,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
                 Block::default()
                     .borders(Borders::ALL)
                     .title(" /server · Ctrl+Shift+L ")
-                    .style(Style::default().fg(state.palette.border)),
+                    .style(
+                        Style::default()
+                            .fg(p.border)
+                            .bg(p.bg_panel),
+                    ),
             )
             .wrap(Wrap { trim: true })
             .alignment(Alignment::Left),

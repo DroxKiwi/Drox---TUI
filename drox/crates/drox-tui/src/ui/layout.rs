@@ -3,7 +3,7 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
 use crate::app::{AppPhase, AppState};
@@ -62,8 +62,10 @@ pub fn draw(
     vim: &VimComposer,
 ) {
     let area = frame.area();
-    // Evite les fantomes quand le layout change (modals, panneaux, resize).
-    frame.render_widget(Clear, area);
+    frame.render_widget(
+        Block::default().style(Style::default().bg(state.palette.bg)),
+        area,
+    );
 
     let (notices_h, todo_h, course_h, mcp_h) = optional_panel_heights(area.height, state);
     let mut constraints = vec![Constraint::Length(HEADER_H)];
@@ -186,8 +188,12 @@ fn draw_header(
     let paragraph = Paragraph::new(line).block(
         Block::default()
             .borders(Borders::ALL)
-            .title(" Drox TUI ")
-            .style(Style::default().fg(state.palette.border)),
+            .title(" DROX TUI ")
+            .style(
+                Style::default()
+                    .fg(state.palette.border_inactive)
+                    .bg(state.palette.bg_elevated),
+            ),
     );
     frame.render_widget(paragraph, area);
 }

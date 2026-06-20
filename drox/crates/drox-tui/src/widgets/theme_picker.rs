@@ -1,7 +1,7 @@
 //! Modal sélecteur `/theme`.
 
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::Frame;
@@ -31,7 +31,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         )),
         Line::from(Span::styled(
             "Persisté dans ~/.drox/tui-preferences.json",
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(state.palette.header_muted),
         )),
         Line::from(""),
     ];
@@ -39,11 +39,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     for (i, theme) in TuiThemeSetting::ALL.iter().enumerate() {
         let marker = if i == dialog.cursor {
             Style::default()
-                .fg(Color::Black)
-                .bg(state.palette.composer_border)
+                .fg(state.palette.selection_fg)
+                .bg(state.palette.accent_bright)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(Color::Gray)
+            Style::default().fg(state.palette.text_muted)
         };
         lines.push(Line::from(Span::styled(format!(" {} ", theme.label()), marker)));
     }
@@ -51,7 +51,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     lines.push(Line::from(""));
     lines.push(Line::from(Span::styled(
         "↑↓ choisir · Entrée appliquer · Esc annuler",
-        Style::default().fg(Color::DarkGray),
+        Style::default().fg(state.palette.header_muted),
     )));
 
     let paragraph = Paragraph::new(lines)
@@ -59,7 +59,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             Block::default()
                 .borders(Borders::ALL)
                 .title(" /theme ")
-                .style(Style::default().fg(state.palette.border)),
+                .style(
+                    Style::default()
+                        .fg(state.palette.border)
+                        .bg(state.palette.bg_panel),
+                ),
         )
         .wrap(Wrap { trim: true })
         .alignment(Alignment::Left);

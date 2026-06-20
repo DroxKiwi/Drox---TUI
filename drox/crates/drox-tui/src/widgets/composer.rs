@@ -1,7 +1,7 @@
 //! Zone de saisie utilisateur.
 
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
@@ -35,14 +35,18 @@ pub fn render(
     let border_color = if blocked {
         state.palette.composer_border_blocked
     } else if state.composer_mode == ComposerMode::Bash {
-        Color::Yellow
+        state.palette.warning
     } else {
         state.palette.composer_border
     };
     let block = Block::default()
         .borders(Borders::ALL)
         .title(title)
-        .style(Style::default().fg(border_color));
+        .style(
+            Style::default()
+                .fg(border_color)
+                .bg(state.palette.bg_elevated),
+        );
 
     let placeholder = if blocked {
         "En attente…"
@@ -76,9 +80,9 @@ pub fn render(
             .fg(state.palette.header_muted)
             .add_modifier(Modifier::ITALIC)
     } else if state.composer_mode == ComposerMode::Bash {
-        Style::default().fg(Color::Yellow)
+        Style::default().fg(state.palette.warning)
     } else {
-        Style::default().fg(Color::White)
+        Style::default().fg(state.palette.text)
     };
 
     let inner = block.inner(area);
