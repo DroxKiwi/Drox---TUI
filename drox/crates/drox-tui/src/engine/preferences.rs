@@ -78,6 +78,9 @@ pub struct TuiPreferences {
     /// Animations UI (curseur, pulse, modales).
     #[serde(default = "default_true")]
     pub animations_enabled: bool,
+    /// Souris (scroll fil, clic modales).
+    #[serde(default = "default_true")]
+    pub mouse_enabled: bool,
     /// Connexion serveur IA (`/server`) — legacy, synchronisé avec `connection_library`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub llm_connection: Option<LlmConnectionPrefs>,
@@ -103,6 +106,7 @@ impl Default for TuiPreferences {
             vim_enabled: false,
             onboarding_done: false,
             animations_enabled: true,
+            mouse_enabled: true,
             llm_connection: None,
             connection_library: ConnectionLibrary::default(),
             recent_workspaces: Vec::new(),
@@ -378,10 +382,11 @@ pub fn format_settings_lines(prefs: &TuiPreferences) -> Vec<String> {
         ),
         format!("  vim composer : {}", prefs.vim_enabled),
         format!("  animations UI : {}", prefs.animations_enabled),
+        format!("  souris : {}", prefs.mouse_enabled),
         format!("  /copy réponse complète : {}", prefs.copy_full_response),
         format!("  titre terminal depuis /rename : {}", prefs.terminal_title_from_rename),
         format!("  onboarding vu : {}", prefs.onboarding_done),
-        "Modifier : `/theme` · `/color` · `/vim` · `/settings animations on|off` · Ctrl+Shift+L ou `/server` · Ctrl+Shift+W ou `/workspace` · `/onboarding`".into(),
+        "Modifier : `/theme` · `/color` · `/vim` · `/settings animations on|off` · `/settings mouse on|off` · Ctrl+Shift+L ou `/server` · Ctrl+Shift+W ou `/workspace` · `/onboarding`".into(),
     ];
     if !prefs.recent_workspaces.is_empty() {
         lines.push(format!(
@@ -431,6 +436,7 @@ pub fn persist_from_state(state: &crate::app::AppState) -> anyhow::Result<()> {
         vim_enabled: existing.vim_enabled,
         onboarding_done: existing.onboarding_done,
         animations_enabled: state.animations_enabled,
+        mouse_enabled: state.mouse_enabled,
         llm_connection: existing.llm_connection.clone(),
         connection_library: existing.connection_library.clone(),
         recent_workspaces: existing.recent_workspaces.clone(),

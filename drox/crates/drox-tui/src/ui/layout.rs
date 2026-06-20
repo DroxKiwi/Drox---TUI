@@ -62,6 +62,7 @@ pub fn draw(
     vim: &VimComposer,
 ) {
     let area = frame.area();
+    state.hit_areas.terminal = area;
     frame.render_widget(
         Block::default().style(Style::default().bg(state.palette.bg)),
         area,
@@ -98,6 +99,7 @@ pub fn draw(
         idx += 1;
     }
     message_log::render(frame, chunks[idx], state);
+    state.hit_areas.message_log = chunks[idx];
     idx += 1;
     if todo_h > 0 {
         todo_panel::render(frame, chunks[idx], state);
@@ -126,6 +128,13 @@ pub fn draw(
 
     if state.phase == AppPhase::Prompt {
         prompt_modal::render(frame, area, state);
+        if let Some((_, body, footer)) = prompt_modal::layout_rects(area, state) {
+            state.hit_areas.prompt_body = Some(body);
+            state.hit_areas.prompt_footer = Some(footer);
+        }
+    } else {
+        state.hit_areas.prompt_body = None;
+        state.hit_areas.prompt_footer = None;
     }
     if state.phase == AppPhase::Rewind {
         rewind_selector::render(frame, area, state);
@@ -144,14 +153,30 @@ pub fn draw(
     }
     if state.phase == AppPhase::AiServer {
         ai_server_dialog::render(frame, area, state);
+        state.hit_areas.ai_server_popup = Some(ai_server_dialog::popup_rect(area));
+    } else {
+        state.hit_areas.ai_server_popup = None;
     }
     if state.phase == AppPhase::Workspace {
         workspace_dialog::render(frame, area, state);
     }
     if let Some(ref viewer) = state.scroll_viewer {
         scroll_viewer::render(frame, area, state, viewer);
+        state.hit_areas.scroll_viewer_popup = Some(scroll_viewer_popup_rect(area));
+    } else {
+        state.hit_areas.scroll_viewer_popup = None;
     }
     toast::render(frame, area, state);
+}
+
+fn scroll_viewer_popup_rect(area: Rect) -> Rect {
+    let popup_w = area.width.saturating_sub(4).min(110);
+    let popup_h = area
+        .height
+        .saturating_sub(4)
+        .max(12)
+        .min(area.height.saturating_mul(3) / 4);
+    crate::widgets::modal_frame::centered_popup(area, popup_w, popup_h)
 }
 
 fn draw_header(

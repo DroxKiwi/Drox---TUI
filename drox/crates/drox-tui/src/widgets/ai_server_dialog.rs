@@ -424,3 +424,122 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         popup,
     );
 }
+
+/// Cible interactive d'une ligne du modal `/server`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AiServerHit {
+    ListItem(usize),
+    TestButton,
+    BackButton,
+    AddHeader,
+    ConfirmReset,
+    CancelReset,
+    Model(usize),
+    ResetWizard,
+}
+
+struct ContentLine {
+    hit: Option<AiServerHit>,
+}
+
+fn push_line(lines: &mut Vec<ContentLine>, hit: Option<AiServerHit>) {
+    lines.push(ContentLine { hit });
+}
+
+/// Index de ligne (dans le paragraphe) → cible clic.
+#[must_use]
+pub fn hit_at_line(dialog: &crate::app::AiServerDialog, line_index: usize) -> Option<AiServerHit> {
+    let mut lines: Vec<ContentLine> = Vec::new();
+    push_line(&mut lines, None);
+    push_line(&mut lines, None);
+    push_line(&mut lines, None);
+
+    match dialog.step {
+        AiServerStep::ChooseDeployment => {
+            for (i, _) in DeploymentKind::ALL.iter().enumerate() {
+                push_line(&mut lines, Some(AiServerHit::ListItem(i)));
+            }
+        }
+        AiServerStep::ChoosePersonalEngine => {
+            for (i, _) in PersonalEngineChoice::ALL.iter().enumerate() {
+                push_line(&mut lines, Some(AiServerHit::ListItem(i)));
+            }
+        }
+        AiServerStep::ChooseCloudProvider => {
+            for (i, _) in crate::app::CloudProviderChoice::ALL.iter().enumerate() {
+                push_line(&mut lines, Some(AiServerHit::ListItem(i)));
+            }
+        }
+        AiServerStep::ConfigureConnection | AiServerStep::Testing => {
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            if dialog.auth_type == AuthTypeChoice::ApiKeyHeader {
+                push_line(&mut lines, None);
+            }
+            if dialog.auth_type != AuthTypeChoice::None {
+                push_line(&mut lines, None);
+            }
+            if !dialog.extra_headers.is_empty() {
+                push_line(&mut lines, None);
+                for _ in &dialog.extra_headers {
+                    push_line(&mut lines, None);
+                }
+            }
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            push_line(&mut lines, Some(AiServerHit::AddHeader));
+            push_line(&mut lines, None);
+            push_line(&mut lines, Some(AiServerHit::TestButton));
+            push_line(&mut lines, Some(AiServerHit::BackButton));
+            if dialog.step == AiServerStep::Testing {
+                push_line(&mut lines, None);
+                push_line(&mut lines, None);
+            }
+        }
+        AiServerStep::SelectModel => {
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            let max = dialog.models.len().min(8);
+            let start = dialog.model_cursor.saturating_sub(max / 2);
+            let end = (start + max).min(dialog.models.len());
+            for i in start..end {
+                push_line(&mut lines, Some(AiServerHit::Model(i)));
+            }
+            if dialog.models.len() > max {
+                push_line(&mut lines, None);
+            }
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            push_line(&mut lines, Some(AiServerHit::ResetWizard));
+        }
+        AiServerStep::ConfirmReset => {
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            push_line(&mut lines, None);
+            push_line(&mut lines, Some(AiServerHit::ConfirmReset));
+            push_line(&mut lines, Some(AiServerHit::CancelReset));
+        }
+    }
+
+    if !dialog.status.is_empty() {
+        push_line(&mut lines, None);
+        push_line(&mut lines, None);
+    }
+    push_line(&mut lines, None);
+    push_line(&mut lines, None);
+
+    lines.get(line_index).and_then(|l| l.hit)
+}
+
+#[must_use]
+pub fn popup_rect(area: Rect) -> Rect {
+    modal_frame::centered_popup(area, 76, 28)
+}
+
+#[must_use]
+pub fn popup_inner(area: Rect) -> Rect {
+    modal_frame::bordered_inner(popup_rect(area))
+}

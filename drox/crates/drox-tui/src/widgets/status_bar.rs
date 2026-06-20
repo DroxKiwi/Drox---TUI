@@ -75,6 +75,8 @@ pub fn render(
         String::new()
     };
 
+    let mouse_tag = if state.mouse_enabled { "souris: on" } else { "souris: off" };
+
     let line = Line::from(vec![
         Span::styled(
             &snapshot.model,
@@ -87,7 +89,7 @@ pub fn render(
         Span::styled(branch, Style::default().fg(Color::Cyan)),
         Span::styled(tokens, Style::default().fg(Color::DarkGray)),
         Span::styled(
-            format!(" · {permission_mode} · {run}{queue} · {elapsed}{hint}"),
+            format!(" · {permission_mode} · {run}{queue} · {elapsed} · {mouse_tag}{hint}"),
             Style::default().fg(state.palette.status_muted),
         ),
     ]);

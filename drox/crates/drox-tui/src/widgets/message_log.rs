@@ -1,7 +1,8 @@
 //! Fil de discussion scrollable.
 
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+use ratatui::style::Style;
+use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
 
@@ -16,7 +17,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
         } else {
             " Session "
         })
-        .style(Style::default().fg(Color::White));
+        .style(
+            Style::default()
+                .fg(state.palette.text)
+                .bg(state.palette.bg),
+        );
 
     let lines = state.flattened_log_lines_display();
     let inner_h = area.height.saturating_sub(2) as usize;
@@ -24,9 +29,23 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
     let scroll = state.scroll as usize;
     let end = total.saturating_sub(scroll);
     let start = end.saturating_sub(inner_h);
-    let visible = &lines[start..end];
+    let visible: Vec<Line> = lines[start..end]
+        .iter()
+        .enumerate()
+        .map(|(i, line)| {
+            if state.hover_log_row == Some(i) {
+                line.clone().style(
+                    Style::default()
+                        .fg(state.palette.text)
+                        .bg(state.palette.selection_bg),
+                )
+            } else {
+                line.clone()
+            }
+        })
+        .collect();
 
-    let paragraph = Paragraph::new(visible.to_vec())
+    let paragraph = Paragraph::new(visible)
         .block(block)
         .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, area);

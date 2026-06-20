@@ -1,5 +1,6 @@
 //! Cadre modal style Pip-Boy (coins arrondis, fond panel).
 
+use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::widgets::{Block, BorderType, Borders};
 
@@ -38,4 +39,20 @@ pub fn pip_boy_block_animated(
         animations_enabled,
     );
     pip_boy_block(title, palette, border)
+}
+
+/// Popup centré avec marges standard.
+#[must_use]
+pub fn centered_popup(area: Rect, width: u16, height: u16) -> Rect {
+    let popup_w = area.width.saturating_sub(4).min(width);
+    let popup_h = height.min(area.height.saturating_sub(4));
+    let x = area.x + (area.width.saturating_sub(popup_w)) / 2;
+    let y = area.y + (area.height.saturating_sub(popup_h)) / 2;
+    Rect::new(x, y, popup_w, popup_h)
+}
+
+/// Zone intérieure d'un bloc à bordures (sans titre).
+#[must_use]
+pub fn bordered_inner(popup: Rect) -> Rect {
+    Block::default().borders(Borders::ALL).inner(popup)
 }

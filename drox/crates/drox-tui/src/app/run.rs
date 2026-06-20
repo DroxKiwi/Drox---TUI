@@ -137,7 +137,11 @@ impl App {
         let llm_configured = resolve_llm_startup(&mut self.config, &self.tui_prefs);
         self.state.llm_configured = llm_configured;
 
-        let _guard = terminal::setup().context("échec initialisation terminal")?;
+        self.state.animations_enabled = self.tui_prefs.animations_enabled;
+        self.state.mouse_enabled = self.tui_prefs.mouse_enabled;
+
+        let _guard = terminal::setup(self.tui_prefs.mouse_enabled)
+            .context("échec initialisation terminal")?;
         let mut stdout = io::stdout();
         let backend = CrosstermBackend::new(&mut stdout);
         let mut term = Terminal::new(backend).context("création terminal ratatui")?;
@@ -275,6 +279,9 @@ impl App {
                     Event::Resize(w, h) => {
                         term.resize(Rect::new(0, 0, w, h))
                             .context("resize terminal")?;
+                    }
+                    Event::Mouse(mouse) => {
+                        self.handle_mouse(mouse);
                     }
                     _ => {}
                 }
@@ -1245,6 +1252,9 @@ impl App {
                         if enabled { "activées" } else { "désactivées" }
                     ));
                 }
+            }
+            SlashOutcome::SettingsMouse { enabled } => {
+                self.apply_mouse_setting(enabled);
             }
             SlashOutcome::Onboarding => {
                 self.state.onboarding = Some(OnboardingDialog::default());
@@ -3193,3 +3203,6 @@ pub async fn print_sessions_list(session_dir: Option<camino::Utf8PathBuf>) -> an
     }
     Ok(())
 }
+
+#[path = "mouse.rs"]
+mod mouse;

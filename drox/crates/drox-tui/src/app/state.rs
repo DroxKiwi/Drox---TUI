@@ -908,6 +908,12 @@ pub struct AppState {
     pub modal_anim_tick: u8,
     /// Animations UI (cursor-blink, pulse, modal-in).
     pub animations_enabled: bool,
+    /// Capture et traitement souris (scroll, clic modales).
+    pub mouse_enabled: bool,
+    /// Ligne survolée dans le fil (index visible, 0 = haut).
+    pub hover_log_row: Option<usize>,
+    /// Rectangles hit-test mis à jour chaque frame.
+    pub hit_areas: crate::ui::hit_areas::HitAreas,
     /// Permissions/questions encore en file (hors modal courante).
     pub permission_queue_waiting: usize,
     /// Titre affichable (`ses_*.meta.json` ou id session).
@@ -1037,6 +1043,9 @@ impl AppState {
             ui_frame_tick: 0,
             modal_anim_tick: 0,
             animations_enabled: prefs.animations_enabled,
+            mouse_enabled: prefs.mouse_enabled,
+            hover_log_row: None,
+            hit_areas: crate::ui::hit_areas::HitAreas::default(),
             permission_queue_waiting: 0,
             session_title: String::new(),
             run_started: None,

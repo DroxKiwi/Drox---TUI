@@ -11,13 +11,13 @@
 
 ## Souris
 
-- [ ] Capture souris activée (crossterm)
-- [ ] Scroll fil + modales molette
-- [ ] Clic boutons modales (Oui/Non/Tester)
-- [ ] Clic sélection profil `/server`
-- [ ] Hover sur lignes outil
-- [ ] `/settings mouse: off` désactive proprement
-- [ ] Parité clavier conservée
+- [x] Capture souris activée (crossterm)
+- [x] Scroll fil + modales molette
+- [x] Clic boutons modales (Oui/Non/Tester)
+- [x] Clic sélection profil `/server`
+- [x] Hover sur lignes outil
+- [x] `/settings mouse: off` désactive proprement
+- [x] Parité clavier conservée
 
 ## Animations
 
@@ -47,7 +47,7 @@
 
 ## Non-régression
 
-- [ ] `cargo test -p drox-tui`
+- [x] `cargo test -p drox-tui`
 - [ ] Session resume / export
 - [ ] Permissions modales
 - [ ] Certification locale inchangée (pas de phone home)

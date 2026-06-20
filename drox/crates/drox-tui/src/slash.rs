@@ -93,6 +93,8 @@ pub enum SlashOutcome {
     Settings,
     /// Bascule animations UI.
     SettingsAnimations { enabled: bool },
+    /// Bascule capture souris.
+    SettingsMouse { enabled: bool },
     /// Modal connexion serveur IA.
     AiServer,
     /// Modal changement workspace.
@@ -430,6 +432,10 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
             },
             [_, "animations", "on" | "true" | "1"] | [_, "animations"] => {
                 SlashOutcome::SettingsAnimations { enabled: true }
+            }
+            [_, "mouse", "off" | "false" | "0"] => SlashOutcome::SettingsMouse { enabled: false },
+            [_, "mouse", "on" | "true" | "1"] | [_, "mouse"] => {
+                SlashOutcome::SettingsMouse { enabled: true }
             }
             _ => SlashOutcome::Settings,
         },

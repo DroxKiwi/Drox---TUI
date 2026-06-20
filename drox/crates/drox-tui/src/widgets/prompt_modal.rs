@@ -108,6 +108,55 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     frame.render_widget(footer_widget, chunks[1]);
 }
 
+/// `(popup, corps, pied)` pour hit-test souris.
+#[must_use]
+pub fn layout_rects(area: Rect, state: &AppState) -> Option<(Rect, Rect, Rect)> {
+    let dialog = state.prompt.as_ref()?;
+    let footer_lines = footer_line_count(dialog);
+    let popup_w = area.width.saturating_sub(2).min(90);
+    let popup_h = area
+        .height
+        .saturating_sub(2)
+        .max(footer_lines + 5)
+        .min(area.height.saturating_mul(3) / 4);
+    let popup = modal_frame::centered_popup(area, popup_w, popup_h);
+    let inner = modal_frame::pip_boy_block_animated(
+        " ",
+        &state.palette,
+        state.modal_anim_tick,
+        state.animations_enabled,
+    )
+    .inner(popup);
+    let footer_h = footer_lines.min(inner.height.saturating_sub(3)).max(footer_lines);
+    let body = Rect {
+        height: inner.height.saturating_sub(footer_h),
+        ..inner
+    };
+    let footer = Rect {
+        y: inner.y + inner.height.saturating_sub(footer_h),
+        height: footer_h,
+        ..inner
+    };
+    Some((popup, body, footer))
+}
+
+/// Index de ligne dans le pied → choix (0-based).
+#[must_use]
+pub fn footer_choice_at(dialog: &crate::app::PromptDialog, footer_row: u16) -> Option<usize> {
+    if dialog.question.choices.is_empty() {
+        return None;
+    }
+    if footer_row < 1 {
+        return None;
+    }
+    let idx = footer_row as usize - 1;
+    if idx < dialog.question.choices.len() {
+        Some(idx)
+    } else {
+        None
+    }
+}
+
 #[must_use]
 fn footer_line_count(dialog: &crate::app::PromptDialog) -> u16 {
     if dialog.question.choices.is_empty() {
