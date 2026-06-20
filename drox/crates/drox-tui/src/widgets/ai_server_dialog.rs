@@ -11,6 +11,7 @@ use crate::app::{
     PersonalEngineChoice,
 };
 use crate::engine::{preset_label, CONTEXT_CUSTOM_INDEX, CONTEXT_PRESETS};
+use crate::i18n::{self, keys};
 use crate::ui::ThemePalette;
 use crate::ui::animation;
 use crate::widgets::modal_frame;
@@ -120,7 +121,7 @@ fn context_line(palette: &ThemePalette, dialog: &crate::app::AiServerDialog, foc
     if dialog.context_preset_index == CONTEXT_CUSTOM_INDEX {
         return field_line(
             palette,
-            "Context max",
+            i18n::t(keys::MODAL_SERVER_FIELD_CONTEXT_MAX),
             &dialog.context_custom,
             dialog.context_custom_cursor,
             focused,
@@ -131,7 +132,7 @@ fn context_line(palette: &ThemePalette, dialog: &crate::app::AiServerDialog, foc
     let tokens = CONTEXT_PRESETS[dialog.context_preset_index].1;
     let value = format!("{preset} ({tokens} tokens)");
     let mut spans = vec![Span::styled(
-        "Context max: ",
+        format!("{}: ", i18n::t(keys::MODAL_SERVER_FIELD_CONTEXT_MAX)),
         Style::default().fg(palette.header_muted),
     )];
     if focused {
@@ -157,13 +158,13 @@ fn context_line(palette: &ThemePalette, dialog: &crate::app::AiServerDialog, foc
 
 fn step_title(step: AiServerStep) -> &'static str {
     match step {
-        AiServerStep::ChooseDeployment => "Etape 1/3 — Perso ou cloud",
-        AiServerStep::ChoosePersonalEngine => "Etape 2/3 — Moteur d'inference",
-        AiServerStep::ChooseCloudProvider => "Etape 2/3 — Prestataire cloud",
-        AiServerStep::ConfigureConnection => "Etape 3/3 — Connexion",
-        AiServerStep::Testing => "Test connexion",
-        AiServerStep::SelectModel => "Configuration modele",
-        AiServerStep::ConfirmReset => "Nouvelle configuration",
+        AiServerStep::ChooseDeployment => i18n::t(keys::MODAL_SERVER_STEP_DEPLOY),
+        AiServerStep::ChoosePersonalEngine => i18n::t(keys::MODAL_SERVER_STEP_ENGINE),
+        AiServerStep::ChooseCloudProvider => i18n::t(keys::MODAL_SERVER_STEP_CLOUD),
+        AiServerStep::ConfigureConnection => i18n::t(keys::MODAL_SERVER_STEP_CONFIGURE),
+        AiServerStep::Testing => i18n::t(keys::MODAL_SERVER_STEP_TESTING),
+        AiServerStep::SelectModel => i18n::t(keys::MODAL_SERVER_STEP_MODEL),
+        AiServerStep::ConfirmReset => i18n::t(keys::MODAL_SERVER_STEP_RESET),
     }
 }
 
@@ -182,7 +183,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let p = &state.palette;
     let mut lines = vec![
         Line::from(Span::styled(
-            "CONNEXION SERVEUR IA",
+            i18n::t(keys::MODAL_SERVER_TITLE),
             Style::default()
                 .fg(p.header_primary)
                 .add_modifier(Modifier::BOLD),
@@ -213,7 +214,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         AiServerStep::ConfigureConnection | AiServerStep::Testing => {
             lines.push(field_line(
                 p,
-                "URL",
+                i18n::t(keys::MODAL_SERVER_FIELD_URL),
                 &dialog.server,
                 dialog.server_cursor,
                 dialog.configure_focus == ConfigureField::Url
@@ -229,7 +230,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             if dialog.auth_type == AuthTypeChoice::ApiKeyHeader {
                 lines.push(field_line(
                     p,
-                    "Nom header",
+                    i18n::t(keys::MODAL_SERVER_FIELD_HEADER_NAME),
                     &dialog.auth_header_name,
                     dialog.auth_header_name_cursor,
                     dialog.configure_focus == ConfigureField::AuthHeaderName
@@ -240,7 +241,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             if dialog.auth_type != AuthTypeChoice::None {
                 lines.push(field_line(
                     p,
-                    "Token / cle",
+                    i18n::t(keys::MODAL_SERVER_FIELD_TOKEN),
                     &dialog.auth_token,
                     dialog.auth_token_cursor,
                     dialog.configure_focus == ConfigureField::AuthToken
@@ -250,7 +251,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             }
             if !dialog.extra_headers.is_empty() {
                 lines.push(Line::from(Span::styled(
-                    "Headers supplementaires:",
+                    i18n::t(keys::MODAL_SERVER_FIELD_EXTRA_HEADERS),
                     Style::default().fg(p.header_muted),
                 )));
                 for (name, _) in &dialog.extra_headers {
@@ -262,7 +263,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             }
             lines.push(field_line(
                 p,
-                "Header + nom",
+                i18n::t(keys::MODAL_SERVER_FIELD_HEADER_PLUS_NAME),
                 &dialog.extra_header_name,
                 dialog.extra_header_name_cursor,
                 dialog.configure_focus == ConfigureField::ExtraHeaderName
@@ -271,7 +272,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             ));
             lines.push(field_line(
                 p,
-                "Header + valeur",
+                i18n::t(keys::MODAL_SERVER_FIELD_HEADER_PLUS_VALUE),
                 &dialog.extra_header_value,
                 dialog.extra_header_value_cursor,
                 dialog.configure_focus == ConfigureField::ExtraHeaderValue
@@ -280,7 +281,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             ));
             lines.push(button_line(
                 p,
-                "[+] Ajouter header",
+                i18n::t(keys::MODAL_SERVER_BTN_ADD_HEADER),
                 dialog.configure_focus == ConfigureField::AddExtraHeader
                     && dialog.step == AiServerStep::ConfigureConnection,
             ));
@@ -289,15 +290,15 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             lines.push(button_line(
                 p,
                 if testing {
-                    " Tester connexion… "
+                    i18n::t(keys::MODAL_SERVER_BTN_TESTING)
                 } else {
-                    " Tester connexion "
+                    i18n::t(keys::MODAL_SERVER_BTN_TEST)
                 },
                 dialog.configure_focus == ConfigureField::TestButton && !testing,
             ));
             lines.push(button_line(
                 p,
-                " <- Retour ",
+                i18n::t(keys::MODAL_SERVER_BTN_BACK),
                 dialog.configure_focus == ConfigureField::BackButton
                     && dialog.step == AiServerStep::ConfigureConnection,
             ));
@@ -316,7 +317,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         }
         AiServerStep::SelectModel => {
             lines.push(Line::from(Span::styled(
-                "Modeles disponibles",
+                i18n::t(keys::MODAL_SERVER_MODELS_TITLE),
                 Style::default().fg(p.header_primary),
             )));
             lines.push(Line::from(""));
@@ -334,7 +335,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             }
             if dialog.models.len() > max {
                 lines.push(Line::from(Span::styled(
-                    format!("… {} modele(s) au total", dialog.models.len()),
+                    i18n::tf(keys::MODAL_SERVER_MODELS_TOTAL, &dialog.models.len().to_string()),
                     Style::default().fg(p.header_muted),
                 )));
             }
@@ -346,7 +347,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             ));
             lines.push(field_line(
                 p,
-                "Max iterations",
+                i18n::t(keys::MODAL_SERVER_FIELD_MAX_ITER),
                 &dialog.max_iterations,
                 dialog.max_iterations_cursor,
                 dialog.select_focus == AiServerSelectFocus::MaxIterations,
@@ -355,29 +356,29 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             lines.push(Line::from(""));
             lines.push(button_line(
                 p,
-                " Nouvelle configuration ",
+                i18n::t(keys::MODAL_SERVER_BTN_NEW_CONFIG),
                 dialog.select_focus == AiServerSelectFocus::ResetWizard,
             ));
         }
         AiServerStep::ConfirmReset => {
             lines.push(Line::from(Span::styled(
-                "Recommencer la configuration ?",
+                i18n::t(keys::MODAL_SERVER_RESET_TITLE),
                 Style::default()
                     .fg(p.header_primary)
                     .add_modifier(Modifier::BOLD),
             )));
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
-                "L'assistant repartira de l'etape 1 (perso ou cloud).",
+                i18n::t(keys::MODAL_SERVER_RESET_LINE1),
                 Style::default().fg(p.text_muted),
             )));
             lines.push(Line::from(Span::styled(
-                "La connexion actuelle reste active tant que la nouvelle n'est pas validee.",
+                i18n::t(keys::MODAL_SERVER_RESET_LINE2),
                 Style::default().fg(p.warning),
             )));
             lines.push(Line::from(""));
-            lines.push(button_line(p, " Confirmer ", true));
-            lines.push(button_line(p, " <- Annuler (Esc) ", false));
+            lines.push(button_line(p, i18n::t(keys::MODAL_SERVER_BTN_CONFIRM), true));
+            lines.push(button_line(p, i18n::t(keys::MODAL_SERVER_BTN_CANCEL), false));
         }
     }
 
@@ -385,7 +386,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         lines.push(Line::from(""));
         let color = if dialog.step == AiServerStep::Testing {
             p.warning
-        } else if dialog.status.starts_with("Connexion echouee") {
+        } else if i18n::server_connection_failed(&dialog.status) {
             p.error
         } else {
             p.header_muted
@@ -400,11 +401,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let hints = match dialog.step {
         AiServerStep::ChooseDeployment
         | AiServerStep::ChoosePersonalEngine
-        | AiServerStep::ChooseCloudProvider => "fleches · Entree · Esc annuler/retour",
-        AiServerStep::ConfigureConnection => "Tab · <-/-> auth · Entree tester · Esc retour",
-        AiServerStep::Testing => "Patientez… · Esc annuler",
-        AiServerStep::SelectModel => "Tab · fleches · Entree appliquer · Esc retour connexion",
-        AiServerStep::ConfirmReset => "Entree confirmer · Esc annuler",
+        | AiServerStep::ChooseCloudProvider => i18n::t(keys::MODAL_SERVER_HINT_LIST),
+        AiServerStep::ConfigureConnection => i18n::t(keys::MODAL_SERVER_HINT_CONFIGURE),
+        AiServerStep::Testing => i18n::t(keys::MODAL_SERVER_HINT_TESTING),
+        AiServerStep::SelectModel => i18n::t(keys::MODAL_SERVER_HINT_MODEL),
+        AiServerStep::ConfirmReset => i18n::t(keys::MODAL_SERVER_HINT_RESET),
     };
     lines.push(Line::from(Span::styled(
         hints,
@@ -414,7 +415,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     frame.render_widget(
         Paragraph::new(lines)
             .block(modal_frame::pip_boy_block_animated(
-                "/server · Ctrl+Shift+L",
+                i18n::t(keys::MODAL_SERVER_FRAME),
                 p,
                 state.modal_anim_tick,
                 state.animations_enabled,

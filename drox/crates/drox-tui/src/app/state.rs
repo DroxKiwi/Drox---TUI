@@ -173,10 +173,10 @@ impl DeploymentKind {
     pub const ALL: &'static [Self] = &[Self::Personal, Self::Cloud];
 
     #[must_use]
-    pub const fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
-            Self::Personal => "Personnel (serveur perso, NAS, localhost…)",
-            Self::Cloud => "Cloud (hébergeur managé)",
+            Self::Personal => crate::i18n::t(crate::i18n::keys::DEPLOYMENT_PERSONAL),
+            Self::Cloud => crate::i18n::t(crate::i18n::keys::DEPLOYMENT_CLOUD),
         }
     }
 }
@@ -200,13 +200,13 @@ impl PersonalEngineChoice {
     ];
 
     #[must_use]
-    pub const fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Self::Ollama => "Ollama",
-            Self::Vllm => "vLLM (OpenAI-compatible)",
-            Self::LmStudio => "LM Studio",
-            Self::OpenAiCompatible => "OpenAI-compatible (autre)",
-            Self::Custom => "Personnalisé (API sur mesure)",
+            Self::Vllm => crate::i18n::t(crate::i18n::keys::ENGINE_VLLM),
+            Self::LmStudio => crate::i18n::t(crate::i18n::keys::ENGINE_LM_STUDIO),
+            Self::OpenAiCompatible => crate::i18n::t(crate::i18n::keys::ENGINE_OPENAI_COMPAT),
+            Self::Custom => crate::i18n::t(crate::i18n::keys::ENGINE_CUSTOM),
         }
     }
 }
@@ -239,11 +239,11 @@ impl AuthTypeChoice {
     pub const ALL: &'static [Self] = &[Self::None, Self::Bearer, Self::ApiKeyHeader];
 
     #[must_use]
-    pub const fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
-            Self::None => "Aucune",
-            Self::Bearer => "Bearer (Authorization)",
-            Self::ApiKeyHeader => "Header API (ex. x-api-key)",
+            Self::None => crate::i18n::t(crate::i18n::keys::AUTH_NONE),
+            Self::Bearer => crate::i18n::t(crate::i18n::keys::AUTH_BEARER),
+            Self::ApiKeyHeader => crate::i18n::t(crate::i18n::keys::AUTH_API_KEY_HEADER),
         }
     }
 

@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 
+use crate::i18n::UiLocale;
 use crate::ui::{SessionAccent, TuiThemeSetting};
 
 use super::connection_library::{
@@ -95,6 +96,9 @@ pub struct TuiPreferences {
     /// Version schéma prefs UI (migrations charte 2.0.2+).
     #[serde(default)]
     pub ui_prefs_version: u32,
+    /// Langue interface (`fr` / `en`).
+    #[serde(default)]
+    pub ui_locale: UiLocale,
 }
 
 /// Version courante du schéma `tui-preferences.json`.
@@ -126,6 +130,7 @@ impl Default for TuiPreferences {
             connection_library: ConnectionLibrary::default(),
             recent_workspaces: Vec::new(),
             ui_prefs_version: UI_PREFS_VERSION,
+            ui_locale: UiLocale::default(),
         }
     }
 }
@@ -454,39 +459,85 @@ pub fn mark_onboarding_done() -> anyhow::Result<()> {
 /// Lignes `/settings` — préférences TUI utilisateur.
 #[must_use]
 pub fn format_settings_lines(prefs: &TuiPreferences) -> Vec<String> {
+    use crate::i18n::{self, keys};
+
     let path = preferences_path();
     let mut lines = vec![
-        "Réglages TUI (`~/.drox/tui-preferences.json`)".into(),
-        format!("  fichier : {path}"),
-        format!("  thème : {:?}", prefs.theme),
+        i18n::t(keys::SETTINGS_TITLE).into(),
+        format!("  {} : {path}", i18n::t(keys::SETTINGS_FILE)),
+        format!("  {} : {:?}", i18n::t(keys::SETTINGS_THEME), prefs.theme),
         format!(
-            "  accent session : {}",
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_ACCENT),
             prefs
                 .session_color
                 .map(|c| format!("{c:?}"))
-                .unwrap_or_else(|| "défaut".into())
+                .unwrap_or_else(|| i18n::t(keys::SETTINGS_ACCENT_DEFAULT).to_string())
         ),
-        format!("  vim composer : {}", prefs.vim_enabled),
-        format!("  animations UI : {}", prefs.animations_enabled),
-        format!("  souris : {}", prefs.mouse_enabled),
-        format!("  /copy réponse complète : {}", prefs.copy_full_response),
-        format!("  titre terminal depuis /rename : {}", prefs.terminal_title_from_rename),
-        format!("  onboarding vu : {}", prefs.onboarding_done),
-        "Modifier : `/theme` · `/color` · `/vim` · `/settings animations on|off` · `/settings mouse on|off` · Ctrl+Shift+L ou `/server` · Ctrl+Shift+W ou `/workspace` · `/onboarding`".into(),
+        format!("  {} : {}", i18n::t(keys::SETTINGS_VIM), prefs.vim_enabled),
+        format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_ANIMATIONS),
+            prefs.animations_enabled
+        ),
+        format!("  {} : {}", i18n::t(keys::SETTINGS_MOUSE), prefs.mouse_enabled),
+        format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_COPY_FULL),
+            prefs.copy_full_response
+        ),
+        format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_TITLE_RENAME),
+            prefs.terminal_title_from_rename
+        ),
+        format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_ONBOARDING),
+            prefs.onboarding_done
+        ),
+        format!(
+            "  {} : {} ({})",
+            i18n::t(keys::SETTINGS_LANGUAGE),
+            prefs.ui_locale.label(),
+            prefs.ui_locale.code()
+        ),
+        i18n::t(keys::SETTINGS_HINTS).into(),
     ];
     if !prefs.recent_workspaces.is_empty() {
         lines.push(format!(
-            "  workspaces récents : {} (via `/workspace`)",
+            "  {} : {} (via `/workspace`)",
+            i18n::t(keys::SETTINGS_RECENT_WS),
             prefs.recent_workspaces.len()
         ));
     }
     if let Some(ref llm) = prefs.llm_connection {
-        lines.push("— Connexion IA".into());
-        lines.push(format!("  moteur : {}", llm.engine.label()));
-        lines.push(format!("  serveur : {}", llm.server));
-        lines.push(format!("  modele : {}", llm.model));
-        lines.push(format!("  num_ctx : {}", llm.num_ctx));
-        lines.push(format!("  max_iterations : {}", llm.max_iterations));
+        lines.push(i18n::t(keys::SETTINGS_LLM_SECTION).into());
+        lines.push(format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_LLM_ENGINE),
+            llm.engine.label()
+        ));
+        lines.push(format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_LLM_SERVER),
+            llm.server
+        ));
+        lines.push(format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_LLM_MODEL),
+            llm.model
+        ));
+        lines.push(format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_LLM_NUM_CTX),
+            llm.num_ctx
+        ));
+        lines.push(format!(
+            "  {} : {}",
+            i18n::t(keys::SETTINGS_LLM_MAX_ITER),
+            llm.max_iterations
+        ));
         lines.push(format!(
             "  x-api-key : {}",
             if llm.api_key.as_ref().is_some_and(|k| !k.is_empty()) {
@@ -527,6 +578,7 @@ pub fn persist_from_state(state: &crate::app::AppState) -> anyhow::Result<()> {
         connection_library: existing.connection_library.clone(),
         recent_workspaces: existing.recent_workspaces.clone(),
         ui_prefs_version: existing.ui_prefs_version.max(UI_PREFS_VERSION),
+        ui_locale: existing.ui_locale,
     })
 }
 

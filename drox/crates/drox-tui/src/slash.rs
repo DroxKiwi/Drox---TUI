@@ -101,6 +101,8 @@ pub enum SlashOutcome {
     Workspace { initial: Option<String> },
     /// Modal onboarding.
     Onboarding,
+    /// Bascule langue UI (`/language fr|en`).
+    SettingsLocale { locale: crate::i18n::UiLocale },
 }
 
 /// Action slash différée (appels async LLM / disque).
@@ -437,7 +439,29 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
             [_, "mouse", "on" | "true" | "1"] | [_, "mouse"] => {
                 SlashOutcome::SettingsMouse { enabled: true }
             }
+            [_, "language", code] => {
+                if let Some(locale) = crate::i18n::UiLocale::parse(code) {
+                    SlashOutcome::SettingsLocale { locale }
+                } else {
+                    state.push_system(crate::i18n::t(crate::i18n::keys::LANGUAGE_USAGE));
+                    SlashOutcome::Handled
+                }
+            }
             _ => SlashOutcome::Settings,
+        },
+        "/language" => match parts.get(1) {
+            Some(code) => {
+                if let Some(locale) = crate::i18n::UiLocale::parse(code) {
+                    SlashOutcome::SettingsLocale { locale }
+                } else {
+                    state.push_system(crate::i18n::t(crate::i18n::keys::LANGUAGE_USAGE));
+                    SlashOutcome::Handled
+                }
+            }
+            None => {
+                state.push_system(crate::i18n::t(crate::i18n::keys::LANGUAGE_USAGE));
+                SlashOutcome::Handled
+            }
         },
         "/onboarding" => SlashOutcome::Onboarding,
         _ => {

@@ -42,9 +42,7 @@ pub fn setup(mouse_enabled: bool) -> anyhow::Result<TerminalGuard> {
     stdout
         .execute(EnableBracketedPaste)
         .context("EnableBracketedPaste")?;
-    if mouse_enabled {
-        let _ = stdout.execute(EnableMouseCapture);
-    }
+    // La capture souris est activée après le splash (évite un Mouse::Moved fantôme).
     Ok(TerminalGuard { mouse_enabled })
 }
 

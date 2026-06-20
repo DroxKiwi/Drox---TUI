@@ -79,24 +79,31 @@ pub fn validate_and_add(runtime: &EngineRuntime, directory_path: &str) -> Result
 
 /// Canonise et valide un chemin de workspace principal (`/workspace`).
 pub fn validate_workspace_path(input: &str) -> Result<Utf8PathBuf, String> {
+    use crate::i18n::{self, keys};
+
     let trimmed = input.trim();
     if trimmed.is_empty() {
-        return Err("chemin requis".into());
+        return Err(i18n::t(keys::WORKSPACE_VALIDATE_PATH_REQUIRED).into());
     }
 
     let expanded = expand_user_path(trimmed);
     let canonical = fs::canonicalize(&expanded).map_err(|e| {
-        format!(
-            "chemin introuvable ou inaccessible : {} ({e})",
-            expanded.display()
+        i18n::tf2(
+            keys::WORKSPACE_VALIDATE_NOT_FOUND,
+            &expanded.display().to_string(),
+            &e.to_string(),
         )
     })?;
 
     if !canonical.is_dir() {
-        return Err(format!("{} n'est pas un répertoire", canonical.display()));
+        return Err(i18n::tf(
+            keys::WORKSPACE_VALIDATE_NOT_DIR,
+            &canonical.display().to_string(),
+        ));
     }
 
-    Utf8PathBuf::from_path_buf(canonical).map_err(|_| "chemin non UTF-8".to_string())
+    Utf8PathBuf::from_path_buf(canonical)
+        .map_err(|_| i18n::t(keys::WORKSPACE_VALIDATE_NOT_UTF8).to_string())
 }
 
 /// `child` est sous `parent` (chemins canoniques).

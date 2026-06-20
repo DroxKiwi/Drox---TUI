@@ -145,6 +145,7 @@ impl App {
         self.state.palette = resolve_palette(self.state.theme, self.state.session_accent);
         self.state.animations_enabled = self.tui_prefs.animations_enabled;
         self.state.mouse_enabled = self.tui_prefs.mouse_enabled;
+        crate::i18n::set_locale(self.tui_prefs.ui_locale);
         if loaded.theme_migrated_to_drox {
             self.state.status_line =
                 "Thème Drox appliqué (charte 2.0.2) — /theme pour changer".into();
@@ -156,8 +157,11 @@ impl App {
         let backend = CrosstermBackend::new(&mut stdout);
         let mut term = Terminal::new(backend).context("création terminal ratatui")?;
 
-        ui::boot_splash::play(&mut term, &self.state.palette, self.state.animations_enabled)
+        ui::boot_splash::play(&mut term, &self.state.palette)
             .context("animation démarrage")?;
+        if self.tui_prefs.mouse_enabled {
+            terminal::set_mouse_capture(true).context("capture souris")?;
+        }
 
         let runtime = Arc::new(
             EngineRuntime::bootstrap(&self.config, Arc::clone(&self.ask))
@@ -1272,6 +1276,28 @@ impl App {
                 self.state.reset_modal_anim();
                 self.state.phase = AppPhase::Onboarding;
             }
+            SlashOutcome::SettingsLocale { locale } => {
+                crate::i18n::set_locale(locale);
+                self.tui_prefs.ui_locale = locale;
+                let mut prefs = crate::engine::preferences::load_preferences();
+                prefs.ui_locale = locale;
+                if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
+                    self.state.push_system(format!(
+                        "{} — persist: {e}",
+                        crate::i18n::tf2(
+                            crate::i18n::keys::LANGUAGE_CHANGED,
+                            locale.label(),
+                            locale.code(),
+                        )
+                    ));
+                } else {
+                    self.state.push_system(crate::i18n::tf2(
+                        crate::i18n::keys::LANGUAGE_CHANGED,
+                        locale.label(),
+                        locale.code(),
+                    ));
+                }
+            }
             SlashOutcome::AiServer => {
                 self.open_ai_server_dialog();
             }
@@ -2168,7 +2194,7 @@ impl App {
         };
         if input.is_empty() {
             if let Some(dialog) = self.state.workspace_dialog.as_mut() {
-                dialog.status = "Chemin requis".into();
+                dialog.status = crate::i18n::t(crate::i18n::keys::WORKSPACE_STATUS_PATH_REQUIRED).into();
             }
             return;
         }
@@ -2179,13 +2205,13 @@ impl App {
                     return;
                 };
                 if current.is_some_and(|c| c == canonical) {
-                    dialog.status = "Déjà le workspace courant".into();
+                    dialog.status = crate::i18n::t(crate::i18n::keys::WORKSPACE_STATUS_ALREADY_CURRENT).into();
                     dialog.validated = None;
                     return;
                 }
                 dialog.validated = Some(canonical);
                 dialog.step = WorkspaceStep::Confirm;
-                dialog.status = "Entrée pour confirmer · nouvelle session".into();
+                dialog.status = crate::i18n::t(crate::i18n::keys::WORKSPACE_STATUS_ENTER_CONFIRM).into();
             }
             Err(e) => {
                 if let Some(dialog) = self.state.workspace_dialog.as_mut() {
@@ -2208,7 +2234,7 @@ impl App {
                     dialog.step = WorkspaceStep::Edit;
                     dialog.validated = None;
                     dialog.status =
-                        "↑↓ naviguer · Entrée ouvrir · Tab · Choisir ce dossier".into();
+                        crate::i18n::t(crate::i18n::keys::WORKSPACE_STATUS_HINT_NAV).into();
                 }
                 KeyCode::Enter => {
                     if let Some(path) = dialog.validated.clone() {
@@ -2244,7 +2270,7 @@ impl App {
                     self.validate_workspace_dialog();
                 } else {
                     dialog.status =
-                        "Ouvrez un lecteur (Entrée) puis choisissez le dossier".into();
+                        crate::i18n::t(crate::i18n::keys::WORKSPACE_STATUS_PICK_FOLDER).into();
                 }
             }
             KeyCode::Enter
@@ -2393,18 +2419,18 @@ impl App {
             return;
         }
         if dialog.server.trim().is_empty() {
-            dialog.status = "URL serveur requise".into();
+            dialog.status = crate::i18n::t(crate::i18n::keys::SERVER_STATUS_URL_REQUIRED).into();
             dialog.configure_focus = ConfigureField::Url;
             return;
         }
         if dialog.auth_type == AuthTypeChoice::ApiKeyHeader && dialog.auth_header_name.trim().is_empty() {
-            dialog.status = "Nom du header requis".into();
+            dialog.status = crate::i18n::t(crate::i18n::keys::SERVER_STATUS_HEADER_REQUIRED).into();
             dialog.configure_focus = ConfigureField::AuthHeaderName;
             return;
         }
         let profile = dialog.build_probe_profile();
         dialog.step = AiServerStep::Testing;
-        dialog.status = "Test de connexion en cours…".into();
+        dialog.status = crate::i18n::t(crate::i18n::keys::SERVER_STATUS_TESTING).into();
 
         let (tx, rx) = mpsc::channel(1);
         self.ai_server_test_rx = Some(rx);
@@ -2429,7 +2455,7 @@ impl App {
                 if let Some(dialog) = self.state.ai_server.as_mut() {
                     dialog.step = AiServerStep::ConfigureConnection;
                     dialog.status =
-                        "Serveur joignable mais aucun modele liste (pull / deploy…)".into();
+                        crate::i18n::t(crate::i18n::keys::SERVER_STATUS_NO_MODELS).into();
                 }
                 None
             }
@@ -2448,7 +2474,7 @@ impl App {
             Err(err) => {
                 if let Some(dialog) = self.state.ai_server.as_mut() {
                     dialog.step = AiServerStep::ConfigureConnection;
-                    dialog.status = format!("Connexion echouee : {err}");
+                    dialog.status = crate::i18n::tf(crate::i18n::keys::SERVER_STATUS_CONN_FAILED, &err);
                 }
                 None
             }
@@ -2458,8 +2484,9 @@ impl App {
                 tracing::warn!(error = %e, "echec persistance connexion /server apres test");
             }
             if let Some(dialog) = self.state.ai_server.as_mut() {
-                dialog.status = format!(
-                    "Connexion OK — {model_count} modele(s) · configurez le modele ci-dessous"
+                dialog.status = crate::i18n::tf(
+                    crate::i18n::keys::SERVER_STATUS_CONN_OK,
+                    &model_count.to_string(),
                 );
             }
         }
@@ -2640,7 +2667,7 @@ impl App {
             if key.code == KeyCode::Esc {
                 if let Some(d) = self.state.ai_server.as_mut() {
                     d.step = AiServerStep::ConfigureConnection;
-                    d.status = "Test annule — modifiez la connexion".into();
+                    d.status = crate::i18n::t(crate::i18n::keys::SERVER_STATUS_TEST_CANCELLED).into();
                 }
             }
             return false;

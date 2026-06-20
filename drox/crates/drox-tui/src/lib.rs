@@ -3,6 +3,7 @@
 pub mod app;
 pub mod asker;
 pub mod engine;
+pub mod i18n;
 pub mod slash;
 pub mod terminal;
 pub mod ui;

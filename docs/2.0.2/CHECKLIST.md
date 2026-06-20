@@ -30,11 +30,12 @@
 
 ## i18n
 
-- [ ] Module `i18n` + prefs `ui_locale`
-- [ ] FR / EN modales P0
-- [ ] `/language` ou settings picker
-- [ ] Changement à chaud
-- [ ] Tests clés FR/EN
+- [x] Module `i18n` + prefs `ui_locale`
+- [x] FR / EN modales P0
+- [x] `/language` ou `/settings language`
+- [x] Changement à chaud
+- [x] Tests clés FR/EN
+- [ ] P1 : slash palette, `/help`, toasts, status lines
 
 ## Connexions LLM
 

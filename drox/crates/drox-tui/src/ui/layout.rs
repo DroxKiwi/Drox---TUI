@@ -9,6 +9,7 @@ use ratatui::Frame;
 use crate::app::{AppPhase, AppState};
 use crate::engine::status_bar::StatusBarSnapshot;
 use crate::engine::VimComposer;
+use crate::i18n::{self, keys};
 use crate::widgets::{ai_server_dialog, composer, composer_help, composer_suggestions, copy_selector, course_panel, mcp_panel, message_log, onboarding, prompt_modal, rewind_selector, scroll_viewer, search_bar, slash_palette, status_bar, status_notices, theme_picker, toast, todo_panel, workspace_dialog};
 
 const HEADER_H: u16 = 3;
@@ -194,11 +195,11 @@ fn draw_header(
         permission_mode.to_string()
     };
     let (pill_sym, pill_label, pill_color) = if !state.llm_configured {
-        ("○", "NON CONFIG", state.palette.error)
+        ("○", i18n::t(keys::STATUS_NOT_CONFIGURED), state.palette.error)
     } else if plan_mode {
-        ("●", "PLAN", state.palette.warning)
+        ("●", i18n::t(keys::STATUS_PLAN), state.palette.warning)
     } else {
-        ("●", "CONNECTE", state.palette.accent_glow)
+        ("●", i18n::t(keys::STATUS_CONNECTED), state.palette.accent_glow)
     };
     let line = Line::from(vec![
         Span::styled(
@@ -215,7 +216,7 @@ fn draw_header(
             format!(" · {workspace}"),
             Style::default().fg(state.palette.header_muted),
         ),
-        Span::raw(" · Ctrl+Q quitter · "),
+        Span::raw(format!(" · {} · ", i18n::t(keys::HEADER_QUIT_HINT))),
         Span::styled(
             format!("[{pill_sym}] {pill_label}"),
             Style::default()

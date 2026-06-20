@@ -7,18 +7,7 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::AppState;
-
-const STEPS: &[&str] = &[
-    "Connexion IA — Ctrl+Shift+L ou `/server` : adresse Ollama, test de connexion, choix du modèle. Obligatoire avant d'envoyer un message.",
-    "Workspace — Ctrl+Shift+W ou `/workspace` : changer le dossier de travail (nouvelle session). `/add-dir` ajoute un dossier en plus pour la session.",
-    "Bienvenue dans Drox TUI — REPL terminal branché sur le moteur Rust local.",
-    "Workspace — vérifiez le chemin dans le header. Sans --apply, les écritures fichier sont simulées.",
-    "Démarrage — /init puis /init run pour créer DROX.md et .drox/.",
-    "Composer — Entrée envoie · Shift+Entrée nouvelle ligne · ! mode bash · @ fichiers.",
-    "Navigation — / palette · Ctrl+F fil · Ctrl+R historique · e viewer outil.",
-    "Sessions — /sessions · /resume ses_… · mémoire /search · /rewind.",
-    "Personnalisation — /theme · /color · /vim · /keybindings init · Ctrl+Shift+L connexion IA.",
-];
+use crate::i18n::{self, keys, ONBOARDING_STEPS};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let Some(dialog) = state.onboarding.as_ref() else {
@@ -32,26 +21,30 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let popup = Rect::new(x, y, popup_w, popup_h);
     frame.render_widget(Clear, popup);
 
-    let step = dialog.step.min(STEPS.len().saturating_sub(1));
+    let step = dialog.step.min(ONBOARDING_STEPS.len().saturating_sub(1));
     let lines = vec![
         Line::from(Span::styled(
-            "Premier pas avec Drox",
+            i18n::t(keys::ONBOARDING_TITLE),
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
-            format!("Étape {}/{}", step + 1, STEPS.len()),
+            i18n::tf2(
+                keys::ONBOARDING_STEP,
+                &(step + 1).to_string(),
+                &ONBOARDING_STEPS.len().to_string(),
+            ),
             Style::default().fg(Color::DarkGray),
         )),
         Line::from(""),
-        Line::from(STEPS[step]),
+        Line::from(i18n::t(ONBOARDING_STEPS[step])),
         Line::from(""),
         Line::from(Span::styled(
-            if step + 1 >= STEPS.len() {
-                "Entrée terminer · Esc passer"
+            if step + 1 >= ONBOARDING_STEPS.len() {
+                i18n::t(keys::ONBOARDING_FOOTER_DONE)
             } else {
-                "Entrée suivant · Esc passer"
+                i18n::t(keys::ONBOARDING_FOOTER_NEXT)
             },
             Style::default().fg(Color::DarkGray),
         )),
@@ -62,7 +55,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .title(" Onboarding ")
+                    .title(format!(" {} ", i18n::t(keys::ONBOARDING_FRAME)))
                     .style(Style::default().fg(Color::Cyan)),
             )
             .wrap(Wrap { trim: true })

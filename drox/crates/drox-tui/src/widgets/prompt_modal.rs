@@ -7,6 +7,7 @@ use ratatui::widgets::{Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::{AppPhase, AppState};
+use crate::i18n::{self, keys};
 use crate::widgets::modal_frame;
 use crate::view::{
     bash_kind_color, bash_kind_label, preview_body_line_count, PermissionPreview,
@@ -58,14 +59,14 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 
     let title = if is_permission {
         if state.permission_queue_waiting > 0 {
-            format!(" Permission (+{} en attente) ", state.permission_queue_waiting)
+            format!(" {} ", i18n::tf(keys::MODAL_PERMISSION_QUEUE, &state.permission_queue_waiting.to_string()))
         } else {
-            " Permission ".to_string()
+            format!(" {} ", i18n::t(keys::MODAL_PERMISSION))
         }
     } else if state.permission_queue_waiting > 0 {
-        format!(" Question (+{} en attente) ", state.permission_queue_waiting)
+        format!(" {} ", i18n::tf(keys::MODAL_QUESTION_QUEUE, &state.permission_queue_waiting.to_string()))
     } else {
-        " Question ".to_string()
+        format!(" {} ", i18n::t(keys::MODAL_QUESTION))
     };
     let block = modal_frame::pip_boy_block_animated(
         title.trim(),
@@ -85,7 +86,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 
     let scroll_hint = if body_lines.len() as u16 > chunks[0].height.saturating_add(dialog.body_scroll)
     {
-        " · PgUp/PgDn contenu"
+        i18n::t(keys::MODAL_SCROLL_HINT)
     } else {
         ""
     };
@@ -179,7 +180,7 @@ fn build_footer_lines(dialog: &crate::app::PromptDialog) -> Vec<Line<'static>> {
 
     if dialog.question.choices.is_empty() {
         lines.push(Line::from(Span::styled(
-            "Réponse libre — Entrée valider · Esc ignorer",
+            i18n::t(keys::MODAL_FOOTER_FREE_TEXT),
             Style::default().fg(Color::DarkGray),
         )));
         if !dialog.buffer.is_empty() {
@@ -207,9 +208,9 @@ fn build_footer_lines(dialog: &crate::app::PromptDialog) -> Vec<Line<'static>> {
         let hint = if dialog.question.choices.len() == 2
             && dialog.question.choices[0].eq_ignore_ascii_case("yes")
         {
-            "↑↓ choisir · Entrée valider · y/n · Esc ignorer"
+            i18n::t(keys::MODAL_FOOTER_CHOOSE_YN)
         } else {
-            "↑↓ choisir · Entrée valider · Esc ignorer"
+            i18n::t(keys::MODAL_FOOTER_CHOOSE)
         };
         lines.push(Line::from(Span::styled(
             hint,
