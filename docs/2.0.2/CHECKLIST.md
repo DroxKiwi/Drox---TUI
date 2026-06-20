@@ -36,12 +36,13 @@
 
 ## Connexions LLM
 
-- [ ] Type `ConnectionProfile` persisté
-- [ ] Presets : Ollama local, Ollama Cloud, vLLM, custom
-- [ ] Headers custom + Bearer / ApiKeyHeader
-- [ ] Migration prefs 2.0.1
-- [ ] Modal `/server` refonte (liste profils)
-- [ ] Test connexion par profil
+- [x] Type `ConnectionProfile` persisté
+- [x] Presets : Ollama local, Ollama Cloud, vLLM, custom
+- [x] Headers custom + Bearer / ApiKeyHeader
+- [x] Migration prefs 2.0.1
+- [x] Modal `/server` refonte (assistant 3 étapes + persistance connexion validée)
+- [x] Test connexion par profil
+- [ ] Charte Drox sur modal `/server`
 
 ## Non-régression
 

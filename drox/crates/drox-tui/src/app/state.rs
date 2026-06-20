@@ -128,41 +128,170 @@ pub struct OnboardingDialog {
     pub step: usize,
 }
 
-/// Étape du dialogue connexion IA (`/server`).
+/// Étape du dialogue connexion IA (`/server`) — assistant 3 phases.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AiServerStep {
-    Configure,
+    /// 1 — Perso ou cloud
+    ChooseDeployment,
+    /// 2 — Moteur d'inférence (perso)
+    ChoosePersonalEngine,
+    /// 2 — Prestataire (cloud)
+    ChooseCloudProvider,
+    /// 3 — URL, auth, headers
+    ConfigureConnection,
     Testing,
+    /// 3 — Après test OK : modèle + contexte
     SelectModel,
+    /// Confirmation repartir de zéro
+    ConfirmReset,
 }
 
-/// Champ actif du formulaire connexion IA.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AiServerField {
-    Server,
-    ApiKey,
-    NumCtx,
-    TestButton,
+pub enum DeploymentKind {
+    Personal,
+    Cloud,
 }
 
-/// Focus clavier sur l'etape choix du modele (`/server`).
+impl DeploymentKind {
+    pub const ALL: &'static [Self] = &[Self::Personal, Self::Cloud];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Personal => "Personnel (serveur perso, NAS, localhost…)",
+            Self::Cloud => "Cloud (hébergeur managé)",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PersonalEngineChoice {
+    Ollama,
+    Vllm,
+    LmStudio,
+    OpenAiCompatible,
+    Custom,
+}
+
+impl PersonalEngineChoice {
+    pub const ALL: &'static [Self] = &[
+        Self::Ollama,
+        Self::Vllm,
+        Self::LmStudio,
+        Self::OpenAiCompatible,
+        Self::Custom,
+    ];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Ollama => "Ollama",
+            Self::Vllm => "vLLM (OpenAI-compatible)",
+            Self::LmStudio => "LM Studio",
+            Self::OpenAiCompatible => "OpenAI-compatible (autre)",
+            Self::Custom => "Personnalisé (API sur mesure)",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloudProviderChoice {
+    OllamaCloud,
+}
+
+impl CloudProviderChoice {
+    pub const ALL: &'static [Self] = &[Self::OllamaCloud];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::OllamaCloud => "Ollama Cloud",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AuthTypeChoice {
+    #[default]
+    None,
+    Bearer,
+    ApiKeyHeader,
+}
+
+impl AuthTypeChoice {
+    pub const ALL: &'static [Self] = &[Self::None, Self::Bearer, Self::ApiKeyHeader];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::None => "Aucune",
+            Self::Bearer => "Bearer (Authorization)",
+            Self::ApiKeyHeader => "Header API (ex. x-api-key)",
+        }
+    }
+
+    pub fn next(self) -> Self {
+        match self {
+            Self::None => Self::Bearer,
+            Self::Bearer => Self::ApiKeyHeader,
+            Self::ApiKeyHeader => Self::None,
+        }
+    }
+
+    pub fn prev(self) -> Self {
+        match self {
+            Self::None => Self::ApiKeyHeader,
+            Self::Bearer => Self::None,
+            Self::ApiKeyHeader => Self::Bearer,
+        }
+    }
+}
+
+/// Champ actif — étape configuration connexion.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfigureField {
+    Url,
+    AuthType,
+    AuthHeaderName,
+    AuthToken,
+    ExtraHeaderName,
+    ExtraHeaderValue,
+    AddExtraHeader,
+    TestButton,
+    BackButton,
+}
+
+/// Focus clavier sur l'étape choix du modèle (`/server`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AiServerSelectFocus {
     #[default]
     ModelList,
+    NumCtx,
     MaxIterations,
+    ResetWizard,
 }
 
 /// Modal connexion serveur IA (`/server`, Ctrl+Shift+L).
 #[derive(Debug, Clone)]
 pub struct AiServerDialog {
-    pub engine: crate::engine::LlmEngineKind,
+    pub step: AiServerStep,
+    pub list_cursor: usize,
+    pub deployment: Option<DeploymentKind>,
+    pub personal_engine: Option<PersonalEngineChoice>,
+    pub cloud_provider: Option<CloudProviderChoice>,
     pub server: String,
     pub server_cursor: usize,
-    pub api_key: String,
-    pub api_key_cursor: usize,
-    pub focus: AiServerField,
-    pub step: AiServerStep,
+    pub auth_type: AuthTypeChoice,
+    pub auth_header_name: String,
+    pub auth_header_name_cursor: usize,
+    pub auth_token: String,
+    pub auth_token_cursor: usize,
+    pub extra_header_name: String,
+    pub extra_header_name_cursor: usize,
+    pub extra_header_value: String,
+    pub extra_header_value_cursor: usize,
+    pub extra_headers: Vec<(String, String)>,
+    pub configure_focus: ConfigureField,
     pub status: String,
     pub models: Vec<String>,
     pub model_cursor: usize,
@@ -176,44 +305,414 @@ pub struct AiServerDialog {
 
 impl AiServerDialog {
     #[must_use]
-    pub fn from_current(server: String, api_key: String, num_ctx: i64, max_iterations: usize) -> Self {
-        let max_iterations = max_iterations.to_string();
-        let context_preset_index = crate::engine::preset_index_for(num_ctx);
-        let context_custom = if context_preset_index == crate::engine::CONTEXT_CUSTOM_INDEX {
-            num_ctx.to_string()
-        } else {
-            String::new()
-        };
+    pub fn new_wizard() -> Self {
         Self {
-            engine: crate::engine::LlmEngineKind::Ollama,
-            server_cursor: server.len(),
-            api_key_cursor: api_key.len(),
-            server,
-            api_key,
-            focus: AiServerField::Server,
-            step: AiServerStep::Configure,
-            status: "Adresse serveur - Tab - Entree sur Tester".into(),
+            step: AiServerStep::ChooseDeployment,
+            list_cursor: 0,
+            deployment: None,
+            personal_engine: None,
+            cloud_provider: None,
+            server: String::new(),
+            server_cursor: 0,
+            auth_type: AuthTypeChoice::None,
+            auth_header_name: "x-api-key".into(),
+            auth_header_name_cursor: 9,
+            auth_token: String::new(),
+            auth_token_cursor: 0,
+            extra_header_name: String::new(),
+            extra_header_name_cursor: 0,
+            extra_header_value: String::new(),
+            extra_header_value_cursor: 0,
+            extra_headers: Vec::new(),
+            configure_focus: ConfigureField::Url,
+            status: "Perso ou cloud ? · Entrée · Esc annuler".into(),
             models: Vec::new(),
             model_cursor: 0,
-            context_preset_index,
-            context_custom: context_custom.clone(),
-            context_custom_cursor: context_custom.len(),
-            max_iterations: max_iterations.clone(),
-            max_iterations_cursor: max_iterations.len(),
+            context_preset_index: crate::engine::preset_index_for(crate::engine::default_num_ctx()),
+            context_custom: String::new(),
+            context_custom_cursor: 0,
+            max_iterations: crate::engine::default_max_iterations().to_string(),
+            max_iterations_cursor: 0,
             select_focus: AiServerSelectFocus::ModelList,
         }
     }
 
-    pub fn active_buffer_and_cursor(&mut self) -> (&mut String, &mut usize) {
-        match self.focus {
-            AiServerField::Server => (&mut self.server, &mut self.server_cursor),
-            AiServerField::ApiKey => (&mut self.api_key, &mut self.api_key_cursor),
-            AiServerField::NumCtx if self.context_preset_index == crate::engine::CONTEXT_CUSTOM_INDEX => {
-                (&mut self.context_custom, &mut self.context_custom_cursor)
+    #[must_use]
+    pub fn from_saved(
+        server: String,
+        api_key: String,
+        current_model: String,
+        num_ctx: i64,
+        max_iterations: usize,
+        profile: Option<&crate::engine::ConnectionProfile>,
+    ) -> Self {
+        let mut dialog = Self::new_wizard();
+        if let Some(p) = profile {
+            dialog.hydrate_from_profile(p);
+            if p.is_connection_verified() {
+                dialog.models = p.verified_models.clone();
+                let preferred = p
+                    .default_model
+                    .as_deref()
+                    .filter(|m| !m.trim().is_empty())
+                    .unwrap_or(current_model.as_str());
+                dialog.model_cursor = dialog
+                    .models
+                    .iter()
+                    .position(|m| m == preferred)
+                    .unwrap_or(0);
+                dialog.step = AiServerStep::SelectModel;
+                dialog.select_focus = AiServerSelectFocus::ModelList;
+                dialog.status = format!(
+                    "Connexion enregistree ({}) — choisissez le modele",
+                    p.name
+                );
             }
-            AiServerField::NumCtx | AiServerField::TestButton => {
-                (&mut self.server, &mut self.server_cursor)
+        } else {
+            dialog.server = server.clone();
+            dialog.server_cursor = server.len();
+            if !api_key.is_empty() {
+                dialog.auth_type = AuthTypeChoice::ApiKeyHeader;
+                dialog.auth_token = api_key.clone();
+                dialog.auth_token_cursor = api_key.len();
             }
+            dialog.context_preset_index = crate::engine::preset_index_for(num_ctx);
+            if dialog.context_preset_index == crate::engine::CONTEXT_CUSTOM_INDEX {
+                dialog.context_custom = num_ctx.to_string();
+                dialog.context_custom_cursor = dialog.context_custom.len();
+            }
+            dialog.max_iterations = max_iterations.to_string();
+            dialog.max_iterations_cursor = dialog.max_iterations.len();
+        }
+        dialog
+    }
+
+    pub fn begin_reset_wizard(&mut self) {
+        self.step = AiServerStep::ConfirmReset;
+        self.status =
+            "La connexion actuelle reste active tant que la nouvelle n'est pas validee.".into();
+    }
+
+    pub fn hydrate_from_profile(&mut self, profile: &crate::engine::ConnectionProfile) {
+        use crate::engine::LlmProvider;
+        match profile.provider {
+            LlmProvider::OllamaCloud => {
+                self.deployment = Some(DeploymentKind::Cloud);
+                self.cloud_provider = Some(CloudProviderChoice::OllamaCloud);
+                self.personal_engine = None;
+            }
+            LlmProvider::OllamaLocal => {
+                self.deployment = Some(DeploymentKind::Personal);
+                self.personal_engine = Some(PersonalEngineChoice::Ollama);
+            }
+            LlmProvider::Vllm => {
+                self.deployment = Some(DeploymentKind::Personal);
+                self.personal_engine = Some(PersonalEngineChoice::Vllm);
+            }
+            LlmProvider::LmStudio => {
+                self.deployment = Some(DeploymentKind::Personal);
+                self.personal_engine = Some(PersonalEngineChoice::LmStudio);
+            }
+            LlmProvider::OpenAiCompatible => {
+                self.deployment = Some(DeploymentKind::Personal);
+                self.personal_engine = Some(PersonalEngineChoice::OpenAiCompatible);
+            }
+            LlmProvider::Custom => {
+                self.deployment = Some(DeploymentKind::Personal);
+                self.personal_engine = Some(PersonalEngineChoice::Custom);
+            }
+        }
+        self.server = profile.base_url.clone();
+        self.server_cursor = self.server.len();
+        self.auth_type = match &profile.auth {
+            crate::engine::AuthConfig::Bearer { token } => {
+                self.auth_token = token.clone();
+                self.auth_token_cursor = token.len();
+                AuthTypeChoice::Bearer
+            }
+            crate::engine::AuthConfig::ApiKeyHeader { header_name, token } => {
+                self.auth_header_name = header_name.clone();
+                self.auth_header_name_cursor = header_name.len();
+                self.auth_token = token.clone();
+                self.auth_token_cursor = token.len();
+                AuthTypeChoice::ApiKeyHeader
+            }
+            crate::engine::AuthConfig::CustomHeaders => AuthTypeChoice::None,
+            crate::engine::AuthConfig::None => AuthTypeChoice::None,
+        };
+        self.extra_headers = profile
+            .extra_headers
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        self.context_preset_index = crate::engine::preset_index_for(profile.num_ctx);
+        if self.context_preset_index == crate::engine::CONTEXT_CUSTOM_INDEX {
+            self.context_custom = profile.num_ctx.to_string();
+            self.context_custom_cursor = self.context_custom.len();
+        }
+        self.max_iterations = profile.max_iterations.to_string();
+        self.max_iterations_cursor = self.max_iterations.len();
+    }
+
+    pub fn apply_engine_defaults(&mut self) {
+        use crate::engine::{
+            builtin_preset_templates, AuthConfig, LlmProvider, PRESET_LM_STUDIO, PRESET_OLLAMA_CLOUD,
+            PRESET_OLLAMA_LOCAL, PRESET_OPENAI_COMPAT, PRESET_VLLM_OPENAI,
+        };
+        let preset_id = match self.deployment {
+            Some(DeploymentKind::Cloud) => PRESET_OLLAMA_CLOUD,
+            Some(DeploymentKind::Personal) => match self.personal_engine {
+                Some(PersonalEngineChoice::Ollama) => PRESET_OLLAMA_LOCAL,
+                Some(PersonalEngineChoice::Vllm) => PRESET_VLLM_OPENAI,
+                Some(PersonalEngineChoice::LmStudio) => PRESET_LM_STUDIO,
+                Some(PersonalEngineChoice::OpenAiCompatible) => PRESET_OPENAI_COMPAT,
+                Some(PersonalEngineChoice::Custom) | None => return,
+            },
+            None => return,
+        };
+        let Some(template) = builtin_preset_templates()
+            .into_iter()
+            .find(|p| p.id == preset_id)
+        else {
+            return;
+        };
+        self.server = template.base_url;
+        self.server_cursor = self.server.len();
+        match template.auth {
+            AuthConfig::None => {
+                self.auth_type = AuthTypeChoice::None;
+                self.auth_token.clear();
+                self.auth_token_cursor = 0;
+            }
+            AuthConfig::Bearer { token } => {
+                self.auth_type = AuthTypeChoice::Bearer;
+                self.auth_token = token;
+                self.auth_token_cursor = self.auth_token.len();
+            }
+            AuthConfig::ApiKeyHeader { header_name, token } => {
+                self.auth_type = AuthTypeChoice::ApiKeyHeader;
+                self.auth_header_name = header_name;
+                self.auth_header_name_cursor = self.auth_header_name.len();
+                self.auth_token = token;
+                self.auth_token_cursor = self.auth_token.len();
+            }
+            AuthConfig::CustomHeaders => {
+                self.auth_type = AuthTypeChoice::None;
+            }
+        }
+        if template.provider == LlmProvider::Custom {
+            self.auth_header_name = "x-api-key".into();
+            self.auth_header_name_cursor = 9;
+        }
+        let _ = template;
+    }
+
+    pub fn wizard_back(&mut self) {
+        self.status.clear();
+        self.step = match self.step {
+            AiServerStep::ConfirmReset => AiServerStep::SelectModel,
+            AiServerStep::SelectModel => AiServerStep::ConfigureConnection,
+            AiServerStep::ConfigureConnection => match self.deployment {
+                Some(DeploymentKind::Personal) => AiServerStep::ChoosePersonalEngine,
+                Some(DeploymentKind::Cloud) => AiServerStep::ChooseCloudProvider,
+                None => AiServerStep::ChooseDeployment,
+            },
+            AiServerStep::ChoosePersonalEngine | AiServerStep::ChooseCloudProvider => {
+                AiServerStep::ChooseDeployment
+            }
+            AiServerStep::ChooseDeployment | AiServerStep::Testing => AiServerStep::ChooseDeployment,
+        };
+        self.set_step_hint();
+    }
+
+    pub fn wizard_advance_list(&mut self) {
+        match self.step {
+            AiServerStep::ChooseDeployment => {
+                self.deployment = DeploymentKind::ALL.get(self.list_cursor).copied();
+                self.step = match self.deployment {
+                    Some(DeploymentKind::Personal) => AiServerStep::ChoosePersonalEngine,
+                    Some(DeploymentKind::Cloud) => AiServerStep::ChooseCloudProvider,
+                    None => AiServerStep::ChooseDeployment,
+                };
+                self.list_cursor = 0;
+            }
+            AiServerStep::ChoosePersonalEngine => {
+                self.personal_engine = PersonalEngineChoice::ALL.get(self.list_cursor).copied();
+                self.apply_engine_defaults();
+                self.step = AiServerStep::ConfigureConnection;
+                self.configure_focus = ConfigureField::Url;
+            }
+            AiServerStep::ChooseCloudProvider => {
+                self.cloud_provider = CloudProviderChoice::ALL.get(self.list_cursor).copied();
+                self.apply_engine_defaults();
+                self.step = AiServerStep::ConfigureConnection;
+                self.configure_focus = ConfigureField::Url;
+            }
+            _ => {}
+        }
+        self.set_step_hint();
+    }
+
+    fn set_step_hint(&mut self) {
+        self.status = match self.step {
+            AiServerStep::ChooseDeployment => {
+                "Etape 1/3 · Perso ou cloud ? · fleches · Entree · Esc annuler".into()
+            }
+            AiServerStep::ChoosePersonalEngine => {
+                "Etape 2/3 · Moteur d'inference · fleches · Entree · Esc retour".into()
+            }
+            AiServerStep::ChooseCloudProvider => {
+                "Etape 2/3 · Prestataire cloud · fleches · Entree · Esc retour".into()
+            }
+            AiServerStep::ConfigureConnection => {
+                "Etape 3/3 · Connexion · Tab · Tester · Esc retour".into()
+            }
+            AiServerStep::Testing => "Test de connexion en cours…".into(),
+            AiServerStep::SelectModel => {
+                "Modele et contexte · Tab · Entree appliquer · Esc retour connexion".into()
+            }
+            AiServerStep::ConfirmReset => {
+                "Reinitialiser l'assistant connexion · Entree confirmer · Esc annuler".into()
+            }
+        };
+    }
+
+    pub fn add_extra_header_from_inputs(&mut self) {
+        let name = self.extra_header_name.trim().to_string();
+        let value = self.extra_header_value.trim().to_string();
+        if name.is_empty() || value.is_empty() {
+            self.status = "Nom et valeur header requis".into();
+            return;
+        }
+        self.extra_headers
+            .retain(|(k, _)| !k.eq_ignore_ascii_case(&name));
+        self.extra_headers.push((name.clone(), value));
+        self.extra_header_name.clear();
+        self.extra_header_name_cursor = 0;
+        self.extra_header_value.clear();
+        self.extra_header_value_cursor = 0;
+        self.status = format!("Header `{name}` ajoute");
+    }
+
+    #[must_use]
+    pub fn build_probe_profile(&self) -> crate::engine::ConnectionProfile {
+        use crate::engine::{AuthConfig, ConnectionProfile, LlmProvider};
+        let provider = match self.deployment {
+            Some(DeploymentKind::Cloud) => LlmProvider::OllamaCloud,
+            Some(DeploymentKind::Personal) => match self.personal_engine {
+                Some(PersonalEngineChoice::Ollama) => LlmProvider::OllamaLocal,
+                Some(PersonalEngineChoice::Vllm) => LlmProvider::Vllm,
+                Some(PersonalEngineChoice::LmStudio) => LlmProvider::LmStudio,
+                Some(PersonalEngineChoice::OpenAiCompatible) => LlmProvider::OpenAiCompatible,
+                Some(PersonalEngineChoice::Custom) | None => LlmProvider::Custom,
+            },
+            None => LlmProvider::Custom,
+        };
+        let auth = match self.auth_type {
+            AuthTypeChoice::None => AuthConfig::None,
+            AuthTypeChoice::Bearer => AuthConfig::Bearer {
+                token: self.auth_token.clone(),
+            },
+            AuthTypeChoice::ApiKeyHeader => AuthConfig::ApiKeyHeader {
+                header_name: self.auth_header_name.clone(),
+                token: self.auth_token.clone(),
+            },
+        };
+        let num_ctx = self.resolved_num_ctx().unwrap_or(crate::engine::default_num_ctx());
+        let max_iterations = self
+            .resolved_max_iterations()
+            .unwrap_or(crate::engine::default_max_iterations());
+        let name = match self.deployment {
+            Some(DeploymentKind::Cloud) => self
+                .cloud_provider
+                .map(CloudProviderChoice::label)
+                .unwrap_or("Cloud")
+                .to_string(),
+            Some(DeploymentKind::Personal) => self
+                .personal_engine
+                .map(PersonalEngineChoice::label)
+                .unwrap_or("Perso")
+                .to_string(),
+            None => "Connexion".into(),
+        };
+        ConnectionProfile {
+            id: uuid::Uuid::new_v4().to_string(),
+            name,
+            provider,
+            base_url: self.server.trim().to_string(),
+            default_model: self.models.get(self.model_cursor).cloned(),
+            auth,
+            extra_headers: self
+                .extra_headers
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
+            num_ctx,
+            max_iterations,
+            built_in: false,
+            preset_origin: None,
+            connection_verified: false,
+            verified_models: Vec::new(),
+        }
+    }
+
+    pub fn configure_active_buffer(&mut self) -> Option<(&mut String, &mut usize)> {
+        match self.configure_focus {
+            ConfigureField::Url => Some((&mut self.server, &mut self.server_cursor)),
+            ConfigureField::AuthHeaderName => {
+                Some((&mut self.auth_header_name, &mut self.auth_header_name_cursor))
+            }
+            ConfigureField::AuthToken => Some((&mut self.auth_token, &mut self.auth_token_cursor)),
+            ConfigureField::ExtraHeaderName => {
+                Some((&mut self.extra_header_name, &mut self.extra_header_name_cursor))
+            }
+            ConfigureField::ExtraHeaderValue => Some((
+                &mut self.extra_header_value,
+                &mut self.extra_header_value_cursor,
+            )),
+            ConfigureField::AuthType
+            | ConfigureField::AddExtraHeader
+            | ConfigureField::TestButton
+            | ConfigureField::BackButton => None,
+        }
+    }
+
+    pub fn cycle_configure_focus(&mut self, reverse: bool) {
+        let order = [
+            ConfigureField::Url,
+            ConfigureField::AuthType,
+            ConfigureField::AuthHeaderName,
+            ConfigureField::AuthToken,
+            ConfigureField::ExtraHeaderName,
+            ConfigureField::ExtraHeaderValue,
+            ConfigureField::AddExtraHeader,
+            ConfigureField::TestButton,
+            ConfigureField::BackButton,
+        ];
+        let skip_header = self.auth_type != AuthTypeChoice::ApiKeyHeader;
+        let pos = order
+            .iter()
+            .position(|&f| f == self.configure_focus)
+            .unwrap_or(0);
+        let mut next = pos;
+        loop {
+            next = if reverse {
+                if next == 0 {
+                    order.len() - 1
+                } else {
+                    next - 1
+                }
+            } else if next + 1 >= order.len() {
+                0
+            } else {
+                next + 1
+            };
+            let candidate = order[next];
+            if skip_header && candidate == ConfigureField::AuthHeaderName {
+                continue;
+            }
+            self.configure_focus = candidate;
+            break;
         }
     }
 

@@ -1,5 +1,6 @@
 //! Pont vers `drox-engine` — bootstrap et mapping événements.
 
+pub mod connection_library;
 pub mod llm_connection;
 mod agent_prompts;
 mod bootstrap;
@@ -37,17 +38,23 @@ mod usage;
 
 pub(crate) mod vim;
 pub use vim::{VimComposer, VimKeyResult, VimMode};
+pub use connection_library::{
+    builtin_preset_templates, infer_provider_from_url, migrate_library_from_legacy,
+    profile_to_legacy_prefs, profile_to_llm_config, profile_to_probe_config, AuthConfig,
+    ConnectionLibrary, ConnectionProfile, LlmProvider, PRESET_LM_STUDIO, PRESET_OLLAMA_CLOUD,
+    PRESET_OLLAMA_LOCAL, PRESET_OPENAI_COMPAT, PRESET_VLLM_OPENAI,
+};
 pub use preferences::{
     apply_llm_prefs_to_config, format_settings_lines, load_preferences, llm_connection_from_config,
-    mark_onboarding_done,
-    persist_from_state, preferences_path, record_recent_workspace, resolve_llm_startup, save_llm_connection, save_preferences,
-    LlmConnectionPrefs, LLM_BOOT_PLACEHOLDER_MODEL, OLLAMA_DEFAULT_SERVER,
+    mark_onboarding_done, normalize_preferences, persist_from_state, preferences_path,
+    record_recent_workspace, resolve_llm_startup, save_connection_library, save_llm_connection,
+    save_preferences, LlmConnectionPrefs, LLM_BOOT_PLACEHOLDER_MODEL, OLLAMA_DEFAULT_SERVER,
     LlmEngineKind, TuiPreferences,
 };
 pub use copy_cmd::try_copy_clipboard;
 pub use paste::{prepare_user_prompt, PastedTextStore};
 pub use at_typeahead::{active_at_query, apply_completion, AtFileIndex, AtQuery};
-pub use llm_connection::probe_ollama;
+pub use llm_connection::{probe_connection, probe_legacy_fields, probe_ollama};
 pub use llm_context::{
     cycle_preset_index, default_max_iterations, default_num_ctx, parse_max_iterations,
     preset_index_for, preset_label, preset_count, resolve_num_ctx, CONTEXT_CUSTOM_INDEX,

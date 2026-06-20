@@ -33,16 +33,17 @@ use crate::view::{
 use crate::AppConfig;
 
 use crate::app::state::{
-    AiServerDialog, AiServerField, AiServerSelectFocus, AiServerStep, AppPhase, AppState, ComposerMode,
-    ComposerSuggestionDialog, CopyDialog, OnboardingDialog, PromptDialog, RewindChoiceView,
-    RewindDialog, RunStatus, SlashPaletteDialog, ThemeDialog, WorkspaceDialog, WorkspaceField,
-    WorkspaceStep,
+    AiServerDialog, AiServerSelectFocus, AiServerStep, AppPhase, AppState, AuthTypeChoice,
+    CloudProviderChoice, ComposerMode, ComposerSuggestionDialog, ConfigureField, CopyDialog,
+    DeploymentKind,
+    OnboardingDialog, PersonalEngineChoice, PromptDialog, RewindChoiceView, RewindDialog, RunStatus,
+    SlashPaletteDialog, ThemeDialog, WorkspaceDialog, WorkspaceField, WorkspaceStep,
 };
 use crate::engine::at_typeahead::{self, AtFileIndex};
 use crate::engine::unified_suggestions::{
     self, preserve_cursor, ComposerSuggestionItem, SkillSuggestionEntry, SuggestionKind,
 };
-use crate::engine::preferences::{preferences_path, record_recent_workspace, resolve_llm_startup, save_llm_connection, llm_connection_from_config, LlmConnectionPrefs, TuiPreferences};
+use crate::engine::preferences::{load_preferences, preferences_path, record_recent_workspace, resolve_llm_startup, save_llm_connection, llm_connection_from_config, TuiPreferences};
 use crate::engine::notices::{NoticeLevel, StatusNotice};
 use crate::terminal::set_terminal_title;
 
@@ -2022,14 +2023,29 @@ impl App {
         let max_iterations = saved
             .map(|c| c.max_iterations)
             .unwrap_or(self.config.max_iterations);
-        self.state.ai_server = Some(AiServerDialog::from_current(
+        let active_profile = self
+            .tui_prefs
+            .connection_library
+            .active_profile()
+            .cloned();
+        let current_model = saved
+            .map(|c| c.model.clone())
+            .unwrap_or_else(|| self.config.model.clone());
+        let dialog = AiServerDialog::from_saved(
             server,
             api_key,
+            current_model,
             num_ctx,
             max_iterations,
-        ));
+            active_profile.as_ref(),
+        );
+        let needs_model_refresh = dialog.step == AiServerStep::SelectModel && dialog.models.is_empty();
+        self.state.ai_server = Some(dialog);
         self.state.phase = AppPhase::AiServer;
-        self.state.status_line = "/server — connexion IA (Ctrl+Shift+L)".into();
+        self.state.status_line = "/server — assistant connexion IA (Ctrl+Shift+L)".into();
+        if needs_model_refresh {
+            self.start_ai_server_test();
+        }
     }
 
     fn close_ai_server_dialog(&mut self) {
@@ -2318,32 +2334,6 @@ impl App {
         Ok(())
     }
 
-    fn cycle_ai_server_focus(&mut self, reverse: bool) {
-        let Some(dialog) = self.state.ai_server.as_mut() else {
-            return;
-        };
-        if dialog.step != AiServerStep::Configure {
-            return;
-        }
-        dialog.focus = match (dialog.focus, reverse) {
-            (AiServerField::Server, false) => AiServerField::ApiKey,
-            (AiServerField::ApiKey, false) => AiServerField::NumCtx,
-            (AiServerField::NumCtx, false) => AiServerField::TestButton,
-            (AiServerField::TestButton, false) => AiServerField::Server,
-            (AiServerField::Server, true) => AiServerField::TestButton,
-            (AiServerField::TestButton, true) => AiServerField::NumCtx,
-            (AiServerField::NumCtx, true) => AiServerField::ApiKey,
-            (AiServerField::ApiKey, true) => AiServerField::Server,
-        };
-    }
-
-    fn cycle_ai_server_context_preset(&mut self, reverse: bool) {
-        let Some(dialog) = self.state.ai_server.as_mut() else {
-            return;
-        };
-        dialog.context_preset_index = cycle_preset_index(dialog.context_preset_index, reverse);
-    }
-
     fn start_ai_server_test(&mut self) {
         let Some(dialog) = self.state.ai_server.as_mut() else {
             return;
@@ -2351,29 +2341,24 @@ impl App {
         if dialog.step == AiServerStep::Testing {
             return;
         }
-        let server = dialog.server.trim().to_string();
-        if server.is_empty() {
-            dialog.status = "Adresse serveur requise".into();
+        if dialog.server.trim().is_empty() {
+            dialog.status = "URL serveur requise".into();
+            dialog.configure_focus = ConfigureField::Url;
             return;
         }
-        if let Err(e) = dialog.resolved_num_ctx() {
-            dialog.status = e;
-            dialog.focus = AiServerField::NumCtx;
+        if dialog.auth_type == AuthTypeChoice::ApiKeyHeader && dialog.auth_header_name.trim().is_empty() {
+            dialog.status = "Nom du header requis".into();
+            dialog.configure_focus = ConfigureField::AuthHeaderName;
             return;
         }
-        let api_key = dialog.api_key.clone();
+        let profile = dialog.build_probe_profile();
         dialog.step = AiServerStep::Testing;
         dialog.status = "Test de connexion en cours…".into();
 
         let (tx, rx) = mpsc::channel(1);
         self.ai_server_test_rx = Some(rx);
         tokio::spawn(async move {
-            let api = if api_key.trim().is_empty() {
-                None
-            } else {
-                Some(api_key.as_str())
-            };
-            let result = crate::engine::probe_ollama(&server, api)
+            let result = crate::engine::probe_connection(&profile)
                 .await
                 .map_err(|e| e.to_string());
             let _ = tx.send(result).await;
@@ -2391,9 +2376,9 @@ impl App {
         let persist_after = match result {
             Ok(models) if models.is_empty() => {
                 if let Some(dialog) = self.state.ai_server.as_mut() {
-                    dialog.step = AiServerStep::Configure;
+                    dialog.step = AiServerStep::ConfigureConnection;
                     dialog.status =
-                        "Serveur joignable mais aucun modele liste (ollama pull …)".into();
+                        "Serveur joignable mais aucun modele liste (pull / deploy…)".into();
                 }
                 None
             }
@@ -2406,32 +2391,64 @@ impl App {
                     dialog.models = models;
                     dialog.step = AiServerStep::SelectModel;
                     dialog.select_focus = AiServerSelectFocus::ModelList;
-                    dialog.max_iterations = self.config.max_iterations.to_string();
-                    dialog.max_iterations_cursor = dialog.max_iterations.len();
                 }
                 Some(model_count)
             }
             Err(err) => {
                 if let Some(dialog) = self.state.ai_server.as_mut() {
-                    dialog.step = AiServerStep::Configure;
+                    dialog.step = AiServerStep::ConfigureConnection;
                     dialog.status = format!("Connexion echouee : {err}");
                 }
                 None
             }
         };
         if let Some(model_count) = persist_after {
-            let save_result = self.persist_ai_server_dialog_draft();
+            if let Err(e) = self.persist_ai_server_verified_connection() {
+                tracing::warn!(error = %e, "echec persistance connexion /server apres test");
+            }
             if let Some(dialog) = self.state.ai_server.as_mut() {
-                dialog.status = match save_result {
-                    Ok(()) => {
-                        format!("Connexion OK — {model_count} modele(s) · prefs sauvegardees")
-                    }
-                    Err(e) => {
-                        format!("Connexion OK — {model_count} modele(s) · sauvegarde: {e:#}")
-                    }
-                };
+                dialog.status = format!(
+                    "Connexion OK — {model_count} modele(s) · configurez le modele ci-dessous"
+                );
             }
         }
+    }
+
+    fn upsert_connection_profile(&mut self, mut profile: crate::engine::ConnectionProfile) -> anyhow::Result<()> {
+        let mut library = self.tui_prefs.connection_library.clone();
+        library.ensure_builtin_presets();
+        if let Some(active_id) = library.active_profile_id.clone() {
+            profile.id = active_id;
+            library.upsert_profile(profile.clone());
+        } else {
+            let id = profile.id.clone();
+            library.upsert_profile(profile.clone());
+            library.set_active(&id).map_err(anyhow::Error::msg)?;
+        }
+        crate::engine::save_connection_library(&library)?;
+        if let Some(legacy) = crate::engine::profile_to_legacy_prefs(&profile) {
+            crate::engine::save_llm_connection(&legacy)?;
+        }
+        self.tui_prefs = load_preferences();
+        Ok(())
+    }
+
+    fn persist_ai_server_verified_connection(&mut self) -> anyhow::Result<()> {
+        let dialog = self
+            .state
+            .ai_server
+            .as_ref()
+            .context("dialogue connexion IA")?;
+        let mut profile = dialog.build_probe_profile();
+        profile.connection_verified = true;
+        profile.verified_models = dialog.models.clone();
+        profile.num_ctx = dialog.resolved_num_ctx().map_err(anyhow::Error::msg)?;
+        profile.max_iterations = dialog.resolved_max_iterations().map_err(anyhow::Error::msg)?;
+        if profile.default_model.as_ref().is_none_or(|m| m.trim().is_empty()) {
+            profile.default_model = Some(self.config.model.clone())
+                .filter(|m| !m.trim().is_empty());
+        }
+        self.upsert_connection_profile(profile)
     }
 
     fn persist_ai_server_dialog_draft(&mut self) -> anyhow::Result<()> {
@@ -2445,29 +2462,17 @@ impl App {
             .get(dialog.model_cursor)
             .context("modele non selectionne")?
             .clone();
-        let server = dialog.server.trim().to_string();
-        let api_key = if dialog.api_key.trim().is_empty() {
-            None
-        } else {
-            Some(dialog.api_key.trim().to_string())
-        };
-        let num_ctx = dialog.resolved_num_ctx().map_err(anyhow::Error::msg)?;
-        let max_iterations = dialog.resolved_max_iterations().map_err(anyhow::Error::msg)?;
-        let prefs = LlmConnectionPrefs {
-            engine: crate::engine::LlmEngineKind::Ollama,
-            server,
-            api_key,
-            model,
-            num_ctx,
-            max_iterations,
-        };
-        save_llm_connection(&prefs)?;
-        self.tui_prefs.llm_connection = Some(prefs);
-        Ok(())
+        let mut profile = dialog.build_probe_profile();
+        profile.default_model = Some(model);
+        profile.num_ctx = dialog.resolved_num_ctx().map_err(anyhow::Error::msg)?;
+        profile.max_iterations = dialog.resolved_max_iterations().map_err(anyhow::Error::msg)?;
+        profile.connection_verified = true;
+        profile.verified_models = dialog.models.clone();
+        self.upsert_connection_profile(profile)
     }
 
     async fn apply_ai_server_model(&mut self, index: usize) -> anyhow::Result<()> {
-        let (model, server, api_key, num_ctx, max_iterations) = {
+        let profile = {
             let dialog = self
                 .state
                 .ai_server
@@ -2478,27 +2483,24 @@ impl App {
                 .get(index)
                 .context("index modele invalide")?
                 .clone();
-            let server = dialog.server.trim().to_string();
-            let api_key = if dialog.api_key.trim().is_empty() {
-                None
-            } else {
-                Some(dialog.api_key.trim().to_string())
-            };
             let num_ctx = dialog.resolved_num_ctx().map_err(anyhow::Error::msg)?;
             let max_iterations = dialog.resolved_max_iterations().map_err(anyhow::Error::msg)?;
-            (model, server, api_key, num_ctx, max_iterations)
+            let mut profile = dialog.build_probe_profile();
+            profile.default_model = Some(model.clone());
+            profile.num_ctx = num_ctx;
+            profile.max_iterations = max_iterations;
+            profile.connection_verified = true;
+            profile.verified_models = dialog.models.clone();
+            profile
         };
 
-        let prefs = LlmConnectionPrefs {
-            engine: crate::engine::LlmEngineKind::Ollama,
-            server: server.clone(),
-            api_key: api_key.clone(),
-            model: model.clone(),
-            num_ctx,
-            max_iterations,
-        };
-        save_llm_connection(&prefs)?;
-        self.tui_prefs.llm_connection = Some(prefs);
+        let model = profile.default_model.clone().unwrap_or_default();
+        let server = profile.base_url.clone();
+        let api_key = crate::engine::profile_to_legacy_prefs(&profile).and_then(|p| p.api_key);
+        let num_ctx = profile.num_ctx;
+        let max_iterations = profile.max_iterations;
+
+        self.upsert_connection_profile(profile.clone())?;
 
         self.config.server = server.clone();
         self.config.model = model.clone();
@@ -2507,7 +2509,7 @@ impl App {
         self.config.max_iterations = max_iterations;
 
         let runtime = self.runtime.as_ref().context("moteur non initialise")?;
-        runtime.apply_llm_connection(&server, &model, api_key.as_deref(), num_ctx)?;
+        runtime.apply_llm_connection_profile(&profile)?;
         runtime.set_max_iterations(max_iterations);
 
         self.state.llm_configured = true;
@@ -2515,7 +2517,8 @@ impl App {
         self.close_ai_server_dialog();
         let prefs_path = preferences_path();
         self.state.push_system(format!(
-            "Connexion IA : Ollama @ {server} — modele `{model}` — context {num_ctx} — max_iter {max_iterations}"
+            "Connexion IA : {} @ {server} — modele `{model}` — context {num_ctx} — max_iter {max_iterations}",
+            profile.name
         ));
         self.state
             .push_system(format!("Preferences persistees : {prefs_path}"));
@@ -2530,34 +2533,251 @@ impl App {
         Ok(())
     }
 
+    fn cycle_ai_server_context_preset(&mut self, reverse: bool) {
+        if let Some(dialog) = self.state.ai_server.as_mut() {
+            dialog.context_preset_index = cycle_preset_index(dialog.context_preset_index, reverse);
+        }
+    }
+
+    fn cycle_ai_server_select_focus(&mut self, reverse: bool) {
+        if let Some(dialog) = self.state.ai_server.as_mut() {
+            dialog.select_focus = match dialog.select_focus {
+                AiServerSelectFocus::ModelList => {
+                    if reverse {
+                        AiServerSelectFocus::ResetWizard
+                    } else {
+                        AiServerSelectFocus::NumCtx
+                    }
+                }
+                AiServerSelectFocus::NumCtx => {
+                    if reverse {
+                        AiServerSelectFocus::ModelList
+                    } else {
+                        AiServerSelectFocus::MaxIterations
+                    }
+                }
+                AiServerSelectFocus::MaxIterations => {
+                    if reverse {
+                        AiServerSelectFocus::NumCtx
+                    } else {
+                        AiServerSelectFocus::ResetWizard
+                    }
+                }
+                AiServerSelectFocus::ResetWizard => {
+                    if reverse {
+                        AiServerSelectFocus::MaxIterations
+                    } else {
+                        AiServerSelectFocus::ModelList
+                    }
+                }
+            };
+        }
+    }
+
     fn handle_ai_server_key(&mut self, key: KeyEvent) -> bool {
+        if self.state.ai_server.is_none() {
+            self.state.phase = AppPhase::Idle;
+            return false;
+        }
+
+        if self
+            .state
+            .ai_server
+            .as_ref()
+            .is_some_and(|d| d.step == AiServerStep::Testing)
+        {
+            if key.code == KeyCode::Esc {
+                if let Some(d) = self.state.ai_server.as_mut() {
+                    d.step = AiServerStep::ConfigureConnection;
+                    d.status = "Test annule — modifiez la connexion".into();
+                }
+            }
+            return false;
+        }
+
+        if key.code == KeyCode::Esc
+            && self.state.ai_server.as_ref().is_some_and(|d| {
+                d.step == AiServerStep::ChooseDeployment
+            })
+        {
+            self.close_ai_server_dialog();
+            self.state.status_line = "Connexion IA annulée".into();
+            return false;
+        }
+
+        if matches!(key.code, KeyCode::Tab | KeyCode::BackTab)
+            && self.state.ai_server.as_ref().is_some_and(|d| d.step == AiServerStep::SelectModel)
+        {
+            self.cycle_ai_server_select_focus(
+                key.code == KeyCode::BackTab || key.modifiers.contains(KeyModifiers::SHIFT),
+            );
+            return false;
+        }
+
+        if matches!(key.code, KeyCode::Left | KeyCode::Right)
+            && self.state.ai_server.as_ref().is_some_and(|d| {
+                d.step == AiServerStep::SelectModel
+                    && d.select_focus == AiServerSelectFocus::NumCtx
+                    && d.context_preset_index != CONTEXT_CUSTOM_INDEX
+            })
+        {
+            self.cycle_ai_server_context_preset(key.code == KeyCode::Left);
+            return false;
+        }
+
+        if key.code == KeyCode::Enter {
+            if let Some(d) = self.state.ai_server.as_ref() {
+                if d.step == AiServerStep::ConfigureConnection
+                    && d.configure_focus == ConfigureField::TestButton
+                {
+                    self.start_ai_server_test();
+                    return false;
+                }
+                if d.step == AiServerStep::ConfirmReset {
+                    self.state.ai_server = Some(AiServerDialog::new_wizard());
+                    self.state.status_line =
+                        "/server — nouvelle configuration (Ctrl+Shift+L)".into();
+                    return false;
+                }
+                if d.step == AiServerStep::SelectModel {
+                    if d.select_focus == AiServerSelectFocus::ResetWizard {
+                        if let Some(dialog) = self.state.ai_server.as_mut() {
+                            dialog.begin_reset_wizard();
+                        }
+                        return false;
+                    }
+                    let num_ok = d.resolved_num_ctx();
+                    let max_ok = d.resolved_max_iterations();
+                    let idx = d.model_cursor;
+                    match (num_ok, max_ok) {
+                        (Ok(_), Ok(_)) => {
+                            self.pending_slash =
+                                Some(PendingSlash::ApplyAiServer { index: idx });
+                        }
+                        (Err(e), _) => {
+                            if let Some(dialog) = self.state.ai_server.as_mut() {
+                                dialog.select_focus = AiServerSelectFocus::NumCtx;
+                                dialog.status = e;
+                            }
+                        }
+                        (Ok(_), Err(e)) => {
+                            if let Some(dialog) = self.state.ai_server.as_mut() {
+                                dialog.select_focus = AiServerSelectFocus::MaxIterations;
+                                dialog.status = e;
+                            }
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+
         let Some(dialog) = self.state.ai_server.as_mut() else {
             self.state.phase = AppPhase::Idle;
             return false;
         };
 
-        if dialog.step == AiServerStep::Testing {
-            if key.code == KeyCode::Esc {
-                self.close_ai_server_dialog();
-                self.state.status_line = "Test connexion annulé".into();
-            }
-            return false;
-        }
-
         match dialog.step {
+            AiServerStep::ConfirmReset => match key.code {
+                KeyCode::Esc => {
+                    dialog.wizard_back();
+                }
+                _ => {}
+            },
+            AiServerStep::ChooseDeployment
+            | AiServerStep::ChoosePersonalEngine
+            | AiServerStep::ChooseCloudProvider => {
+                let list_len = match dialog.step {
+                    AiServerStep::ChooseDeployment => DeploymentKind::ALL.len(),
+                    AiServerStep::ChoosePersonalEngine => PersonalEngineChoice::ALL.len(),
+                    AiServerStep::ChooseCloudProvider => CloudProviderChoice::ALL.len(),
+                    _ => 0,
+                };
+                match key.code {
+                    KeyCode::Esc => {
+                        dialog.wizard_back();
+                    }
+                    KeyCode::Up if dialog.list_cursor > 0 => {
+                        dialog.list_cursor -= 1;
+                    }
+                    KeyCode::Down if dialog.list_cursor + 1 < list_len => {
+                        dialog.list_cursor += 1;
+                    }
+                    KeyCode::Enter => {
+                        dialog.wizard_advance_list();
+                    }
+                    _ => {}
+                }
+            }
+            AiServerStep::ConfigureConnection => match key.code {
+                KeyCode::Esc => {
+                    dialog.wizard_back();
+                }
+                KeyCode::Tab => {
+                    dialog.cycle_configure_focus(key.modifiers.contains(KeyModifiers::SHIFT));
+                }
+                KeyCode::BackTab => {
+                    dialog.cycle_configure_focus(true);
+                }
+                KeyCode::Enter if dialog.configure_focus == ConfigureField::BackButton => {
+                    dialog.wizard_back();
+                }
+                KeyCode::Enter if dialog.configure_focus == ConfigureField::AddExtraHeader => {
+                    dialog.add_extra_header_from_inputs();
+                }
+                KeyCode::Left if dialog.configure_focus == ConfigureField::AuthType => {
+                    dialog.auth_type = dialog.auth_type.prev();
+                }
+                KeyCode::Right if dialog.configure_focus == ConfigureField::AuthType => {
+                    dialog.auth_type = dialog.auth_type.next();
+                }
+                KeyCode::Left => {
+                    if let Some((_, cur)) = dialog.configure_active_buffer() {
+                        if *cur > 0 {
+                            *cur -= 1;
+                        }
+                    }
+                }
+                KeyCode::Right => {
+                    if let Some((buf, cur)) = dialog.configure_active_buffer() {
+                        if *cur < buf.len() {
+                            *cur += 1;
+                        }
+                    }
+                }
+                KeyCode::Backspace => {
+                    if let Some((buf, cur)) = dialog.configure_active_buffer() {
+                        if *cur > 0 && *cur <= buf.len() {
+                            buf.remove(*cur - 1);
+                            *cur -= 1;
+                        }
+                    }
+                }
+                KeyCode::Delete => {
+                    if let Some((buf, cur)) = dialog.configure_active_buffer() {
+                        if *cur < buf.len() {
+                            buf.remove(*cur);
+                        }
+                    }
+                }
+                KeyCode::Char(c)
+                    if !key.modifiers.contains(KeyModifiers::CONTROL)
+                        && dialog.configure_active_buffer().is_some() =>
+                {
+                    if let Some((buf, cur)) = dialog.configure_active_buffer() {
+                        buf.insert(*cur, c);
+                        *cur += 1;
+                    }
+                }
+                _ => {}
+            },
             AiServerStep::SelectModel => match key.code {
                 KeyCode::Esc => {
-                    dialog.step = AiServerStep::Configure;
-                    dialog.status = "Retour a la configuration".into();
+                    dialog.wizard_back();
                 }
-                KeyCode::Tab | KeyCode::BackTab => {
-                    dialog.select_focus = match dialog.select_focus {
-                        AiServerSelectFocus::ModelList => AiServerSelectFocus::MaxIterations,
-                        AiServerSelectFocus::MaxIterations => AiServerSelectFocus::ModelList,
-                    };
-                }
-                KeyCode::Up if dialog.select_focus == AiServerSelectFocus::ModelList
-                    && dialog.model_cursor > 0 =>
+                KeyCode::Up
+                    if dialog.select_focus == AiServerSelectFocus::ModelList
+                        && dialog.model_cursor > 0 =>
                 {
                     dialog.model_cursor -= 1;
                 }
@@ -2567,25 +2787,14 @@ impl App {
                 {
                     dialog.model_cursor += 1;
                 }
-                KeyCode::Enter if dialog.select_focus == AiServerSelectFocus::ModelList => {
-                    match dialog.resolved_max_iterations() {
-                        Ok(_) => {
-                            let idx = dialog.model_cursor;
-                            self.pending_slash = Some(PendingSlash::ApplyAiServer { index: idx });
-                        }
-                        Err(e) => {
-                            dialog.select_focus = AiServerSelectFocus::MaxIterations;
-                            dialog.status = e;
-                        }
+                KeyCode::Left if dialog.select_focus == AiServerSelectFocus::NumCtx => {
+                    if dialog.context_custom_cursor > 0 {
+                        dialog.context_custom_cursor -= 1;
                     }
                 }
-                KeyCode::Enter if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
-                    match dialog.resolved_max_iterations() {
-                        Ok(_) => {
-                            let idx = dialog.model_cursor;
-                            self.pending_slash = Some(PendingSlash::ApplyAiServer { index: idx });
-                        }
-                        Err(e) => dialog.status = e,
+                KeyCode::Right if dialog.select_focus == AiServerSelectFocus::NumCtx => {
+                    if dialog.context_custom_cursor < dialog.context_custom.len() {
+                        dialog.context_custom_cursor += 1;
                     }
                 }
                 KeyCode::Left if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
@@ -2598,17 +2807,52 @@ impl App {
                         dialog.max_iterations_cursor += 1;
                     }
                 }
+                KeyCode::Backspace if dialog.select_focus == AiServerSelectFocus::NumCtx => {
+                    if dialog.context_preset_index == CONTEXT_CUSTOM_INDEX
+                        && dialog.context_custom_cursor > 0
+                    {
+                        dialog
+                            .context_custom
+                            .remove(dialog.context_custom_cursor - 1);
+                        dialog.context_custom_cursor -= 1;
+                    }
+                }
                 KeyCode::Backspace if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
                     if dialog.max_iterations_cursor > 0
                         && dialog.max_iterations_cursor <= dialog.max_iterations.len()
                     {
-                        dialog.max_iterations.remove(dialog.max_iterations_cursor - 1);
+                        dialog
+                            .max_iterations
+                            .remove(dialog.max_iterations_cursor - 1);
                         dialog.max_iterations_cursor -= 1;
+                    }
+                }
+                KeyCode::Delete if dialog.select_focus == AiServerSelectFocus::NumCtx => {
+                    if dialog.context_preset_index == CONTEXT_CUSTOM_INDEX
+                        && dialog.context_custom_cursor < dialog.context_custom.len()
+                    {
+                        dialog.context_custom.remove(dialog.context_custom_cursor);
                     }
                 }
                 KeyCode::Delete if dialog.select_focus == AiServerSelectFocus::MaxIterations => {
                     if dialog.max_iterations_cursor < dialog.max_iterations.len() {
                         dialog.max_iterations.remove(dialog.max_iterations_cursor);
+                    }
+                }
+                KeyCode::Char(c)
+                    if !key.modifiers.contains(KeyModifiers::CONTROL)
+                        && dialog.select_focus == AiServerSelectFocus::NumCtx =>
+                {
+                    if dialog.context_preset_index != CONTEXT_CUSTOM_INDEX {
+                        dialog.context_preset_index = CONTEXT_CUSTOM_INDEX;
+                        dialog.context_custom.clear();
+                        dialog.context_custom_cursor = 0;
+                    }
+                    if c.is_ascii_digit() {
+                        dialog
+                            .context_custom
+                            .insert(dialog.context_custom_cursor, c);
+                        dialog.context_custom_cursor += 1;
                     }
                 }
                 KeyCode::Char(c)
@@ -2620,102 +2864,6 @@ impl App {
                         .max_iterations
                         .insert(dialog.max_iterations_cursor, c);
                     dialog.max_iterations_cursor += 1;
-                }
-                _ => {}
-            },
-            AiServerStep::Configure => match key.code {
-                KeyCode::Esc => {
-                    self.close_ai_server_dialog();
-                    self.state.status_line = "Connexion IA annulée".into();
-                }
-                KeyCode::Tab => {
-                    self.cycle_ai_server_focus(key.modifiers.contains(KeyModifiers::SHIFT));
-                }
-                KeyCode::BackTab => {
-                    self.cycle_ai_server_focus(true);
-                }
-                KeyCode::Up => {
-                    if dialog.focus == AiServerField::NumCtx {
-                        self.cycle_ai_server_context_preset(true);
-                    } else {
-                        self.cycle_ai_server_focus(true);
-                    }
-                }
-                KeyCode::Down => {
-                    if dialog.focus == AiServerField::NumCtx {
-                        self.cycle_ai_server_context_preset(false);
-                    } else {
-                        self.cycle_ai_server_focus(false);
-                    }
-                }
-                KeyCode::Enter if dialog.focus == AiServerField::TestButton => {
-                    self.start_ai_server_test();
-                }
-                KeyCode::Enter if dialog.focus == AiServerField::Server => {
-                    dialog.focus = AiServerField::ApiKey;
-                }
-                KeyCode::Enter if dialog.focus == AiServerField::ApiKey => {
-                    dialog.focus = AiServerField::NumCtx;
-                }
-                KeyCode::Enter if dialog.focus == AiServerField::NumCtx => {
-                    dialog.focus = AiServerField::TestButton;
-                }
-                KeyCode::Left => {
-                    if dialog.focus == AiServerField::NumCtx
-                        && dialog.context_preset_index != CONTEXT_CUSTOM_INDEX
-                    {
-                        self.cycle_ai_server_context_preset(true);
-                    } else if dialog.focus != AiServerField::TestButton {
-                        let (buf, cur) = dialog.active_buffer_and_cursor();
-                        if *cur > 0 {
-                            *cur -= 1;
-                        }
-                        let _ = buf;
-                    }
-                }
-                KeyCode::Right => {
-                    if dialog.focus == AiServerField::NumCtx
-                        && dialog.context_preset_index != CONTEXT_CUSTOM_INDEX
-                    {
-                        self.cycle_ai_server_context_preset(false);
-                    } else if dialog.focus != AiServerField::TestButton {
-                        let (buf, cur) = dialog.active_buffer_and_cursor();
-                        if *cur < buf.len() {
-                            *cur += 1;
-                        }
-                    }
-                }
-                KeyCode::Backspace => {
-                    if dialog.focus != AiServerField::TestButton {
-                        let (buf, cur) = dialog.active_buffer_and_cursor();
-                        if *cur > 0 && *cur <= buf.len() {
-                            buf.remove(*cur - 1);
-                            *cur -= 1;
-                        }
-                    }
-                }
-                KeyCode::Delete => {
-                    if dialog.focus != AiServerField::TestButton {
-                        let (buf, cur) = dialog.active_buffer_and_cursor();
-                        if *cur < buf.len() {
-                            buf.remove(*cur);
-                        }
-                    }
-                }
-                KeyCode::Char(c)
-                    if !key.modifiers.contains(KeyModifiers::CONTROL)
-                        && dialog.focus != AiServerField::TestButton =>
-                {
-                    if dialog.focus == AiServerField::NumCtx
-                        && dialog.context_preset_index != CONTEXT_CUSTOM_INDEX
-                    {
-                        dialog.context_preset_index = CONTEXT_CUSTOM_INDEX;
-                        dialog.context_custom.clear();
-                        dialog.context_custom_cursor = 0;
-                    }
-                    let (buf, cur) = dialog.active_buffer_and_cursor();
-                    buf.insert(*cur, c);
-                    *cur += 1;
                 }
                 _ => {}
             },

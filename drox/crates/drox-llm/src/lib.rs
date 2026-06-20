@@ -29,10 +29,12 @@ pub mod client;
 pub mod config;
 pub mod error;
 pub mod ollama;
+pub mod openai_compat;
 pub mod retry;
 
 pub use client::{ChatOptions, LlmClient, StreamHandle, ToolSpec};
 pub use config::LlmConfig;
 pub use error::LlmError;
 pub use ollama::OllamaClient;
+pub use openai_compat::list_models as list_openai_compat_models;
 pub use retry::with_retry;

@@ -8,6 +8,10 @@ use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::ui::{SessionAccent, TuiThemeSetting};
 
+use super::connection_library::{
+    migrate_library_from_legacy, profile_to_legacy_prefs, ConnectionLibrary,
+};
+
 static PREFS_PATH_OVERRIDE: Mutex<Option<Utf8PathBuf>> = Mutex::new(None);
 
 #[cfg(test)]
@@ -45,11 +49,11 @@ pub struct LlmConnectionPrefs {
     pub max_iterations: usize,
 }
 
-fn default_max_iterations_pref() -> usize {
+pub(crate) fn default_max_iterations_pref() -> usize {
     crate::engine::default_max_iterations()
 }
 
-fn default_num_ctx_pref() -> i64 {
+pub(crate) fn default_num_ctx_pref() -> i64 {
     crate::engine::default_num_ctx()
 }
 
@@ -71,9 +75,12 @@ pub struct TuiPreferences {
     /// Onboarding TUI terminé (premier lancement).
     #[serde(default)]
     pub onboarding_done: bool,
-    /// Connexion serveur IA (`/server`).
+    /// Connexion serveur IA (`/server`) — legacy, synchronisé avec `connection_library`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub llm_connection: Option<LlmConnectionPrefs>,
+    /// Bibliothèque de profils LLM (presets + custom).
+    #[serde(default)]
+    pub connection_library: ConnectionLibrary,
     /// Workspaces récents (`/workspace`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub recent_workspaces: Vec<String>,
@@ -93,6 +100,7 @@ impl Default for TuiPreferences {
             vim_enabled: false,
             onboarding_done: false,
             llm_connection: None,
+            connection_library: ConnectionLibrary::default(),
             recent_workspaces: Vec::new(),
         }
     }
@@ -111,6 +119,35 @@ pub fn apply_llm_prefs_to_config(config: &mut crate::app::AppConfig, prefs: &Llm
     config.api_key = prefs.api_key.clone();
     config.num_ctx = prefs.num_ctx;
     config.max_iterations = prefs.max_iterations;
+}
+
+/// Normalise prefs (migration bibliothèque, sync legacy ↔ profil actif).
+#[must_use]
+pub fn normalize_preferences(mut prefs: TuiPreferences) -> TuiPreferences {
+    prefs.connection_library =
+        migrate_library_from_legacy(prefs.connection_library.clone(), prefs.llm_connection.as_ref());
+    prefs.connection_library.ensure_builtin_presets();
+
+    if let Some(active_id) = prefs.connection_library.active_profile_id.clone() {
+        if let Some(active) = prefs
+            .connection_library
+            .profiles
+            .iter_mut()
+            .find(|p| p.id == active_id)
+        {
+            if active.is_usable() && !active.connection_verified {
+                active.connection_verified = true;
+            }
+        }
+    }
+
+    if let Some(active) = prefs.connection_library.active_profile() {
+        if let Some(legacy) = profile_to_legacy_prefs(active) {
+            prefs.llm_connection = Some(legacy);
+        }
+    }
+
+    prefs
 }
 
 /// Résout la connexion IA au démarrage TUI.
@@ -145,7 +182,7 @@ pub fn resolve_llm_startup(
     false
 }
 
-fn is_valid_saved_connection(conn: &LlmConnectionPrefs) -> bool {
+pub(crate) fn is_valid_saved_connection(conn: &LlmConnectionPrefs) -> bool {
     !conn.server.trim().is_empty()
         && !conn.model.trim().is_empty()
         && conn.model != LLM_BOOT_PLACEHOLDER_MODEL
@@ -154,6 +191,25 @@ fn is_valid_saved_connection(conn: &LlmConnectionPrefs) -> bool {
 pub fn save_llm_connection(prefs: &LlmConnectionPrefs) -> anyhow::Result<()> {
     let mut all = load_preferences();
     all.llm_connection = Some(prefs.clone());
+    all.connection_library
+        .sync_from_legacy_fields(
+            &prefs.server,
+            prefs.api_key.as_deref(),
+            &prefs.model,
+            prefs.num_ctx,
+            prefs.max_iterations,
+        );
+    save_preferences(&all)
+}
+
+/// Enregistre la bibliothèque complète (profils + actif).
+pub fn save_connection_library(library: &ConnectionLibrary) -> anyhow::Result<()> {
+    let mut all = load_preferences();
+    all.connection_library = library.clone();
+    all.connection_library.ensure_builtin_presets();
+    if let Some(active) = all.connection_library.active_profile() {
+        all.llm_connection = profile_to_legacy_prefs(active);
+    }
     save_preferences(&all)
 }
 
@@ -192,6 +248,11 @@ fn merge_with_disk(mut prefs: TuiPreferences) -> TuiPreferences {
     if prefs.llm_connection.is_none() {
         prefs.llm_connection = disk.llm_connection;
     }
+    if prefs.connection_library.profiles.is_empty()
+        && !disk.connection_library.profiles.is_empty()
+    {
+        prefs.connection_library = disk.connection_library.clone();
+    }
     if prefs.recent_workspaces.is_empty() && !disk.recent_workspaces.is_empty() {
         prefs.recent_workspaces = disk.recent_workspaces;
     }
@@ -229,8 +290,8 @@ pub fn preferences_path() -> Utf8PathBuf {
 pub fn load_preferences() -> TuiPreferences {
     let path = preferences_path();
     match std::fs::read_to_string(path.as_std_path()) {
-        Ok(raw) => match serde_json::from_str(&raw) {
-            Ok(prefs) => prefs,
+        Ok(raw) => match serde_json::from_str::<TuiPreferences>(&raw) {
+            Ok(prefs) => normalize_preferences(prefs),
             Err(e) => {
                 tracing::warn!(
                     path = %path,
@@ -257,7 +318,7 @@ pub fn save_preferences(prefs: &TuiPreferences) -> anyhow::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent.as_std_path()).context("creation ~/.drox")?;
     }
-    let merged = merge_with_disk(prefs.clone());
+    let merged = merge_with_disk(normalize_preferences(prefs.clone()));
     let body = serde_json::to_string_pretty(&merged).context("serialisation preferences")?;
     write_atomic(&path, body.as_bytes()).context("ecriture tui-preferences.json")?;
     tracing::info!(
@@ -341,6 +402,17 @@ pub fn format_settings_lines(prefs: &TuiPreferences) -> Vec<String> {
     } else {
         lines.push("— Connexion IA : non configurée (Ctrl+Shift+L ou `/server`)".into());
     }
+    let mut lib = prefs.connection_library.clone();
+    lib.ensure_builtin_presets();
+    if !lib.profiles.is_empty() {
+        lines.push(format!(
+            "  profils LLM : {} (actif: {})",
+            lib.profiles.len(),
+            lib.active_profile()
+                .map(|p| p.name.as_str())
+                .unwrap_or("aucun")
+        ));
+    }
     lines
 }
 
@@ -354,6 +426,7 @@ pub fn persist_from_state(state: &crate::app::AppState) -> anyhow::Result<()> {
         vim_enabled: existing.vim_enabled,
         onboarding_done: existing.onboarding_done,
         llm_connection: existing.llm_connection.clone(),
+        connection_library: existing.connection_library.clone(),
         recent_workspaces: existing.recent_workspaces.clone(),
     })
 }
@@ -492,6 +565,36 @@ mod tests {
         save_llm_connection(&conn).unwrap();
         let loaded = load_preferences();
         assert_eq!(loaded.llm_connection.as_ref(), Some(&conn));
+
+        clear_preferences_path_for_tests();
+    }
+
+    #[test]
+    fn save_llm_connection_updates_library() {
+        let _lock = PREFS_TEST_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let path = Utf8PathBuf::from_path_buf(dir.path().join("tui-preferences.json")).unwrap();
+        set_preferences_path_for_tests(path);
+
+        let conn = LlmConnectionPrefs {
+            engine: LlmEngineKind::Ollama,
+            server: "http://127.0.0.1:11434".into(),
+            api_key: Some("secret".into()),
+            model: "qwen2.5".into(),
+            num_ctx: 65_536,
+            max_iterations: 40,
+        };
+        save_llm_connection(&conn).unwrap();
+        let loaded = load_preferences();
+        assert_eq!(loaded.llm_connection.as_ref(), Some(&conn));
+        assert!(loaded.connection_library.active_profile().is_some());
+        assert_eq!(
+            loaded
+                .connection_library
+                .active_profile()
+                .and_then(|p| p.default_model.as_deref()),
+            Some("qwen2.5")
+        );
 
         clear_preferences_path_for_tests();
     }

@@ -1,6 +1,6 @@
 # Plan — Bibliothèque de connexions LLM (ligne 2.0.2)
 
-**Statut** : plan  
+**Statut** : en cours — assistant `/server` terminé (étapes 1–4) ; charte Drox UI à appliquer (étape 4 bis)  
 **Objectif** : permettre à l'utilisateur de se connecter facilement aux **hébergeurs cloud connus** (Ollama Cloud, vLLM managé, etc.) **et** de définir des **profils personnalisés** pour serveurs perso (headers, tokens, URL).
 
 ---

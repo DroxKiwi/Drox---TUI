@@ -1,6 +1,6 @@
 //! Initialisation moteur (aligné `drox-cli`, sans services externes).
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use anyhow::Context;
@@ -28,6 +28,7 @@ use uuid::Uuid;
 
 use crate::app::AppConfig;
 use crate::asker::{AskCoordinator, TuiUserAsker};
+use crate::engine::connection_library::{profile_to_llm_config, ConnectionProfile};
 use crate::view::LogEntry;
 
 struct LlmRuntimeState {
@@ -123,7 +124,39 @@ impl EngineRuntime {
         num_ctx: i64,
     ) -> anyhow::Result<()> {
         let api_key_owned = api_key.map(str::to_string);
-        let config = build_llm_config(server, model, &api_key_owned, num_ctx)?;
+        let config = build_llm_config(server, model, &api_key_owned, num_ctx, &BTreeMap::new())?;
+        self.apply_llm_config(config, server, model, api_key_owned, num_ctx)
+    }
+
+    /// Applique un profil complet (auth + headers custom).
+    pub fn apply_llm_connection_profile(&self, profile: &ConnectionProfile) -> anyhow::Result<()> {
+        let model = profile
+            .effective_model()
+            .context("modele requis dans le profil")?;
+        let config = profile_to_llm_config(profile).context("config LLM profil")?;
+        let api_key_owned = profile
+            .auth
+            .as_legacy_api_key()
+            .or_else(|| profile.extra_headers.get("x-api-key").cloned());
+        self.apply_llm_config(
+            config,
+            profile.base_url.trim(),
+            model,
+            api_key_owned,
+            profile.num_ctx,
+        )?;
+        self.set_max_iterations(profile.max_iterations);
+        Ok(())
+    }
+
+    fn apply_llm_config(
+        &self,
+        config: LlmConfig,
+        server: &str,
+        model: &str,
+        api_key_owned: Option<String>,
+        num_ctx: i64,
+    ) -> anyhow::Result<()> {
         let client = Arc::new(OllamaClient::new(config).context("client LLM")?);
         let ctx = num_ctx.max(2048) as usize;
 
@@ -173,6 +206,7 @@ impl EngineRuntime {
             &config.model,
             &config.api_key,
             config.num_ctx,
+            &BTreeMap::new(),
         )?;
         let num_ctx = llm_config.num_ctx.max(2048) as usize;
         let llm = Arc::new(OllamaClient::new(llm_config).context("client LLM")?);
@@ -550,14 +584,22 @@ pub(crate) fn build_llm_config(
     model: &str,
     api_key: &Option<String>,
     num_ctx: i64,
+    extra_headers: &BTreeMap<String, String>,
 ) -> anyhow::Result<LlmConfig> {
     let mut config = LlmConfig::try_from_str(server, model)?;
     config = config.with_num_ctx(num_ctx.max(2048));
     if let Some(k) = api_key {
-        config = config.with_api_key(k.clone());
+        if !k.trim().is_empty() {
+            config = config.with_api_key(k.clone());
+        }
     } else if let Ok(s) = std::env::var("DROX_API_KEY") {
         if !s.trim().is_empty() {
             config = config.with_api_key(s);
+        }
+    }
+    for (name, value) in extra_headers {
+        if !value.trim().is_empty() {
+            config = config.with_header(name, value);
         }
     }
     Ok(config)
