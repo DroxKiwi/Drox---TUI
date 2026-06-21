@@ -74,13 +74,35 @@ Tu n’as jamais utilisé Drox TUI ? Suis ces étapes dans l’ordre.
 ### Ce qu’il te faut
 
 1. Un **terminal moderne** (Windows Terminal recommandé sur Windows).
-2. **[Ollama](https://ollama.com/)** installé et **lancé** (icône ou service actif).
-3. Un **modèle** téléchargé, par exemple :
+2. Un **moteur d’inférence** configuré — voir [Moteurs d’inférence](#moteurs-dinférence-ollama-vllm) ci-dessous (Ollama recommandé pour débuter).
+
+### Moteurs d’inférence (Ollama, vLLM)
+
+Drox TUI **n’embarque pas** de modèle : il appelle un **serveur LLM** que tu choisis via **`Ctrl+Shift+L`** ou **`/server`**. Deux familles courantes :
+
+| Moteur | En local (chez toi) | En cloud (distant) |
+|---|---|---|
+| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` — modèles sur ton PC / serveur | **[Ollama Cloud](https://ollama.com/cloud)** — modèles hébergés, connexion par clé API (preset *Ollama Cloud*) |
+| **[vLLM](https://docs.vllm.ai/)** | API **OpenAI-compatible** sur ta machine (ex. `http://127.0.0.1:8000/v1`) | Instance vLLM sur **ton** VPS, cluster ou cloud privé (même API, URL + token) |
+
+Presets intégrés dans la modale connexion : *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
+
+**Local vs cloud — ce que ça implique**
+
+| | Local | Cloud (Ollama Cloud, vLLM hébergé, …) |
+|---|---|---|
+| **Données** | Prompts et réponses restent sur **ton** matériel | Requêtes envoyées au **fournisseur** que tu configures |
+| **Confidentialité** | Souveraineté maximale (alignée Drox) | Dépend du **contrat du service** : Ollama et les hébergeurs vLLM annoncent transport chiffré (HTTPS) et politiques de non-rétention **selon leurs propres docs** — à lire avant usage pro |
+| **Choix** | **100 % opt-in** : Drox n’impose aucun cloud KDDS ; tu saisis l’URL et la clé |
+
+Pour commencer en local avec Ollama :
 
 ```bash
 ollama pull qwen2.5-coder:7b
 # ou : ollama pull gemma3:4b
 ```
+
+Puis dans Drox TUI : adresse `http://127.0.0.1:11434`, modèle = tag Ollama choisi.
 
 ### Étape 1 — Installer Drox TUI
 
@@ -506,8 +528,28 @@ Never used Drox TUI? Follow these steps in order.
 ### What you need
 
 1. A **modern terminal** (Windows Terminal on Windows).
-2. **[Ollama](https://ollama.com/)** installed and **running**.
-3. A **model** pulled locally, e.g.:
+2. An **inference engine** configured — see [Inference engines](#en--inference-engines-ollama-vllm) below (Ollama recommended to start).
+
+### EN — Inference engines (Ollama, vLLM)
+
+Drox TUI does **not** ship a model: it calls an **LLM server** you choose via **`Ctrl+Shift+L`** or **`/server`**.
+
+| Engine | Local (on your hardware) | Cloud (remote) |
+|---|---|---|
+| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` | **[Ollama Cloud](https://ollama.com/cloud)** — API key, hosted models |
+| **[vLLM](https://docs.vllm.ai/)** | OpenAI-compatible API (e.g. `http://127.0.0.1:8000/v1`) | Your VPS / private cloud instance (URL + token) |
+
+Built-in presets: *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
+
+**Local vs cloud**
+
+| | Local | Cloud |
+|---|---|---|
+| **Data** | Prompts stay on **your** machine | Requests go to **your chosen provider** |
+| **Privacy** | Maximum sovereignty | Depends on **provider terms** — Ollama and vLLM hosts advertise HTTPS and no-retention policies **per their documentation**; review before professional use |
+| **Choice** | **Opt-in only** — no mandatory KDDS cloud |
+
+Quick local start:
 
 ```bash
 ollama pull qwen2.5-coder:7b
