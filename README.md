@@ -1,7 +1,7 @@
 # Drox TUI — agent local en terminal
 
-> **Tu découvres Drox ?** Je te propose **Drox TUI** — assistant agent en **terminal**, la voie la plus simple pour débuter selon moi.  
-> **Produit sœur** : **[Drox IDE](https://github.com/DroxKiwi/Drox---IDE---OR)** (éditeur graphique, fork VS Code, même moteur agent) — **beaucoup plus difficile à prendre en main** (install lourde, UI riche, toujours expérimental). **Je te recommande de commencer par le TUI**.
+> **Tu découvres Drox ?** **Drox TUI** est un assistant agent en **terminal**, adapté aux débutants.  
+> **Produit sœur** : **[Drox IDE](https://github.com/DroxKiwi/Drox---IDE---OR)** (éditeur graphique, fork VS Code, même moteur agent) — **beaucoup plus difficile à prendre en main** (install lourde, UI riche, toujours expérimental). **Il est conseillé de commencer par le TUI**.
 
 > Dépôt de **développement** — binaires et notes de release sur [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR).
 
@@ -65,7 +65,7 @@ Ces pistes **ne bloquent pas** les releases courantes ; elles nourrissent la lig
 |---|---|
 | Installer | [Télécharger](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) |
 | MAJ auto | `releases/latest.json` (opt-in `/update on`) |
-| Ollama (je recommande) | [ollama.com](https://ollama.com/) |
+| Ollama (recommandé) | [ollama.com](https://ollama.com/) |
 | SmartScreen | Installeur **non signé** — « Éditeur inconnu » normal · signing prévu **2.0.6** |
 
 ---
@@ -76,8 +76,8 @@ Tu n’as jamais utilisé Drox TUI ? Suis ces étapes dans l’ordre.
 
 ### Ce qu’il te faut
 
-1. Un **terminal moderne** (sur Windows, je recommande Windows Terminal).
-2. Un **moteur d’inférence** configuré — voir [Moteurs d’inférence](#moteurs-dinférence-ollama-vllm) ci-dessous (je recommande Ollama pour débuter).
+1. Un **terminal moderne** (Windows Terminal est recommandé sur Windows).
+2. Un **moteur d’inférence** configuré — voir [Moteurs d’inférence](#moteurs-dinférence-ollama-vllm) ci-dessous (Ollama est recommandé pour débuter).
 
 ### Moteurs d’inférence (Ollama, vLLM)
 
@@ -85,8 +85,8 @@ Drox TUI **n’embarque pas** de modèle : il appelle un **serveur LLM** que tu 
 
 | Moteur | En local (chez toi) | En cloud (distant) |
 |---|---|---|
-| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` — modèles sur ton PC / serveur ([mon matériel testé](#mon-matériel-testé-inférence-locale)) | **[Ollama Cloud](https://ollama.com/cloud)** — modèles hébergés, connexion par clé API (preset *Ollama Cloud*) |
-| **[vLLM](https://docs.vllm.ai/)** | API **OpenAI-compatible** sur ta machine (ex. `http://127.0.0.1:8000/v1`) — je conseille un GPU ([mon matériel testé](#mon-matériel-testé-inférence-locale)) | Instance vLLM sur **ton** VPS, cluster ou cloud privé (même API, URL + token) |
+| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` — modèles sur ton PC / serveur ([matériel testé](#matériel-testé-inférence-locale)) | **[Ollama Cloud](https://ollama.com/cloud)** — modèles hébergés, connexion par clé API (preset *Ollama Cloud*) |
+| **[vLLM](https://docs.vllm.ai/)** | API **OpenAI-compatible** sur ta machine (ex. `http://127.0.0.1:8000/v1`) — un GPU est recommandé ([matériel testé](#matériel-testé-inférence-locale)) | Instance vLLM sur **ton** VPS, cluster ou cloud privé (même API, URL + token) |
 
 Presets intégrés dans la modale connexion : *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
 
@@ -98,7 +98,7 @@ Presets intégrés dans la modale connexion : *Ollama local*, *Ollama Cloud*, *v
 | **Confidentialité** | Souveraineté maximale (alignée Drox) | Dépend du **contrat du service** : Ollama et les hébergeurs vLLM annoncent transport chiffré (HTTPS) et politiques de non-rétention **selon leurs propres docs** — à lire avant usage pro |
 | **Choix** | **100 % opt-in** : Drox n’impose aucun cloud KDDS ; tu saisis l’URL et la clé |
 
-Pour commencer en local avec Ollama (voir [mon matériel testé](#mon-matériel-testé-inférence-locale)) :
+Pour commencer en local avec Ollama (voir [matériel testé](#matériel-testé-inférence-locale)) :
 
 ```bash
 # Principal (24 Go VRAM+, ex. RTX 3090) — qwen3.6:27b, Q4_K_M, de préférence variante MTP
@@ -107,47 +107,47 @@ ollama pull qwen3.6:27b
 # Alternative — gemma4:26b, Q4_K_M, format it-qat
 ollama pull gemma4:26b
 
-# Laptop / essais — petits modèles orientés spé code que j’essaie aussi :
+# Laptop / essais — petits modèles orientés spé code à essayer aussi :
 ollama pull qwen2.5-coder:7b
 # ou : ollama pull gemma3:4b
 ```
 
 Puis dans Drox TUI : adresse `http://127.0.0.1:11434`, modèle = tag Ollama choisi.
 
-### Modèles que j’ai testés pendant le dev
+### Modèles testés pendant le dev
 
-Pendant le dev de Drox TUI, **j’utilise surtout** :
+Le développement de Drox TUI s’appuie surtout sur :
 
 | Profil | Modèle | Quantification | Format / remarque |
 |---|---|---|---|
 | **Station** | **`qwen3.6:27b`** | **Q4_K_M** | de préférence variante **MTP** |
 | **Alternative** | **`gemma4:26b`** | **Q4_K_M** | format **it-qat** |
-| **Portable / essais** | modèles plus petits orientés spé code | Q4/Q5 selon VRAM | ex. `qwen2.5-coder:7b`, `gemma3:4b` — **j’essaie** aussi |
+| **Portable / essais** | modèles plus petits orientés spé code | Q4/Q5 selon VRAM | ex. `qwen2.5-coder:7b`, `gemma3:4b` — également adaptés |
 
-### Mon matériel testé (inférence locale)
+### Matériel testé (inférence locale)
 
-Drox TUI tourne sur **toute machine** où Ollama ou vLLM fonctionne. Voici **mon** matériel et les configs **que j’ai testées moi-même** (solo, Windows, Ollama local, agent sur de vrais dépôts) :
+Drox TUI tourne sur **toute machine** où Ollama ou vLLM fonctionne. Les configurations suivantes ont été **testées** (Windows, Ollama local, agent sur de vrais dépôts) :
 
 | Profil | Machine | GPU | VRAM | RAM système |
 |---|---|---|---|---|
 | **Station** | PC bureau | NVIDIA **RTX 3090** | **24 Go** | **96 Go** |
 | **Portable** | **MSI Helios AI 16** | NVIDIA **RTX 5070 Ti** | **12 Go** | *(selon config)* |
 
-**Mon retour d’expérience**
+**Synthèse**
 
-- **RTX 3090 + 96 Go RAM** — **ma** config de référence pour le dev : **`qwen3.6:27b`** en **Q4_K_M** (de préférence **MTP**), sinon **`gemma4:26b`** en **Q4_K_M** (**it-qat**). Contextes longs et runs agent intensifs sans stress.
-- **RTX 5070 Ti 12 Go** (Helios AI 16) — laptop récent : **tout à fait utilisable** avec des modèles **plus petits orientés spé code** (`qwen2.5-coder:7b`, `gemma3:4b`, …) — **j’essaie** aussi ces modèles sur la station pour des runs plus rapides ; contexte modéré dans **`/server`**.
+- **RTX 3090 + 96 Go RAM** — config de référence pour le dev : **`qwen3.6:27b`** en **Q4_K_M** (de préférence **MTP**), sinon **`gemma4:26b`** en **Q4_K_M** (**it-qat**). Contextes longs et runs agent intensifs sans stress.
+- **RTX 5070 Ti 12 Go** (Helios AI 16) — laptop récent : **tout à fait utilisable** avec des modèles **plus petits orientés spé code** (`qwen2.5-coder:7b`, `gemma3:4b`, …) ; ces modèles conviennent aussi sur station pour des runs plus rapides ; contexte modéré dans **`/server`**.
 
-**Mes repères généraux (local, indicatif)**
+**Repères généraux (local, indicatif)**
 
 | VRAM GPU | Modèles Ollama raisonnables |
 |---|---|
 | **12 Go** | 4B–7B code (Q4/Q5), 14B légers avec contexte réduit |
-| **24 Go** | **27B–26B en Q4_K_M** (ma config dev), ou 7B–14B confort |
+| **24 Go** | **27B–26B en Q4_K_M** (config de référence dev), ou 7B–14B confort |
 
-La **RAM système** compte aussi (contexte, outils, IDE terminal) — je recommande **32 Go+** en local ; **96 Go** m’apporte de la marge sur gros workspaces.
+La **RAM système** compte aussi (contexte, outils, IDE terminal) — il est recommandé d’avoir **32 Go+** en local ; **96 Go** apportent de la marge sur gros workspaces.
 
-Ce ne sont **pas** des minimums que je fixe officiellement pour Drox : lance **`/doctor`**, teste ton modèle, ajuste `num_ctx` dans la connexion IA. Une machine plus modeste peut suffire avec un petit modèle ; une config cloud reste toujours possible.
+Ce ne sont **pas** des minimums officiels Drox : lance **`/doctor`**, teste ton modèle, ajuste `num_ctx` dans la connexion IA. Une machine plus modeste peut suffire avec un petit modèle ; une config cloud reste toujours possible.
 
 ### Étape 1 — Installer Drox TUI
 
@@ -231,11 +231,11 @@ Tape **`/`** dans le composer pour la palette de commandes (`/settings`, `/theme
 
 | Mode | Comment | Effet |
 |---|---|---|
-| **Prudent** (mon choix par défaut) | `drox-tui --workspace .` | L’agent **demande** avant d’écrire ou d’exécuter bash |
+| **Prudent** (recommandé par défaut) | `drox-tui --workspace .` | L’agent **demande** avant d’écrire ou d’exécuter bash |
 | **Plan** | ajoute `--plan` | Lecture et conseil — pas d’écriture sur disque |
 | **Apply** | ajoute `--apply` | Écritures réelles — à n’utiliser que quand tu fais confiance au run |
 
-**Je te conseille** de rester sans `--apply` les premières sessions ; valide chaque action via les modales.
+**Il est conseillé** de rester sans `--apply` les premières sessions ; valide chaque action via les modales.
 
 ### Étape 7 — Reprendre une session
 
@@ -327,7 +327,7 @@ Sans `--workspace`, le répertoire courant est utilisé. Au **premier lancement*
 
 ## FR — Installation
 
-**Prérequis** : [Ollama](https://ollama.com/) (ou serveur compatible), terminal moderne (sur Windows, je recommande Windows Terminal).
+**Prérequis** : [Ollama](https://ollama.com/) (ou serveur compatible), terminal moderne (Windows Terminal est recommandé sur Windows).
 
 ### Windows x64
 
@@ -517,8 +517,8 @@ Seule communication produit Drox vers l’extérieur : **vérification de versio
 
 ---
 
-> **New to Drox?** I suggest **Drox TUI** — a **terminal** agent, the easiest entry point in my experience.  
-> **Sibling product**: **[Drox IDE](https://github.com/DroxKiwi/Drox---IDE---OR)** (graphical editor, VS Code fork, same agent engine) — **much harder to get started with** (heavy install, rich UI, still experimental). **I recommend starting with the TUI**.
+> **New to Drox?** **Drox TUI** is a **terminal** agent, well suited for beginners.  
+> **Sibling product**: **[Drox IDE](https://github.com/DroxKiwi/Drox---IDE---OR)** (graphical editor, VS Code fork, same agent engine) — **much harder to get started with** (heavy install, rich UI, still experimental). **Starting with the TUI is recommended**.
 
 ## EN — Project goal — sovereignty and roadmap
 
@@ -577,8 +577,8 @@ Never used Drox TUI? Follow these steps in order.
 
 ### What you need
 
-1. A **modern terminal** (on Windows, I recommend Windows Terminal).
-2. An **inference engine** configured — see [Inference engines](#en--inference-engines-ollama-vllm) below (I recommend Ollama to start).
+1. A **modern terminal** (Windows Terminal is recommended on Windows).
+2. An **inference engine** configured — see [Inference engines](#en--inference-engines-ollama-vllm) below (Ollama is recommended to start).
 
 ### EN — Inference engines (Ollama, vLLM)
 
@@ -586,8 +586,8 @@ Drox TUI does **not** ship a model: it calls an **LLM server** you choose via **
 
 | Engine | Local (on your hardware) | Cloud (remote) |
 |---|---|---|
-| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` ([my tested hardware](#en--my-tested-hardware-local-inference)) | **[Ollama Cloud](https://ollama.com/cloud)** — API key, hosted models |
-| **[vLLM](https://docs.vllm.ai/)** | OpenAI-compatible API (e.g. `http://127.0.0.1:8000/v1`) — I recommend a GPU ([my tested hardware](#en--my-tested-hardware-local-inference)) | Your VPS / private cloud instance (URL + token) |
+| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` ([tested hardware](#en--tested-hardware-local-inference)) | **[Ollama Cloud](https://ollama.com/cloud)** — API key, hosted models |
+| **[vLLM](https://docs.vllm.ai/)** | OpenAI-compatible API (e.g. `http://127.0.0.1:8000/v1`) — a GPU is recommended ([tested hardware](#en--tested-hardware-local-inference)) | Your VPS / private cloud instance (URL + token) |
 
 Built-in presets: *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
 
@@ -599,7 +599,7 @@ Built-in presets: *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, 
 | **Privacy** | Maximum sovereignty | Depends on **provider terms** — Ollama and vLLM hosts advertise HTTPS and no-retention policies **per their documentation**; review before professional use |
 | **Choice** | **Opt-in only** — no mandatory KDDS cloud |
 
-Quick local start ([my tested hardware](#en--my-tested-hardware-local-inference)):
+Quick local start ([tested hardware](#en--tested-hardware-local-inference)):
 
 ```bash
 # Primary (24 GB VRAM+, e.g. RTX 3090) — qwen3.6:27b, Q4_K_M, MTP variant preferred
@@ -608,43 +608,43 @@ ollama pull qwen3.6:27b
 # Alternative — gemma4:26b, Q4_K_M, it-qat format
 ollama pull gemma4:26b
 
-# Laptop / experiments — smaller code-oriented models I also try:
+# Laptop / experiments — smaller code-oriented models also worth trying:
 ollama pull qwen2.5-coder:7b
 # or: ollama pull gemma3:4b
 ```
 
-### EN — Models I tested during dev
+### EN — Models tested during development
 
-During Drox TUI development, **I mainly use:**
+Drox TUI development primarily relies on:
 
 | Profile | Model | Quantization | Format / notes |
 |---|---|---|---|
 | **Desktop** | **`qwen3.6:27b`** | **Q4_K_M** | **MTP** variant preferred |
 | **Alternative** | **`gemma4:26b`** | **Q4_K_M** | **it-qat** format |
-| **Laptop / tryouts** | smaller code-oriented models | Q4/Q5 by VRAM | e.g. `qwen2.5-coder:7b`, `gemma3:4b` — **I also try** these |
+| **Laptop / tryouts** | smaller code-oriented models | Q4/Q5 by VRAM | e.g. `qwen2.5-coder:7b`, `gemma3:4b` — also suitable |
 
-### EN — My tested hardware (local inference)
+### EN — Tested hardware (local inference)
 
-Drox TUI runs on **any machine** where Ollama or vLLM works. Here’s **my** hardware and the setups **I tested myself** (solo dev, Windows, local Ollama, real repos):
+Drox TUI runs on **any machine** where Ollama or vLLM works. The following setups have been **validated** (Windows, local Ollama, real repos):
 
 | Profile | Machine | GPU | VRAM | System RAM |
 |---|---|---|---|---|
 | **Desktop** | Workstation | NVIDIA **RTX 3090** | **24 GB** | **96 GB** |
 | **Laptop** | **MSI Helios AI 16** | NVIDIA **RTX 5070 Ti** | **12 GB** | *(varies by SKU)* |
 
-**My take**
+**Summary**
 
-- **RTX 3090 + 96 GB RAM** — **my** dev reference setup: **`qwen3.6:27b`** in **Q4_K_M** (**MTP** preferred), or **`gemma4:26b`** in **Q4_K_M** (**it-qat**). Long contexts and heavy agent runs without stress.
-- **RTX 5070 Ti 12 GB** (Helios AI 16) — **fully usable** with **smaller code-oriented models** (`qwen2.5-coder:7b`, `gemma3:4b`, …) — **I also try** these on the desktop for faster runs; moderate context in **`/server`**.
+- **RTX 3090 + 96 GB RAM** — reference dev setup: **`qwen3.6:27b`** in **Q4_K_M** (**MTP** preferred), or **`gemma4:26b`** in **Q4_K_M** (**it-qat**). Long contexts and heavy agent runs without stress.
+- **RTX 5070 Ti 12 GB** (Helios AI 16) — **fully usable** with **smaller code-oriented models** (`qwen2.5-coder:7b`, `gemma3:4b`, …); these models also work on desktop setups for faster runs; moderate context in **`/server`**.
 
 | GPU VRAM | Reasonable Ollama models (indicative) |
 |---|---|
 | **12 GB** | 4B–7B code (Q4/Q5), light 14B with reduced context |
-| **24 GB** | **27B–26B in Q4_K_M** (my dev setup), or comfortable 7B–14B |
+| **24 GB** | **27B–26B in Q4_K_M** (reference dev setup), or comfortable 7B–14B |
 
-System **RAM** matters too (context, tools, terminal IDE) — I recommend **32 GB+** locally; **96 GB** gives me headroom on large workspaces.
+System **RAM** matters too (context, tools, terminal IDE) — **32 GB+** is recommended locally; **96 GB** allows headroom on large workspaces.
 
-These are **not** official minimums **I** set for Drox — run **`/doctor`**, test your model, tune `num_ctx`. Smaller hardware can work with tiny models; cloud inference remains an option.
+These are **not** official Drox minimums — run **`/doctor`**, test your model, tune `num_ctx`. Smaller hardware can work with tiny models; cloud inference remains an option.
 
 ### Step 1 — Install Drox TUI
 
@@ -700,11 +700,11 @@ Click **Test**, then **Save**.
 
 | Mode | Command | Effect |
 |---|---|---|
-| **Safe** (my default) | `drox-tui --workspace .` | Prompts before writes / bash |
+| **Safe** (recommended default) | `drox-tui --workspace .` | Prompts before writes / bash |
 | **Plan** | add `--plan` | Read-only advice |
 | **Apply** | add `--apply` | Real file writes — use when you trust the run |
 
-**I suggest** staying **without `--apply`** until you are comfortable with permission prompts.
+**It is recommended** to stay **without `--apply`** until you are comfortable with permission prompts.
 
 ### Step 7 — Resume a session
 
