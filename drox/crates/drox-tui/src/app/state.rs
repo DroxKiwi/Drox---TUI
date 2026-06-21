@@ -990,6 +990,8 @@ pub struct AppState {
     pub update_available_version: Option<String>,
     /// Cache lignes fil (hors streaming / bash live).
     log_render_cache: Option<crate::view::log_cache::LogRenderCache>,
+    /// Diffs fichiers du dernier run terminé (bandeau Entrée / `e`).
+    pub run_diff_summary: Option<crate::view::tool_output::RunDiffSummary>,
 }
 
 /// Cible du dernier outil expansible dans le fil.
@@ -1120,6 +1122,7 @@ impl AppState {
             active_phase: None,
             log_revision: 0,
             log_render_cache: None,
+            run_diff_summary: None,
             phase: AppPhase::Idle,
             composer_mode: ComposerMode::Normal,
             composer_buffer: String::new(),

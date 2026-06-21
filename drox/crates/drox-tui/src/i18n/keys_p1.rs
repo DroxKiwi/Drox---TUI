@@ -33,6 +33,10 @@ pub const STATUS_DIFF_FILE_OPEN: &str = "status.diff_file_open";
 pub const DIFF_FILE_OPEN_FAILED: &str = "diff.file_open_failed";
 pub const DIFF_VIEWER_FOOTER_EMPTY: &str = "diff.viewer_footer_empty";
 pub const DIFF_VIEWER_FOOTER_GIT_EXTRA: &str = "diff.viewer_footer_git_extra";
+pub const RUN_DIFF_BANNER: &str = "run.diff_banner";
+pub const RUN_DIFF_STATUS: &str = "run.diff_status";
+pub const MODAL_DIFF_EXPAND_HINT: &str = "modal.diff_expand_hint";
+pub const STATUS_RUN_DIFF_VIEWER: &str = "status.run_diff_viewer";
 pub const SLASH_PALETTE_FILES: &str = "slash.palette.files";
 pub const SLASH_PALETTE_BRANCH: &str = "slash.palette.branch";
 pub const SLASH_PALETTE_THEME: &str = "slash.palette.theme";
@@ -206,6 +210,10 @@ pub const P1_KEYS: &[&str] = &[
     DIFF_FILE_OPEN_FAILED,
     DIFF_VIEWER_FOOTER_EMPTY,
     DIFF_VIEWER_FOOTER_GIT_EXTRA,
+    RUN_DIFF_BANNER,
+    RUN_DIFF_STATUS,
+    MODAL_DIFF_EXPAND_HINT,
+    STATUS_RUN_DIFF_VIEWER,
     SLASH_PALETTE_FILES,
     SLASH_PALETTE_BRANCH,
     SLASH_PALETTE_THEME,

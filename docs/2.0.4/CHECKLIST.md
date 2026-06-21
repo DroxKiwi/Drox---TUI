@@ -7,7 +7,7 @@
 - [x] Fil agent : `e` sur tout diff non vide
 - [x] M2 — `/diff <fichier>` + navigation status
 - [x] M3 — Numéros de ligne + thème diff + file_write
-- [ ] M4 — Bandeau fin de run agent + lien permission
+- [x] M4 — Bandeau fin de run + diff permission (`e`)
 - [ ] Tests `diff_cmd` + viewer
 - [ ] i18n FR/EN
 

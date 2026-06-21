@@ -20,6 +20,8 @@ pub enum PermissionPreviewBody {
     FileDiff {
         path_label: Option<String>,
         lines: Vec<String>,
+        /// Patch complet (overlay `e`).
+        full_diff: String,
     },
     Bash(BashPermissionPreview),
     Url {
@@ -204,6 +206,7 @@ fn file_diff_preview(
             kind: PermissionPreviewBody::FileDiff {
                 path_label,
                 lines: truncate_lines(&diff),
+                full_diff: diff,
             },
             error: None,
         },
@@ -212,6 +215,7 @@ fn file_diff_preview(
             kind: PermissionPreviewBody::FileDiff {
                 path_label,
                 lines: Vec::new(),
+                full_diff: String::new(),
             },
             error: Some(err.to_string()),
         },
@@ -224,7 +228,9 @@ pub fn preview_body_line_count(preview: &PermissionPreview) -> usize {
         return 2;
     }
     match &preview.kind {
-        PermissionPreviewBody::FileDiff { lines, .. } => lines.len().saturating_add(2),
+        PermissionPreviewBody::FileDiff { lines, full_diff, .. } => {
+            lines.len().saturating_add(2) + usize::from(!full_diff.is_empty())
+        }
         PermissionPreviewBody::Bash(body) => {
             body.segments.len().saturating_add(3) + usize::from(body.description.is_some())
         }
@@ -232,6 +238,28 @@ pub fn preview_body_line_count(preview: &PermissionPreview) -> usize {
         PermissionPreviewBody::PathAction { .. } => 4,
         PermissionPreviewBody::PathPair { .. } => 4,
         PermissionPreviewBody::TextBlock { lines, .. } => lines.len().saturating_add(2),
+    }
+}
+
+/// Données pour ouvrir le viewer diff complet depuis une modale permission.
+#[must_use]
+pub fn permission_file_diff_expand(
+    preview: &PermissionPreview,
+) -> Option<(&str, &str, &str)> {
+    if preview.error.is_some() {
+        return None;
+    }
+    match &preview.kind {
+        PermissionPreviewBody::FileDiff {
+            path_label,
+            full_diff,
+            ..
+        } if !full_diff.is_empty() => Some((
+            preview.tool_name.as_str(),
+            path_label.as_deref().unwrap_or("?"),
+            full_diff.as_str(),
+        )),
+        _ => None,
     }
 }
 
@@ -277,6 +305,23 @@ fn wrap_text_lines(text: &str, max_lines: usize) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn permission_file_diff_expand_reads_full_diff() {
+        let preview = PermissionPreview {
+            tool_name: "file_edit".into(),
+            kind: PermissionPreviewBody::FileDiff {
+                path_label: Some("a.rs".into()),
+                lines: vec!["+y".into()],
+                full_diff: "--- a\n+++ b\n@@\n-x\n+y".into(),
+            },
+            error: None,
+        };
+        let (tool, path, diff) = permission_file_diff_expand(&preview).unwrap();
+        assert_eq!(tool, "file_edit");
+        assert_eq!(path, "a.rs");
+        assert!(diff.contains("+y"));
+    }
 
     #[test]
     fn parse_permission_prompt_round_trip() {

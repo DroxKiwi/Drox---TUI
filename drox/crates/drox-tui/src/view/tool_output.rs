@@ -3,7 +3,7 @@
 use drox_types::ToolUseId;
 use serde_json::Value;
 
-use super::lines_viewer::LinesViewerState;
+use super::lines_viewer::{LinesViewerState, LinesViewerStyle};
 
 const MAX_BODY_LINES: usize = 24;
 const MAX_BODY_LINES_EXPANDED: usize = 120;
@@ -456,6 +456,61 @@ pub fn diff_viewer_from_output(
     Some(LinesViewerState::from_diff(id, tool, path, diff, tag))
 }
 
+/// Changement fichier enregistré pendant un run agent.
+#[derive(Debug, Clone)]
+pub struct RunFileChange {
+    pub tool: String,
+    pub path: String,
+    pub diff: String,
+}
+
+/// Résumé diff en fin de run (bandeau Entrée / `e`).
+#[derive(Debug, Clone)]
+pub struct RunDiffSummary {
+    pub changes: Vec<RunFileChange>,
+}
+
+/// Enregistre un diff appliqué (`file_edit` / `file_write` / `notebook_edit`).
+pub fn record_applied_file_diff(
+    changes: &mut Vec<RunFileChange>,
+    tool: &str,
+    output: &Value,
+) {
+    if !output.get("applied").and_then(Value::as_bool).unwrap_or(false) {
+        return;
+    }
+    let Some(diff) = output.get("diff").and_then(Value::as_str) else {
+        return;
+    };
+    if diff.is_empty() {
+        return;
+    }
+    let path = output
+        .get("path")
+        .or_else(|| output.get("notebook_path"))
+        .and_then(Value::as_str)
+        .unwrap_or("?");
+    changes.push(RunFileChange {
+        tool: tool.to_string(),
+        path: path.to_string(),
+        diff: diff.to_string(),
+    });
+}
+
+#[must_use]
+pub fn viewer_from_run_changes(changes: &[RunFileChange]) -> LinesViewerState {
+    let mut body = Vec::new();
+    for (i, change) in changes.iter().enumerate() {
+        if i > 0 {
+            body.push(String::new());
+        }
+        body.push(format!("— {} — {} —", change.tool, change.path));
+        body.extend(change.diff.lines().map(str::to_string));
+    }
+    let title = format!(" run — {} fichier(s) ", changes.len());
+    LinesViewerState::new(ToolUseId::new(), title, body, LinesViewerStyle::UnifiedDiff)
+}
+
 fn append_unified_diff_block(lines: &mut Vec<String>, diff: &str) {
     for line in diff.lines().take(MAX_DIFF_LINES) {
         lines.push(format!("    {line}"));
@@ -619,6 +674,26 @@ mod tests {
         assert!(lines.iter().any(|l| l.contains("file_edit")));
         assert!(lines.iter().any(|l| l.contains("-old")));
         assert!(lines.iter().any(|l| l.contains("+new")));
+    }
+
+    #[test]
+    fn viewer_from_run_changes_builds_sections() {
+        let changes = vec![
+            RunFileChange {
+                tool: "file_edit".into(),
+                path: "a.rs".into(),
+                diff: "--- a\n+++ b\n@@\n-old\n+new".into(),
+            },
+            RunFileChange {
+                tool: "file_write".into(),
+                path: "b.txt".into(),
+                diff: "@@\n+hi".into(),
+            },
+        ];
+        let v = viewer_from_run_changes(&changes);
+        assert!(v.title.contains('2'));
+        assert!(v.lines.iter().any(|l| l.contains("file_edit")));
+        assert_eq!(v.style, LinesViewerStyle::UnifiedDiff);
     }
 
     #[test]

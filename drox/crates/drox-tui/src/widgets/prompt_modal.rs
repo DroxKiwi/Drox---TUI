@@ -90,12 +90,18 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     } else {
         ""
     };
+    let diff_hint = dialog
+        .file_preview
+        .as_ref()
+        .and_then(crate::view::permission_preview::permission_file_diff_expand)
+        .map(|_| i18n::t(crate::i18n::keys_p1::MODAL_DIFF_EXPAND_HINT))
+        .unwrap_or_default();
 
     let mut footer_with_hint = footer;
-    if !scroll_hint.is_empty() {
+    if !scroll_hint.is_empty() || !diff_hint.is_empty() {
         if let Some(last) = footer_with_hint.last_mut() {
             if let Some(span) = last.spans.get_mut(0) {
-                span.content = format!("{}{}", span.content, scroll_hint).into();
+                span.content = format!("{}{}{}", span.content, scroll_hint, diff_hint).into();
             }
         }
     }
@@ -321,7 +327,7 @@ fn append_permission_preview(lines: &mut Vec<Line>, preview: &PermissionPreview)
     }
 
     match &preview.kind {
-        PermissionPreviewBody::FileDiff { path_label, lines: diff } => {
+        PermissionPreviewBody::FileDiff { path_label, lines: diff, .. } => {
             lines.push(Line::from(""));
             let path = path_label.as_deref().unwrap_or("(fichier)");
             lines.push(Line::from(Span::styled(

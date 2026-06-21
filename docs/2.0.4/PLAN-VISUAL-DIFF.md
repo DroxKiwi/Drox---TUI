@@ -107,11 +107,11 @@ Un **diff visuel first-class** : l’utilisateur voit les changements du workspa
 - [x] Thème : couleurs diff depuis `ThemePalette` (pas hardcodé Green/Red)
 - [x] `file_write` proposé : afficher unified diff dans le fil (comme `file_edit`)
 
-### M4 — Diff agent intégré (polish)
+### M4 — Diff agent intégré (polish) ✅
 
-- [ ] Bandeau « N fichiers modifiés » en fin de run avec `Entrée` → viewer multi-fichier
-- [ ] Permission modal : lien « voir diff complet » → même overlay que M1
-- [ ] Tests : `lines_viewer`, `diff_cmd` mock git, snapshot couleurs
+- [x] Bandeau « N fichiers modifiés » en fin de run avec `Entrée` → viewer multi-fichier
+- [x] Permission modal : lien « voir diff complet » → même overlay que M1 (`e`)
+- [x] Tests : `tool_output` run viewer, `permission_preview` full_diff
 
 ---
 

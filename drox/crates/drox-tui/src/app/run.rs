@@ -99,6 +99,8 @@ pub struct App {
     update_manual_check: bool,
     /// Quitter la boucle après lancement installateur / script MAJ.
     request_quit: bool,
+    /// Diffs fichiers collectés pendant le run agent courant.
+    run_file_changes: Vec<crate::view::tool_output::RunFileChange>,
 }
 
 impl App {
@@ -142,6 +144,7 @@ impl App {
             update_comparison: None,
             update_manual_check: false,
             request_quit: false,
+            run_file_changes: Vec::new(),
         }
     }
 
@@ -437,6 +440,13 @@ impl App {
                         if !is_error {
                             if let Some(name) = self.tool_names.get(id) {
                                 match name.as_str() {
+                                    "file_edit" | "file_write" | "notebook_edit" => {
+                                        crate::view::tool_output::record_applied_file_diff(
+                                            &mut self.run_file_changes,
+                                            name,
+                                            output,
+                                        );
+                                    }
                                     "todo_write" => self.state.apply_todo_output(output),
                                     "course_plan_write" => {
                                         self.state.apply_course_plan_output(output)
@@ -544,13 +554,49 @@ impl App {
         self.state.run_started = None;
         self.state.active_phase = None;
         self.state.last_run = status;
-        self.state.status_line = match status {
-            RunStatus::Completed => crate::i18n::t(sk::STATUS_AGENT_IDLE).into(),
-            RunStatus::Cancelled => crate::i18n::t(sk::STATUS_RUN_ABORTED).into(),
-            RunStatus::Error => crate::i18n::t(sk::STATUS_RUN_ERROR).into(),
-            RunStatus::None => crate::i18n::t(sk::STATUS_AGENT_IDLE).into(),
-        };
+        if matches!(status, RunStatus::Completed) && !self.run_file_changes.is_empty() {
+            let n = self.run_file_changes.len();
+            self.state.run_diff_summary = Some(crate::view::tool_output::RunDiffSummary {
+                changes: std::mem::take(&mut self.run_file_changes),
+            });
+            self.state
+                .push_system(crate::i18n::tf(sk::RUN_DIFF_BANNER, &n.to_string()));
+            self.state.status_line =
+                crate::i18n::tf(sk::RUN_DIFF_STATUS, &n.to_string());
+        } else {
+            self.run_file_changes.clear();
+        }
+        if !matches!(status, RunStatus::Completed) || self.state.run_diff_summary.is_none() {
+            self.state.status_line = match status {
+                RunStatus::Completed => crate::i18n::t(sk::STATUS_AGENT_IDLE).into(),
+                RunStatus::Cancelled => crate::i18n::t(sk::STATUS_RUN_ABORTED).into(),
+                RunStatus::Error => crate::i18n::t(sk::STATUS_RUN_ERROR).into(),
+                RunStatus::None => crate::i18n::t(sk::STATUS_AGENT_IDLE).into(),
+            };
+        }
         self.drain_message_queue();
+    }
+
+    fn open_run_diff_viewer(&mut self) {
+        let Some(summary) = self.state.run_diff_summary.as_ref() else {
+            return;
+        };
+        let viewer =
+            crate::view::tool_output::viewer_from_run_changes(&summary.changes);
+        self.state.scroll_viewer = Some(crate::view::ScrollViewerState::Lines(viewer));
+        self.state.status_line = crate::i18n::t(sk::STATUS_RUN_DIFF_VIEWER).into();
+    }
+
+    fn open_permission_diff_viewer(&mut self, tool: &str, path: &str, diff: &str) {
+        let viewer = crate::view::lines_viewer::LinesViewerState::from_diff(
+            drox_types::ToolUseId::new(),
+            tool,
+            path,
+            diff,
+            "aperçu",
+        );
+        self.state.scroll_viewer = Some(crate::view::ScrollViewerState::Lines(viewer));
+        self.state.status_line = crate::i18n::t(sk::STATUS_DIFF_VIEWER).into();
     }
 
     fn cancel_run(&mut self) {
@@ -627,6 +673,8 @@ impl App {
         self.state.run_started = Some(Instant::now());
         self.state.active_phase = None;
         self.state.last_run = RunStatus::None;
+        self.state.run_diff_summary = None;
+        self.run_file_changes.clear();
         self.state.status_line = crate::i18n::t(sk::STATUS_AGENT_RUNNING).into();
         self.auto_scroll = true;
         self.state.scroll = 0;
@@ -1430,6 +1478,13 @@ impl App {
             } else {
                 self.state.composer_buffer.push('\n');
             }
+        } else if key.code == KeyCode::Enter
+            && !key.modifiers.contains(KeyModifiers::SHIFT)
+            && self.state.phase != AppPhase::Running
+            && self.state.composer_buffer.is_empty()
+            && self.state.run_diff_summary.is_some()
+        {
+            self.open_run_diff_viewer();
         } else if self.keybindings.matches(BindingAction::Submit, &key)
             && !key.modifiers.contains(KeyModifiers::SHIFT)
             && self.state.phase != AppPhase::Running
@@ -1440,7 +1495,9 @@ impl App {
             && self.state.phase != AppPhase::Running
             && self.state.composer_buffer.is_empty()
         {
-            if let Some(kind) = self.state.toggle_latest_expandable() {
+            if self.state.run_diff_summary.is_some() {
+                self.open_run_diff_viewer();
+            } else if let Some(kind) = self.state.toggle_latest_expandable() {
                 self.auto_scroll = true;
                 self.state.scroll = 0;
                 self.state.status_line = crate::i18n::tf(sk::STATUS_DISPLAY_TOGGLED, kind);
@@ -2282,6 +2339,22 @@ impl App {
         }
 
         let action = {
+            let expand = self.state.prompt.as_ref().and_then(|dialog| {
+                dialog
+                    .file_preview
+                    .as_ref()
+                    .and_then(crate::view::permission_preview::permission_file_diff_expand)
+                    .map(|(tool, path, diff)| {
+                        (tool.to_string(), path.to_string(), diff.to_string())
+                    })
+            });
+            if matches!(key.code, KeyCode::Char('e') | KeyCode::Char('E')) {
+                if let Some((tool, path, diff)) = expand {
+                    self.open_permission_diff_viewer(&tool, &path, &diff);
+                    return false;
+                }
+            }
+
             let Some(dialog) = self.state.prompt.as_mut() else {
                 return false;
             };
