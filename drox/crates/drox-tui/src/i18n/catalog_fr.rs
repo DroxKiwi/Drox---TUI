@@ -361,6 +361,10 @@ pub fn get(key: &str) -> Option<&'static str> {
         ),
         UPDATE_SNOOZE_USAGE => Some("Usage : /update snooze <jours> — ex. /update snooze 7"),
         SETTINGS_UPDATE => Some("Mises à jour"),
+        UPDATE_BANNER => Some(
+            "Mise à jour {} disponible — Ctrl+Shift+U installer · u plus tard · /update",
+        ),
+        UPDATE_HEADER_PILL => Some("MAJ {}"),
         _ => None,
     }
 }

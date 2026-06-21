@@ -145,7 +145,7 @@ pub enum PendingSlash {
     MemorySearch { query: String, limit: usize },
     Statusline,
     /// Vérification MAJ TUI (`/update check`).
-    UpdateCheck,
+    UpdateCheck { quiet: bool },
     /// Applique le modèle choisi dans `/server`.
     ApplyAiServer { index: usize },
     /// Applique le workspace validé dans `/workspace`.

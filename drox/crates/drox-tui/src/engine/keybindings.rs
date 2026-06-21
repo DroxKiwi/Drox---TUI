@@ -31,6 +31,7 @@ pub enum BindingAction {
     QuitConfirm,
     AiServer,
     Workspace,
+    UpdateInstall,
 }
 
 impl BindingAction {
@@ -71,6 +72,7 @@ impl BindingAction {
             Self::QuitConfirm => "quit_confirm",
             Self::AiServer => "ai_server",
             Self::Workspace => "workspace",
+            Self::UpdateInstall => "update_install",
         }
     }
 }
@@ -186,6 +188,7 @@ fn default_bindings() -> HashMap<BindingAction, ParsedKey> {
         (BindingAction::QuitConfirm, "ctrl+c"),
         (BindingAction::AiServer, "ctrl+shift+l"),
         (BindingAction::Workspace, "ctrl+shift+w"),
+        (BindingAction::UpdateInstall, "ctrl+shift+u"),
     ];
     defaults
         .into_iter()

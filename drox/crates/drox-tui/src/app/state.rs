@@ -973,6 +973,8 @@ pub struct AppState {
     pub log_revision: u64,
     /// Connexion IA validée (`/server` ou CLI explicite).
     pub llm_configured: bool,
+    /// Version distante disponible (bandeau + pastille header).
+    pub update_available_version: Option<String>,
     /// Cache lignes fil (hors streaming / bash live).
     log_render_cache: Option<crate::view::log_cache::LogRenderCache>,
 }
@@ -1105,6 +1107,7 @@ impl AppState {
             composer_buffer: String::new(),
             last_run: RunStatus::None,
             llm_configured: false,
+            update_available_version: None,
         }
     }
 

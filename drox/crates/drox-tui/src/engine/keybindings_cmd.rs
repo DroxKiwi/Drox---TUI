@@ -30,6 +30,7 @@ pub fn format_builtin_keybindings_lines() -> Vec<String> {
         "  Ctrl+C ×2       quitter (idle)".into(),
         "  Ctrl+Q          quitter".into(),
         "  Ctrl+Shift+L    connexion serveur IA (/server)".into(),
+        "  Ctrl+Shift+U    installer MAJ TUI (si disponible)".into(),
         format!("  Fichier config : {}", keybindings_path()),
         "  `/keybindings init` — template JSON · `/keybindings reload` — rechargement à chaud".into(),
     ]
@@ -58,7 +59,8 @@ pub fn generate_keybindings_template() -> String {
             "quit": "ctrl+q",
             "quit_confirm": "ctrl+c",
             "ai_server": "ctrl+shift+l",
-            "workspace": "ctrl+shift+w"
+            "workspace": "ctrl+shift+w",
+            "update_install": "ctrl+shift+u"
         }
     });
     format!("{}\n", serde_json::to_string_pretty(&doc).unwrap_or_default())

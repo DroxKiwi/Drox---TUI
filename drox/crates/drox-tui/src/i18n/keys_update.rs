@@ -26,6 +26,8 @@ pub const UPDATE_CHECK_RELEASE_NOTES: &str = "update.check.release_notes";
 pub const UPDATE_INSTALL_STUB: &str = "update.install.stub";
 pub const UPDATE_SNOOZE_USAGE: &str = "update.snooze.usage";
 pub const SETTINGS_UPDATE: &str = "settings.update";
+pub const UPDATE_BANNER: &str = "update.banner";
+pub const UPDATE_HEADER_PILL: &str = "update.header.pill";
 
 pub const UPDATE_KEYS: &[&str] = &[
     SLASH_PALETTE_UPDATE,
@@ -54,4 +56,6 @@ pub const UPDATE_KEYS: &[&str] = &[
     UPDATE_INSTALL_STUB,
     UPDATE_SNOOZE_USAGE,
     SETTINGS_UPDATE,
+    UPDATE_BANNER,
+    UPDATE_HEADER_PILL,
 ];

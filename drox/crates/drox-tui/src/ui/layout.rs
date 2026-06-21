@@ -206,7 +206,7 @@ fn draw_header(
     } else {
         ("●", i18n::t(keys::STATUS_CONNECTED), state.palette.accent_glow)
     };
-    let line = Line::from(vec![
+    let mut line = Line::from(vec![
         Span::styled(
             model,
             Style::default()
@@ -229,6 +229,15 @@ fn draw_header(
                 .add_modifier(Modifier::BOLD),
         ),
     ]);
+    if let Some(ref ver) = state.update_available_version {
+        line.spans.push(Span::raw(" · "));
+        line.spans.push(Span::styled(
+            i18n::tf(crate::i18n::keys_update::UPDATE_HEADER_PILL, ver),
+            Style::default()
+                .fg(state.palette.warning)
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
     let paragraph = Paragraph::new(line).block(
         Block::default()
             .borders(Borders::ALL)

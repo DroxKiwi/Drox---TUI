@@ -93,6 +93,10 @@ pub struct App {
     ai_server_test_rx: Option<mpsc::Receiver<Result<Vec<String>, String>>>,
     /// Dernier manifeste OR récupéré (`/update check`).
     remote_release: Option<crate::engine::update::LatestRelease>,
+    /// Dernier résultat semver (bandeau MAJ).
+    update_comparison: Option<crate::engine::update::UpdateComparison>,
+    /// `/update check` manuel cette session (bandeau même si opt-in off).
+    update_manual_check: bool,
 }
 
 impl App {
@@ -133,6 +137,8 @@ impl App {
             vim,
             ai_server_test_rx: None,
             remote_release: None,
+            update_comparison: None,
+            update_manual_check: false,
         }
     }
 
@@ -217,6 +223,10 @@ impl App {
         } else if !prefs.onboarding_done {
             self.state.onboarding = Some(OnboardingDialog::default());
             self.state.phase = AppPhase::Onboarding;
+        }
+
+        if self.tui_prefs.update.should_run_startup_check() {
+            self.pending_slash = Some(PendingSlash::UpdateCheck { quiet: true });
         }
 
         loop {
@@ -971,6 +981,44 @@ impl App {
         let _ = crate::engine::preferences::save_preferences(&prefs);
     }
 
+    fn refresh_update_banner(&mut self) {
+        use crate::engine::update::UpdateComparison;
+        use crate::i18n::keys_update as u;
+
+        self.state
+            .status_notices
+            .retain(|n| n.level != NoticeLevel::Update);
+
+        let remote_version = match &self.update_comparison {
+            Some(UpdateComparison::UpdateAvailable { remote }) => Some(remote.clone()),
+            _ => None,
+        };
+
+        let show = remote_version.as_ref().and_then(|remote| {
+            if self
+                .tui_prefs
+                .update
+                .should_show_banner(remote, self.update_manual_check)
+            {
+                Some(remote.clone())
+            } else {
+                None
+            }
+        });
+
+        self.state.update_available_version = show.clone();
+
+        if let Some(ver) = show {
+            self.state.status_notices.insert(
+                0,
+                StatusNotice {
+                    level: NoticeLevel::Update,
+                    text: crate::i18n::tf(u::UPDATE_BANNER, &ver),
+                },
+            );
+        }
+    }
+
     fn apply_update_command(&mut self, cmd: crate::slash::UpdateCommand) {
         use crate::i18n::keys_update as u;
         use crate::slash::UpdateCommand;
@@ -981,10 +1029,18 @@ impl App {
                 self.push_update_status();
             }
             UpdateCommand::Check => {
-                self.pending_slash = Some(PendingSlash::UpdateCheck);
+                self.update_manual_check = true;
+                self.pending_slash = Some(PendingSlash::UpdateCheck { quiet: false });
             }
-            UpdateCommand::On => self.apply_update_enabled(true),
-            UpdateCommand::Off => self.apply_update_enabled(false),
+            UpdateCommand::On => {
+                self.apply_update_enabled(true);
+                self.refresh_update_banner();
+            }
+            UpdateCommand::Off => {
+                self.apply_update_enabled(false);
+                self.update_manual_check = false;
+                self.refresh_update_banner();
+            }
             UpdateCommand::Snooze { days } => {
                 let until = (chrono::Utc::now() + chrono::Duration::days(days as i64))
                     .to_rfc3339();
@@ -994,14 +1050,28 @@ impl App {
                 let _ = crate::engine::preferences::save_preferences(&prefs);
                 self.state
                     .push_system(crate::i18n::tf(u::UPDATE_SNOOZE, &days.to_string()));
+                self.refresh_update_banner();
             }
             UpdateCommand::Dismiss => {
-                let version = env!("CARGO_PKG_VERSION").to_string();
+                let version = self
+                    .remote_release
+                    .as_ref()
+                    .map(|r| r.version.clone())
+                    .or_else(|| {
+                        self.update_comparison.as_ref().and_then(|cmp| match cmp {
+                            crate::engine::update::UpdateComparison::UpdateAvailable {
+                                remote,
+                            } => Some(remote.clone()),
+                            _ => None,
+                        })
+                    })
+                    .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
                 self.tui_prefs.update.dismissed_version = Some(version.clone());
                 let mut prefs = crate::engine::preferences::load_preferences();
                 prefs.update.dismissed_version = Some(version);
                 let _ = crate::engine::preferences::save_preferences(&prefs);
                 self.state.push_system(crate::i18n::t(u::UPDATE_DISMISS));
+                self.refresh_update_banner();
             }
             UpdateCommand::Install => {
                 self.state.push_system(crate::i18n::t(u::UPDATE_INSTALL_STUB));
@@ -1027,6 +1097,14 @@ impl App {
             }
             if self.keybindings.matches(BindingAction::Workspace, &key) {
                 self.open_workspace_dialog(None);
+                return Ok(false);
+            }
+            if self.keybindings.matches(BindingAction::UpdateInstall, &key) {
+                if self.state.update_available_version.is_some() {
+                    self.apply_update_command(crate::slash::UpdateCommand::Install);
+                } else {
+                    self.apply_update_command(crate::slash::UpdateCommand::Check);
+                }
                 return Ok(false);
             }
         }
@@ -1212,6 +1290,19 @@ impl App {
                 self.state.scroll = 0;
                 self.state.status_line = crate::i18n::tf(sk::STATUS_DISPLAY_TOGGLED, kind);
             }
+        } else if key.code == KeyCode::Char('u')
+            && !key.modifiers.contains(KeyModifiers::CONTROL)
+            && !self.vim.enabled
+            && self.state.composer_buffer.is_empty()
+            && self.state.phase == AppPhase::Idle
+            && self.state.update_available_version.is_some()
+            && self.state.prompt.is_none()
+            && self.state.transcript_search.is_none()
+            && self.state.settings_dialog.is_none()
+            && self.state.ai_server.is_none()
+            && self.state.workspace_dialog.is_none()
+        {
+            self.apply_update_command(crate::slash::UpdateCommand::Snooze { days: 7 });
         } else if key.code == KeyCode::Char('y')
             && !key.modifiers.contains(KeyModifiers::CONTROL)
             && !self.vim.enabled
@@ -1603,26 +1694,42 @@ impl App {
                     self.state.push_system(line);
                 }
             }
-            PendingSlash::UpdateCheck => {
-                use crate::engine::update::{check_for_update, format_check_lines};
+            PendingSlash::UpdateCheck { quiet } => {
+                use crate::engine::update::{check_for_update, format_check_lines, UpdateComparison};
                 use crate::i18n::keys_update as u;
 
-                self.state
-                    .status_line = crate::i18n::t(u::UPDATE_CHECK_RUNNING).into();
+                if !quiet {
+                    self.update_manual_check = true;
+                    self.state
+                        .status_line = crate::i18n::t(u::UPDATE_CHECK_RUNNING).into();
+                }
                 match check_for_update().await {
                     Ok((release, cmp)) => {
                         self.remote_release = Some(release.clone());
-                        for line in format_check_lines(&release, &cmp) {
-                            self.state.push_system(line);
+                        self.update_comparison = Some(cmp.clone());
+                        if !quiet {
+                            for line in format_check_lines(&release, &cmp) {
+                                self.state.push_system(line);
+                            }
+                        } else if matches!(cmp, UpdateComparison::UpdateAvailable { .. }) {
+                            tracing::info!(
+                                remote = %release.version,
+                                "MAJ TUI disponible (check démarrage)"
+                            );
                         }
                         self.persist_update_last_check();
+                        self.refresh_update_banner();
                         self.state.status_line.clear();
                     }
                     Err(e) => {
-                        self.state.push_system(crate::i18n::tf(
-                            u::UPDATE_CHECK_FAILED,
-                            &e.to_string(),
-                        ));
+                        if !quiet {
+                            self.state.push_system(crate::i18n::tf(
+                                u::UPDATE_CHECK_FAILED,
+                                &e.to_string(),
+                            ));
+                        } else {
+                            tracing::debug!(error = %e, "check MAJ démarrage ignoré");
+                        }
                         self.state.status_line.clear();
                     }
                 }

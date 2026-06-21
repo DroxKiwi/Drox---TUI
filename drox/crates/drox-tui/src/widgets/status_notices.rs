@@ -32,6 +32,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
                 NoticeLevel::Warn => ("⚠ ", state.palette.warning),
                 NoticeLevel::Tip => ("💡 ", state.palette.accent_bright),
                 NoticeLevel::Info => ("ℹ ", state.palette.header_primary),
+                NoticeLevel::Update => ("↑ ", state.palette.warning),
             };
             Line::from(vec![
                 Span::styled(prefix, Style::default().fg(color).add_modifier(Modifier::BOLD)),

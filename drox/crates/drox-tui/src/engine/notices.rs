@@ -11,6 +11,8 @@ pub enum NoticeLevel {
     Info,
     Warn,
     Tip,
+    /// Mise à jour TUI disponible (ambre).
+    Update,
 }
 
 /// Notice compacte (une ligne).

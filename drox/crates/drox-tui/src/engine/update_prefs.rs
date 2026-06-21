@@ -42,6 +42,63 @@ impl Default for UpdatePrefs {
 }
 
 impl UpdatePrefs {
+    /// Vérifie si un check auto au boot est dû (opt-in + intervalle).
+    #[must_use]
+    pub fn should_run_startup_check(&self) -> bool {
+        self.enabled && self.check_on_startup && self.is_check_due()
+    }
+
+    /// Intervalle minimum écoulé depuis `last_check_at`.
+    #[must_use]
+    pub fn is_check_due(&self) -> bool {
+        let Some(last) = &self.last_check_at else {
+            return true;
+        };
+        let Ok(last_dt) = chrono::DateTime::parse_from_rfc3339(last) else {
+            return true;
+        };
+        let elapsed =
+            chrono::Utc::now().signed_duration_since(last_dt.with_timezone(&chrono::Utc));
+        elapsed.num_hours() >= i64::from(self.check_interval_hours)
+    }
+
+    #[must_use]
+    pub fn is_snoozed(&self) -> bool {
+        let Some(until) = &self.snooze_until else {
+            return false;
+        };
+        let Ok(until_dt) = chrono::DateTime::parse_from_rfc3339(until) else {
+            return false;
+        };
+        chrono::Utc::now() < until_dt.with_timezone(&chrono::Utc)
+    }
+
+    #[must_use]
+    pub fn is_version_dismissed(&self, remote_version: &str) -> bool {
+        let Some(dismissed) = &self.dismissed_version else {
+            return false;
+        };
+        match (
+            semver::Version::parse(remote_version),
+            semver::Version::parse(dismissed),
+        ) {
+            (Ok(remote), Ok(dismissed_v)) => remote <= dismissed_v,
+            _ => dismissed == remote_version,
+        }
+    }
+
+    /// Afficher le bandeau MAJ (snooze / dismiss / opt-in).
+    #[must_use]
+    pub fn should_show_banner(&self, remote_version: &str, manual_check: bool) -> bool {
+        if !manual_check && !self.enabled {
+            return false;
+        }
+        if self.is_snoozed() {
+            return false;
+        }
+        !self.is_version_dismissed(remote_version)
+    }
+
     /// Lignes `/update` (état local, sans requête réseau).
     #[must_use]
     pub fn format_status_lines(&self) -> Vec<String> {
@@ -70,5 +127,55 @@ impl UpdatePrefs {
         }
         lines.push(i18n::t(u::UPDATE_STATUS_HINTS).into());
         lines
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn startup_check_requires_opt_in() {
+        let prefs = UpdatePrefs::default();
+        assert!(!prefs.should_run_startup_check());
+    }
+
+    #[test]
+    fn startup_check_when_enabled_and_due() {
+        let prefs = UpdatePrefs {
+            enabled: true,
+            check_on_startup: true,
+            ..UpdatePrefs::default()
+        };
+        assert!(prefs.should_run_startup_check());
+    }
+
+    #[test]
+    fn banner_hidden_when_snoozed() {
+        let until = (chrono::Utc::now() + chrono::Duration::days(1)).to_rfc3339();
+        let prefs = UpdatePrefs {
+            enabled: true,
+            snooze_until: Some(until),
+            ..UpdatePrefs::default()
+        };
+        assert!(!prefs.should_show_banner("9.9.9", true));
+    }
+
+    #[test]
+    fn banner_hidden_when_dismissed() {
+        let prefs = UpdatePrefs {
+            enabled: true,
+            dismissed_version: Some("2.0.5".into()),
+            ..UpdatePrefs::default()
+        };
+        assert!(!prefs.should_show_banner("2.0.4", true));
+        assert!(prefs.should_show_banner("2.0.6", true));
+    }
+
+    #[test]
+    fn banner_requires_opt_in_without_manual_check() {
+        let prefs = UpdatePrefs::default();
+        assert!(!prefs.should_show_banner("9.9.9", false));
+        assert!(prefs.should_show_banner("9.9.9", true));
     }
 }

@@ -8,7 +8,7 @@
 - [x] Prefs `update.*` persistées
 - [x] `engine/update.rs` + fetch `latest.json`
 - [x] `publish-or.ps1` génère `latest.json`
-- [ ] Bandeau opt-in (M3)
+- [x] Bandeau opt-in (M3)
 - [x] Aucune requête réseau au boot par défaut
 
 ## Linux
