@@ -1,0 +1,42 @@
+{
+  "name": "drox-phosphor-splash",
+  "version": "1.0.0",
+  "description": "Tokens couleur splash Drox — alignés boot_splash.rs TUI 2.0.3",
+  "background": "#030704",
+  "halo": {
+    "edge": "#060e07",
+    "mid": "#0b160c",
+    "core": "#101e11"
+  },
+  "tagline": "#122214",
+  "accent": {
+    "dim": "#1a3d22",
+    "bright": "#39ff14"
+  },
+  "timeline": {
+    "frames": 52,
+    "frameMs": 50,
+    "durationMs": 2600,
+    "appearEnd": 0.48,
+    "holdEnd": 0.68
+  },
+  "easing": {
+    "appear": "easeOutQuad",
+    "exit": "easeInQuad"
+  },
+  "logo": {
+    "compact": "DROX",
+    "minTerminalCols": 36,
+    "minTerminalRows": 14
+  },
+  "taglines": {
+    "fr": {
+      "boot": "Initialisation…",
+      "product": "Agent local · terminal"
+    },
+    "en": {
+      "boot": "Initializing…",
+      "product": "Local agent · terminal"
+    }
+  }
+}
