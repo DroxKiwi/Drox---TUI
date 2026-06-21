@@ -1,9 +1,10 @@
 # Ligne produit `2.0.3` — Drox TUI · MAJ opt-in + Linux
 
-**Version produit** : `2.0.3` (en cours)  
-**Branche Git** : `2.0.3`  
+**Version produit** : `2.0.3` (clôturée)  
+**Branche Git** : `main` (ex-`2.0.3`, supprimée)  
 **Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`**  
-**Prédécesseur** : [`2.0.2`](../2.0.2/README.md) (clôturée, release OR [v2.0.2](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.2))
+**Release OR** : [v2.0.3](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.3)  
+**Prédécesseur** : [`2.0.2`](../2.0.2/README.md)
 
 ---
 
