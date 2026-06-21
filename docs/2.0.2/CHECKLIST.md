@@ -58,5 +58,5 @@
 ## Release (fin de ligne)
 
 - [x] Bump version 2.0.2 (workspace Cargo)
-- [ ] Installateur OR Windows (`packaging/build-and-pack.ps1` + push OR)
+- [x] Installateur OR Windows (`dist/drox-tui-2.0.2-windows-x64-setup.exe`, commit OR local)
 - [x] RELEASE_NOTES — [RELEASE_NOTES.md](RELEASE_NOTES.md)
