@@ -57,6 +57,27 @@ pub fn active_slash_prefix(buffer: &str) -> Option<String> {
     Some(rest.to_string())
 }
 
+/// Détecte la saisie après `/update` pour compléter une sous-commande.
+#[must_use]
+pub fn active_update_prefix(buffer: &str) -> Option<String> {
+    if !buffer.starts_with('/') {
+        return None;
+    }
+    let rest = buffer.strip_prefix('/')?;
+    if !rest.to_ascii_lowercase().starts_with("update") {
+        return None;
+    }
+    let after_cmd = &rest[6..];
+    if !after_cmd.is_empty() && !after_cmd.starts_with(' ') {
+        return None;
+    }
+    let sub = after_cmd.trim_start();
+    if sub.contains(' ') {
+        return None;
+    }
+    Some(sub.to_string())
+}
+
 /// Détecte la saisie après `/skills` pour compléter un nom de skill.
 #[must_use]
 pub fn active_skill_prefix(buffer: &str) -> Option<String> {
@@ -108,7 +129,21 @@ pub fn build_suggestions(
         });
     }
 
-    // 2) Complétion skill : `/skills rust`
+    // 2) Complétion `/update` : sous-commandes `on`, `check`, …
+    if let Some(update_prefix) = active_update_prefix(buffer) {
+        let items = filter_update_subcommands(&update_prefix);
+        if items.is_empty() && !update_prefix.is_empty() {
+            return None;
+        }
+        return Some(ComposerSuggestionDialog {
+            title: format!(" /update — {} ", items.len()),
+            cursor: 0,
+            items,
+            file_ctx: None,
+        });
+    }
+
+    // 3) Complétion skill : `/skills rust`
     if let Some(skill_prefix) = active_skill_prefix(buffer) {
         let items = filter_skills(skills, &skill_prefix);
         if items.is_empty() && !skill_prefix.is_empty() {
@@ -122,7 +157,7 @@ pub fn build_suggestions(
         });
     }
 
-    // 3) Complétion commande slash : `/mem`
+    // 4) Complétion commande slash : `/mem`
     if let Some(slash_prefix) = active_slash_prefix(buffer) {
         let items = filter_slash_commands(&slash_prefix);
         if items.is_empty() && !slash_prefix.is_empty() {
@@ -137,6 +172,29 @@ pub fn build_suggestions(
     }
 
     None
+}
+
+fn filter_update_subcommands(prefix: &str) -> Vec<ComposerSuggestionItem> {
+    const SUBS: &[(&str, &str)] = &[
+        ("check", "vérifier MAJ sur le dépôt OR"),
+        ("on", "activer la vérification opt-in"),
+        ("off", "désactiver la vérification auto"),
+        ("snooze", "reporter le bandeau (ex. snooze 7)"),
+        ("dismiss", "ignorer la version distante"),
+        ("install", "télécharger et installer"),
+        ("help", "aide /update"),
+    ];
+    let needle = prefix.to_ascii_lowercase();
+    SUBS.iter()
+        .filter(|(name, _)| needle.is_empty() || name.starts_with(&needle))
+        .take(MAX_UNIFIED)
+        .map(|(name, detail)| ComposerSuggestionItem {
+            kind: SuggestionKind::Slash,
+            label: format!("/update {name}"),
+            detail: Some((*detail).to_string()),
+            payload: format!("/update {name}"),
+        })
+        .collect()
 }
 
 fn filter_slash_commands(prefix: &str) -> Vec<ComposerSuggestionItem> {
@@ -219,6 +277,25 @@ mod tests {
     fn detects_slash_prefix() {
         assert_eq!(active_slash_prefix("/mem").as_deref(), Some("mem"));
         assert!(active_slash_prefix("/memory ok").is_none());
+    }
+
+    #[test]
+    fn detects_update_subcommand_prefix() {
+        assert_eq!(active_update_prefix("/update").as_deref(), Some(""));
+        assert_eq!(active_update_prefix("/update ").as_deref(), Some(""));
+        assert_eq!(active_update_prefix("/update o").as_deref(), Some("o"));
+        assert_eq!(active_update_prefix("/UPDATE on").as_deref(), Some("on"));
+        assert_eq!(active_update_prefix("/update on").as_deref(), Some("on"));
+        assert!(active_update_prefix("/update on ").is_none());
+        assert!(active_update_prefix("/updates").is_none());
+    }
+
+    #[test]
+    fn builds_update_subcommand_suggestions() {
+        let dialog = build_suggestions("/update ", None, &[]).expect("update subs");
+        assert!(dialog.items.iter().any(|i| i.payload == "/update on"));
+        let partial = build_suggestions("/update c", None, &[]).expect("update check");
+        assert!(partial.items.iter().any(|i| i.payload == "/update check"));
     }
 
     #[test]

@@ -1,4 +1,4 @@
-# Checklist — Ligne 2.0.4
+# Checklist — Ligne 2.0.4 (clôturée)
 
 ## Diff visuel
 
@@ -8,27 +8,23 @@
 - [x] M2 — `/diff <fichier>` + navigation status
 - [x] M3 — Numéros de ligne + thème diff + file_write
 - [x] M4 — Bandeau fin de run + diff permission (`e`)
-- [ ] Tests `diff_cmd` + viewer
-- [ ] i18n FR/EN
+- [x] Fix réponses double — ([BUG-DUPLICATE-RESPONSES.md](BUG-DUPLICATE-RESPONSES.md))
 
-## Code signing
+## `/update` (polish 2.0.4)
 
-- [ ] Certificat Authenticode (OV ou EV) commandé
-- [ ] `sign-release.ps1` + Inno `SignTool`
-- [ ] CI signature sur release Windows
-- [ ] Clé GPG release + `.asc` Linux
-- [ ] README OR section vérification éditeur
-- [ ] QA SmartScreen (VM propre)
-- [ ] QA `gpg --verify` Linux
+- [x] Pastille header `[MAJ on]` / `[MAJ off]`
+- [x] Palette slash sous-commandes
+- [x] Autocomplétion `/update on|check|…`
 
-## Animation IDE
+## Reporté
 
-- [ ] Spec splash alignée TUI (`docs/animation-start/`)
-- [ ] Extraction / port dans fork VS Code Drox
-- [ ] Preview animation dans IDE
+- [ ] Code signing → [2.0.6](../2.0.6/README.md)
+- [ ] Diff inline fil → [2.0.5](../2.0.5/README.md)
+- [ ] Animation IDE → [animation-start](../animation-start/README.md)
 
 ## Release
 
 - [x] Bump version 2.0.4 (workspace)
-- [ ] RELEASE_NOTES OR
-- [ ] Merge `2.0.4` → `main`
+- [x] RELEASE_NOTES OR
+- [x] Merge `2.0.4` → `main`
+- [x] Publish OR + gh release v2.0.4

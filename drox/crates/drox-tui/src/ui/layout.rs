@@ -95,7 +95,16 @@ pub fn draw(
         .split(area);
 
     let mut idx = 0usize;
-    draw_header(frame, chunks[idx], state, model, workspace, permission_mode, plan_mode);
+    draw_header(
+        frame,
+        chunks[idx],
+        state,
+        model,
+        workspace,
+        permission_mode,
+        plan_mode,
+        prefs,
+    );
     idx += 1;
     if notices_h > 0 {
         status_notices::render(frame, chunks[idx], state);
@@ -196,6 +205,7 @@ fn draw_header(
     workspace: &str,
     permission_mode: &str,
     plan_mode: bool,
+    prefs: &TuiPreferences,
 ) {
     let mode_tag = if plan_mode {
         format!("{permission_mode} · PLAN")
@@ -232,6 +242,21 @@ fn draw_header(
                 .add_modifier(Modifier::BOLD),
         ),
     ]);
+    let upd_key = if prefs.update.enabled {
+        crate::i18n::keys_update::UPDATE_HEADER_CHECKS_ON
+    } else {
+        crate::i18n::keys_update::UPDATE_HEADER_CHECKS_OFF
+    };
+    let upd_color = if prefs.update.enabled {
+        state.palette.accent_glow
+    } else {
+        state.palette.header_muted
+    };
+    line.spans.push(Span::raw(" · "));
+    line.spans.push(Span::styled(
+        format!("[{}]", i18n::t(upd_key)),
+        Style::default().fg(upd_color).add_modifier(Modifier::BOLD),
+    ));
     if let Some(ref ver) = state.update_available_version {
         line.spans.push(Span::raw(" · "));
         line.spans.push(Span::styled(

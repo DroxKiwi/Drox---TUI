@@ -26,7 +26,7 @@ pub use mcp::handle_mcp;
 pub use plan::handle_plan;
 pub use skills::handle_skills;
 pub use update::{handle_update, UpdateCommand};
-pub use palette::{filter_entries, SlashPaletteEntry, ENTRIES as SLASH_PALETTE_ENTRIES};
+pub use palette::{filter_entries, palette_dispatch_command, SlashPaletteEntry, ENTRIES as SLASH_PALETTE_ENTRIES};
 
 /// Résultat d'une commande `/…`.
 pub enum SlashOutcome {
@@ -497,11 +497,8 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
         },
         "/onboarding" => SlashOutcome::Onboarding,
         "/update" => {
-            let args = trimmed
-                .strip_prefix("/update")
-                .unwrap_or("")
-                .trim();
-            handle_update(args, state)
+            let args = parts.get(1..).map(|p| p.join(" ")).unwrap_or_default();
+            handle_update(&args, state)
         }
         _ => {
             state.push_system(i18n::tf2(

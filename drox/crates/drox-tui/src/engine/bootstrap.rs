@@ -9,7 +9,7 @@ use drox_cli::{language, prompts};
 use drox_engine::{
     default_tool_registry, load_sessions_listing, load_skills_catalog, Agent, AgentConfig,
     ContextPolicy, DroxIgnoreMatcher, JsonlTranscriptSink, LayeredConfig, MemoryRuntime,
-    PermissionEngine, PermissionMode, PermissionPolicy, TranscriptSessionConfig,
+    PermissionEngine, PermissionMode, PermissionPolicy, Phase, TranscriptSessionConfig,
     WorkspaceMapStore, AgentEvent, EngineError, DEFAULT_LISTING_LIMIT, DEFAULT_MAX_PARALLEL_TOOL_CALLS,
 };
 use drox_llm::{ChatOptions, LlmConfig, OllamaClient};
@@ -486,6 +486,56 @@ impl EngineRuntime {
     }
 }
 
+/// Destination du buffer streaming lors d'un flush (aligné `transcript_replay`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StreamFlushKind {
+    /// Texte rattaché au bloc `PhaseOpen` courant.
+    PhaseLine,
+    /// Message assistant autonome (hors bloc phase).
+    Assistant,
+}
+
+fn stream_flush_kind(entries: &[LogEntry]) -> StreamFlushKind {
+    for entry in entries.iter().rev() {
+        match entry {
+            LogEntry::PhaseLine { .. } => continue,
+            LogEntry::PhaseOpen { .. } => return StreamFlushKind::PhaseLine,
+            _ => return StreamFlushKind::Assistant,
+        }
+    }
+    StreamFlushKind::Assistant
+}
+
+fn last_phase_open(entries: &[LogEntry]) -> Option<Phase> {
+    for entry in entries.iter().rev() {
+        match entry {
+            LogEntry::PhaseLine { .. } => continue,
+            LogEntry::PhaseOpen { phase } => return Some(*phase),
+            _ => return None,
+        }
+    }
+    None
+}
+
+fn flush_stream(
+    entries: &mut Vec<LogEntry>,
+    streaming: &mut Option<String>,
+    kind: StreamFlushKind,
+) {
+    if let Some(buf) = streaming.take() {
+        if !buf.trim().is_empty() {
+            match kind {
+                StreamFlushKind::PhaseLine => {
+                    entries.push(LogEntry::PhaseLine { text: buf });
+                }
+                StreamFlushKind::Assistant => {
+                    entries.push(LogEntry::Assistant { text: buf });
+                }
+            }
+        }
+    }
+}
+
 pub fn apply_agent_event(
     entries: &mut Vec<LogEntry>,
     streaming: &mut Option<String>,
@@ -494,17 +544,26 @@ pub fn apply_agent_event(
 ) {
     match event {
         AgentEvent::PhaseEnter { phase } => {
-            flush_stream(entries, streaming, true);
-            entries.push(LogEntry::PhaseOpen { phase: *phase });
+            let had_stream = streaming.as_ref().is_some_and(|s| !s.trim().is_empty());
+            flush_stream(entries, streaming, stream_flush_kind(entries));
+            if *phase == Phase::Done {
+                return;
+            }
+            let duplicate_answering = *phase == Phase::Answering
+                && !had_stream
+                && last_phase_open(entries) == Some(Phase::Answering);
+            if !duplicate_answering {
+                entries.push(LogEntry::PhaseOpen { phase: *phase });
+            }
         }
         AgentEvent::PhaseClose => {
-            flush_stream(entries, streaming, false);
+            flush_stream(entries, streaming, stream_flush_kind(entries));
         }
         AgentEvent::TextDelta { text } => {
             streaming.get_or_insert_with(String::new).push_str(text);
         }
         AgentEvent::ToolStart { id, name, arguments } => {
-            flush_stream(entries, streaming, false);
+            flush_stream(entries, streaming, stream_flush_kind(entries));
             tool_names.insert(id.clone(), name.clone());
             entries.push(LogEntry::ToolStart {
                 id: id.clone(),
@@ -547,20 +606,106 @@ pub fn apply_agent_event(
         }),
         AgentEvent::RunObjective { text } => entries.push(LogEntry::RunObjective { text: text.clone() }),
         AgentEvent::ScopeParkingUpdate { .. } => {}
-        AgentEvent::Stop { .. } => flush_stream(entries, streaming, true),
+        AgentEvent::Stop { .. } => {
+            flush_stream(entries, streaming, stream_flush_kind(entries));
+        }
         _ => {}
     }
 }
 
-fn flush_stream(entries: &mut Vec<LogEntry>, streaming: &mut Option<String>, as_assistant: bool) {
-    if let Some(buf) = streaming.take() {
-        if !buf.trim().is_empty() {
-            if as_assistant {
-                entries.push(LogEntry::Assistant { text: buf });
-            } else {
-                entries.push(LogEntry::PhaseLine { text: buf });
-            }
+#[cfg(test)]
+mod stream_flush_tests {
+    use super::*;
+    use drox_types::ToolUseId;
+
+    fn simulate(events: &[AgentEvent]) -> (Vec<LogEntry>, Option<String>) {
+        let mut entries = Vec::new();
+        let mut streaming = None;
+        let mut tool_names = HashMap::new();
+        for event in events {
+            apply_agent_event(&mut entries, &mut streaming, &mut tool_names, event);
         }
+        (entries, streaming)
+    }
+
+    #[test]
+    fn answering_text_lives_under_phase_block_not_assistant() {
+        let (entries, _) = simulate(&[
+            AgentEvent::PhaseEnter {
+                phase: Phase::Answering,
+            },
+            AgentEvent::TextDelta {
+                text: "Bonjour !\n".into(),
+            },
+            AgentEvent::PhaseEnter { phase: Phase::Done },
+        ]);
+        assert!(entries.iter().any(|e| {
+            matches!(e, LogEntry::PhaseOpen { phase: Phase::Answering })
+        }));
+        assert!(entries.iter().any(|e| {
+            matches!(e, LogEntry::PhaseLine { text } if text.contains("Bonjour"))
+        }));
+        assert!(!entries.iter().any(|e| matches!(e, LogEntry::Assistant { .. })));
+        assert!(!entries.iter().any(|e| {
+            matches!(e, LogEntry::PhaseOpen { phase: Phase::Done })
+        }));
+    }
+
+    #[test]
+    fn stop_without_phase_open_emits_assistant() {
+        let (entries, _) = simulate(&[
+            AgentEvent::TextDelta {
+                text: "salut".into(),
+            },
+            AgentEvent::Stop {
+                reason: drox_types::StopReason::EndTurn,
+                usage: drox_types::Usage::default(),
+            },
+        ]);
+        assert!(entries.iter().any(|e| {
+            matches!(e, LogEntry::Assistant { text } if text.contains("salut"))
+        }));
+    }
+
+    #[test]
+    fn duplicate_answering_header_skipped_on_empty_nudge() {
+        let (entries, _) = simulate(&[
+            AgentEvent::PhaseEnter {
+                phase: Phase::Answering,
+            },
+            AgentEvent::TextDelta {
+                text: "Réponse finale.\n".into(),
+            },
+            AgentEvent::PhaseEnter { phase: Phase::Done },
+            AgentEvent::PhaseEnter {
+                phase: Phase::Answering,
+            },
+            AgentEvent::PhaseEnter { phase: Phase::Done },
+        ]);
+        let answering_headers = entries
+            .iter()
+            .filter(|e| matches!(e, LogEntry::PhaseOpen { phase: Phase::Answering }))
+            .count();
+        assert_eq!(answering_headers, 1);
+    }
+
+    #[test]
+    fn tool_start_flushes_into_open_phase() {
+        let (entries, _) = simulate(&[
+            AgentEvent::PhaseEnter {
+                phase: Phase::Acting,
+            },
+            AgentEvent::TextDelta {
+                text: "je modifie…\n".into(),
+            },
+            AgentEvent::ToolStart {
+                id: ToolUseId::new(),
+                name: "file_write".into(),
+                arguments: serde_json::json!({}),
+            },
+        ]);
+        assert!(entries.iter().any(|e| matches!(e, LogEntry::PhaseLine { .. })));
+        assert!(!entries.iter().any(|e| matches!(e, LogEntry::Assistant { .. })));
     }
 }
 

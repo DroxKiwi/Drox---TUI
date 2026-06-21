@@ -1,38 +1,29 @@
-# Ligne produit `2.0.4` — Drox TUI · Diff visuel + confiance install + animation IDE
+# Ligne produit `2.0.4` — Drox TUI · Diff visuel (clôturée)
 
-**Version produit** : `2.0.4` (en cours)  
-**Branche Git** : `2.0.4`  
-**Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`**  
-**Prédécesseur** : [`2.0.3`](../2.0.3/README.md) — [release OR v2.0.3](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.3)
+**Version produit** : `2.0.4`  
+**Branche Git** : `2.0.4` → mergée dans `main`  
+**Release OR** : [v2.0.4](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.4)  
+**Prédécesseur** : [`2.0.3`](../2.0.3/README.md)
 
 ---
 
-## Objectifs de la ligne
+## Objectifs livrés
 
-```mermaid
-flowchart LR
-    subgraph P1["Diff visuel"]
-        D1["Exploiter viewers existants"]
-        D2["/diff unifié + panneau"]
-    end
-    subgraph P2["Confiance install"]
-        S1["Signature Windows"]
-        S2["Signatures Linux"]
-    end
-    subgraph P3["Animation IDE"]
-        A1["Spec splash TUI"]
-        A2["Port fork VS Code"]
-    end
-    P1 --> OR["Drox---TUI---OR"]
-    P2 --> OR
-    P3 --> IDE["Fork VS Code Drox"]
-```
+| Thème | Statut |
+|---|---|
+| **Diff visuel TUI** (M1–M4) | ✅ |
+| **Correctifs `/update`** (header, palette) | ✅ |
+| **Fix réponses double** | ✅ |
 
-| # | Thème | Résumé |
-|---|---|---|
-| 1 | **Diff visuel TUI** | Réutiliser `LinesViewer`, `similar`, previews permission — aujourd’hui sous-exploités ; `/diff` n’affiche que `git status` + `--stat`. |
-| 2 | **Confiance Windows / Linux** | Certificat éditeur (Authenticode) + signatures artefacts OR ; réduire alertes SmartScreen / « éditeur inconnu ». |
-| 3 | **Animation lancement IDE** | Porter le splash « DROX » vers le fork VS Code — spec + code dans [`docs/animation-start/`](../animation-start/README.md). |
+---
+
+## Reporté
+
+| Thème | Ligne |
+|---|---|
+| Code signing Windows + GPG Linux | [`2.0.6`](../2.0.6/README.md) |
+| Diff inline fil + split pane | [`2.0.5`](../2.0.5/README.md) |
+| Animation splash IDE | [`animation-start`](../animation-start/README.md) |
 
 ---
 
@@ -40,38 +31,19 @@ flowchart LR
 
 | Document | Rôle |
 |---|---|
-| [PLAN-VISUAL-DIFF.md](PLAN-VISUAL-DIFF.md) | Inventaire code existant, lacunes, jalons M1–M4 |
-| [PLAN-CODE-SIGNING.md](PLAN-CODE-SIGNING.md) | Authenticode, Inno Setup, Linux GPG, coûts, pipeline |
-| [CHECKLIST.md](CHECKLIST.md) | Suivi QA et release |
-| [../animation-start/README.md](../animation-start/README.md) | Animation splash Drox → fork VS Code |
+| [PLAN-VISUAL-DIFF.md](PLAN-VISUAL-DIFF.md) | Jalons M1–M4 |
+| [RELEASE_NOTES.md](RELEASE_NOTES.md) | Notes release OR |
+| [BUG-DUPLICATE-RESPONSES.md](BUG-DUPLICATE-RESPONSES.md) | Correctif streaming |
+| [PLAN-CODE-SIGNING.md](PLAN-CODE-SIGNING.md) | Archivé → voir 2.0.6 |
+| [CHECKLIST.md](CHECKLIST.md) | Clôture |
 
 ---
 
-## Principes
-
-1. **Réutiliser avant de réécrire** — le diff unifié coloré existe déjà (`lines_viewer`, `tool_output`, `permission_preview`) ; la 2.0.4 l’expose dans le flux utilisateur (`/diff`, navigation).
-2. **Confiance = processus** — signature certificat + empreintes publiées + réputation SmartScreen ; pas de « contournement » opaque.
-3. **Même identité Drox** — splash TUI et IDE partagent logo ASCII, palette phosphore, timing (voir animation-start).
-
----
-
-## Périmètre hors 2.0.4
-
-- Diff 3-way merge interactif (style IDE complet)
-- Notarisation macOS
-- Installateur `.msi` / `.deb` signé Microsoft Store
-- Plugin marketplace VS Code public
-
----
-
-## Références code (état actuel)
+## Références code
 
 | Zone | Fichier |
 |---|---|
-| Viewer diff unifié | `drox/crates/drox-tui/src/view/lines_viewer.rs` |
-| Diff outils agent | `drox/crates/drox-tui/src/view/tool_output.rs` |
-| Preview permission | `drox/crates/drox-tui/src/view/permission_preview.rs` |
-| Génération diff | `drox/crates/drox-tools/src/diff_util.rs` |
-| `/diff` (git stat seulement) | `drox/crates/drox-tui/src/engine/diff_cmd.rs` |
-| Boot splash TUI | `drox/crates/drox-tui/src/ui/boot_splash.rs` |
-| Installateur Windows | `packaging/windows/drox-tui-setup.iss` |
+| `/diff` | `engine/diff_cmd.rs` |
+| Viewer diff | `view/lines_viewer.rs`, `view/diff_render.rs` |
+| Fil agent | `view/tool_output.rs` |
+| `/update` | `slash/update.rs`, `ui/layout.rs` |

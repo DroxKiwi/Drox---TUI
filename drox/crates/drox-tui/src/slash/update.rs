@@ -44,8 +44,43 @@ pub fn handle_update(args: &str, state: &mut AppState) -> SlashOutcome {
             SlashOutcome::Handled
         }
         _ => {
+            state.push_system(i18n::tf(u::UPDATE_UNKNOWN_SUB, &sub));
             state.push_system(i18n::t(u::UPDATE_HELP_BODY));
             SlashOutcome::Handled
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::AppState;
+
+    fn outcome_sub(input: &str) -> Option<UpdateCommand> {
+        let mut state = AppState::default();
+        match handle_update(input, &mut state) {
+            SlashOutcome::Update(cmd) => Some(cmd),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn parses_on_off_and_check() {
+        assert_eq!(outcome_sub(""), Some(UpdateCommand::ShowHelp));
+        assert_eq!(outcome_sub("on"), Some(UpdateCommand::On));
+        assert_eq!(outcome_sub("ON"), Some(UpdateCommand::On));
+        assert_eq!(outcome_sub("off"), Some(UpdateCommand::Off));
+        assert_eq!(outcome_sub("check"), Some(UpdateCommand::Check));
+        assert_eq!(outcome_sub("snooze 14"), Some(UpdateCommand::Snooze { days: 14 }));
+        assert_eq!(outcome_sub("install"), Some(UpdateCommand::Install));
+    }
+
+    #[test]
+    fn unknown_subcommand_stays_handled() {
+        let mut state = AppState::default();
+        assert!(matches!(
+            handle_update("typo", &mut state),
+            SlashOutcome::Handled
+        ));
     }
 }

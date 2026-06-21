@@ -21,7 +21,7 @@ use tokio::sync::mpsc;
 use crate::asker::{parse_answer, AskCoordinator, PendingAsk};
 use crate::engine::{apply_agent_event, compact_checkpoint_preview, cycle_preset_index, BindingAction, CompactOutcome, EngineRuntime, TuiKeybindings, VimComposer, VimKeyResult, VimMode, CONTEXT_CUSTOM_INDEX};
 use crate::engine::status_bar::StatusBarSnapshot;
-use crate::slash::{apply_theme, filter_entries, handle_config, handle_hooks, handle_plan, handle_slash, PendingSlash, SlashOutcome, SLASH_PALETTE_ENTRIES};
+use crate::slash::{apply_theme, filter_entries, handle_config, handle_hooks, handle_plan, handle_slash, palette_dispatch_command, PendingSlash, SlashOutcome, SLASH_PALETTE_ENTRIES};
 use crate::ui::TuiThemeSetting;
 use crate::terminal;
 use crate::ui;
@@ -1086,6 +1086,7 @@ impl App {
             }
             SettingsRowKind::Updates => {
                 self.apply_update_enabled(!self.tui_prefs.update.enabled);
+                self.refresh_update_banner();
             }
         }
     }
@@ -1154,11 +1155,15 @@ impl App {
         self.tui_prefs.update.enabled = enabled;
         if enabled {
             self.tui_prefs.update.check_on_startup = true;
+        } else {
+            self.tui_prefs.update.check_on_startup = false;
         }
         let mut prefs = crate::engine::preferences::load_preferences();
         prefs.update.enabled = enabled;
         if enabled {
             prefs.update.check_on_startup = true;
+        } else {
+            prefs.update.check_on_startup = false;
         }
         if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
             self.state
@@ -3610,12 +3615,16 @@ impl App {
                 dialog.cursor += 1;
             }
             KeyCode::Enter => {
-                if let Some(&idx) = dialog.matches.get(dialog.cursor) {
-                    let command = SLASH_PALETTE_ENTRIES[idx].command.to_string();
-                    self.state.slash_palette = None;
-                    self.state.phase = AppPhase::Idle;
-                    return self.dispatch_slash_command(&command);
-                }
+                let selected = dialog
+                    .matches
+                    .get(dialog.cursor)
+                    .map(|&idx| &SLASH_PALETTE_ENTRIES[idx]);
+                let Some(command) = palette_dispatch_command(&dialog.filter, selected) else {
+                    return Ok(false);
+                };
+                self.state.slash_palette = None;
+                self.state.phase = AppPhase::Idle;
+                return self.dispatch_slash_command(&command);
             }
             KeyCode::Backspace => {
                 dialog.filter.pop();

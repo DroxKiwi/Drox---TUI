@@ -340,6 +340,7 @@ pub fn get(key: &str) -> Option<&'static str> {
         UPDATE_HELP_BODY => Some(
             "Mises à jour TUI (opt-in) — /update check · on · off · snooze [jours] · dismiss · install",
         ),
+        UPDATE_UNKNOWN_SUB => Some("Sous-commande /update inconnue : {}"),
         UPDATE_STATUS_HEADER => Some("— Mises à jour TUI —"),
         UPDATE_STATUS_VERSION => Some("Version installée : {}"),
         UPDATE_STATUS_ENABLED => Some("Vérification : activée (aucune requête auto sans consentement)"),
@@ -391,6 +392,8 @@ pub fn get(key: &str) -> Option<&'static str> {
             "Mise à jour {} disponible — Ctrl+Shift+U installer · u plus tard · /update",
         ),
         UPDATE_HEADER_PILL => Some("MAJ {}"),
+        UPDATE_HEADER_CHECKS_ON => Some("MAJ on"),
+        UPDATE_HEADER_CHECKS_OFF => Some("MAJ off"),
         _ => None,
     }
 }

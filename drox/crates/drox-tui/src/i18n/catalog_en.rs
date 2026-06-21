@@ -314,6 +314,7 @@ pub fn get(key: &str) -> Option<&'static str> {
         UPDATE_HELP_BODY => Some(
             "TUI updates (opt-in) — /update check · on · off · snooze [days] · dismiss · install",
         ),
+        UPDATE_UNKNOWN_SUB => Some("Unknown /update subcommand: {}"),
         UPDATE_STATUS_HEADER => Some("— TUI updates —"),
         UPDATE_STATUS_VERSION => Some("Installed version: {}"),
         UPDATE_STATUS_ENABLED => Some("Checks: enabled (no automatic network without consent)"),
@@ -361,6 +362,8 @@ pub fn get(key: &str) -> Option<&'static str> {
             "Update {} available — Ctrl+Shift+U install · u snooze · /update",
         ),
         UPDATE_HEADER_PILL => Some("UPD {}"),
+        UPDATE_HEADER_CHECKS_ON => Some("UPD on"),
+        UPDATE_HEADER_CHECKS_OFF => Some("UPD off"),
         _ => None,
     }
 }

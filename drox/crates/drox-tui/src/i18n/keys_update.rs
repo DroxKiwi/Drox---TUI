@@ -2,6 +2,7 @@
 
 pub const SLASH_PALETTE_UPDATE: &str = "slash.palette.update";
 pub const UPDATE_HELP_BODY: &str = "update.help.body";
+pub const UPDATE_UNKNOWN_SUB: &str = "update.unknown_sub";
 pub const UPDATE_STATUS_HEADER: &str = "update.status.header";
 pub const UPDATE_STATUS_VERSION: &str = "update.status.version";
 pub const UPDATE_STATUS_ENABLED: &str = "update.status.enabled";
@@ -41,10 +42,13 @@ pub const UPDATE_SNOOZE_USAGE: &str = "update.snooze.usage";
 pub const SETTINGS_UPDATE: &str = "settings.update";
 pub const UPDATE_BANNER: &str = "update.banner";
 pub const UPDATE_HEADER_PILL: &str = "update.header.pill";
+pub const UPDATE_HEADER_CHECKS_ON: &str = "update.header.checks_on";
+pub const UPDATE_HEADER_CHECKS_OFF: &str = "update.header.checks_off";
 
 pub const UPDATE_KEYS: &[&str] = &[
     SLASH_PALETTE_UPDATE,
     UPDATE_HELP_BODY,
+    UPDATE_UNKNOWN_SUB,
     UPDATE_STATUS_HEADER,
     UPDATE_STATUS_VERSION,
     UPDATE_STATUS_ENABLED,
@@ -84,4 +88,6 @@ pub const UPDATE_KEYS: &[&str] = &[
     SETTINGS_UPDATE,
     UPDATE_BANNER,
     UPDATE_HEADER_PILL,
+    UPDATE_HEADER_CHECKS_ON,
+    UPDATE_HEADER_CHECKS_OFF,
 ];
