@@ -127,11 +127,25 @@ fn list_roots() -> Vec<BrowseEntry> {
     }
     #[cfg(not(windows))]
     {
+        if let Some(home) = dirs::home_dir().and_then(|h| Utf8PathBuf::from_path_buf(h).ok()) {
+            out.push(BrowseEntry {
+                label: format!("~ ({})", home),
+                kind: BrowseEntryKind::Directory,
+                path: Some(home),
+            });
+        }
         out.push(BrowseEntry {
             label: "/".into(),
             kind: BrowseEntryKind::Directory,
             path: Some(Utf8PathBuf::from("/")),
         });
+        if std::path::Path::new("/mnt").is_dir() {
+            out.push(BrowseEntry {
+                label: "/mnt (WSL)".into(),
+                kind: BrowseEntryKind::Directory,
+                path: Some(Utf8PathBuf::from("/mnt")),
+            });
+        }
     }
     out.sort_by(|a, b| a.label.cmp(&b.label));
     out
@@ -141,7 +155,14 @@ fn list_directory(dir: &Utf8Path) -> Vec<BrowseEntry> {
     let mut out = Vec::new();
     out.push(BrowseEntry {
         label: if is_volume_root(dir) {
-            ".. Ordinateur".into()
+            #[cfg(windows)]
+            {
+                ".. Ordinateur".into()
+            }
+            #[cfg(not(windows))]
+            {
+                ".. Racines".into()
+            }
         } else {
             "..".into()
         },
@@ -220,5 +241,13 @@ mod tests {
         assert!(entries.first().is_some_and(|e| e.kind == BrowseEntryKind::Parent));
         assert!(entries.iter().any(|e| e.label == "src"));
         assert!(!entries.iter().any(|e| e.label == "readme.txt"));
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn lists_home_and_root_on_unix() {
+        let roots = list_roots();
+        assert!(roots.iter().any(|e| e.label.starts_with('~')));
+        assert!(roots.iter().any(|e| e.path.as_ref().is_some_and(|p| p.as_str() == "/")));
     }
 }

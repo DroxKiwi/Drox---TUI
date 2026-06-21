@@ -1,8 +1,26 @@
 # Drox TUI — agent local en terminal
 
-> **Version produit : `2.0.2`** · Moteur dérivé de **Drox IDE `1.5.0`**
+> **Version produit : `2.0.3`** · Moteur dérivé de **Drox IDE `1.5.0`**
 
 **Drox TUI** est un assistant IA en terminal : LLM local (Ollama par défaut), fichiers, shell, permissions, sessions — **sans cloud obligatoire**.
+
+## Lancer Drox TUI
+
+Après installation, la commande terminal est **`drox-tui`** :
+
+```bash
+# Linux / macOS / WSL
+cd /chemin/vers/votre-projet
+drox-tui --workspace .
+```
+
+```powershell
+# Windows
+cd C:\chemin\vers\votre-projet
+drox-tui --workspace .
+```
+
+Sans `--workspace`, le répertoire courant est utilisé. Au **premier lancement**, configurez Ollama via **`Ctrl+Shift+L`** ou **`/server`**.
 
 > ### 🔒 Certification locale
 >
@@ -37,7 +55,7 @@
 
 ### Windows x64
 
-1. Téléchargez `drox-tui-2.0.2-windows-x64-setup.exe` depuis le dépôt [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) (`releases/v2.0.2/`).
+1. Téléchargez `drox-tui-2.0.3-windows-x64-setup.exe` depuis le dépôt [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) (`releases/v2.0.3/`).
 2. Lancez l’**installateur** (double-clic) et suivez l’assistant.
 3. Cochez **Ajouter au PATH** si proposé.
 
@@ -47,14 +65,15 @@ Désinstallation : Paramètres Windows → Applications → Drox TUI.
 
 ### Linux x64
 
-1. Téléchargez `drox-tui-2.0.2-linux-x64.tar.gz` depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases).
+1. Téléchargez `drox-tui-2.0.3-linux-x64.tar.gz` depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases).
 2. Extrayez et installez :
 
 ```bash
-tar xzf drox-tui-2.0.2-linux-x64.tar.gz
-cd drox-tui-2.0.2-linux-x64
+tar xzf drox-tui-2.0.3-linux-x64.tar.gz
+cd drox-tui-2.0.3-linux-x64
 ./install.sh              # ~/.local/bin
 # ou : ./install.sh --system   # /usr/local/bin (sudo)
+drox-tui --workspace ~/projets/mon-repo
 ```
 
 Vérifiez : `drox-tui --list-sessions`
@@ -173,9 +192,25 @@ MIT — voir le fichier `LICENSE` fourni avec l’archive d’installation.
 
 # English version
 
-> **Product version: `2.0.2`** · Engine derived from **Drox IDE `1.5.0`**
+> **Product version: `2.0.3`** · Engine derived from **Drox IDE `1.5.0`**
 
 **Drox TUI** is a terminal AI assistant: local LLM (Ollama by default), files, shell, permissions, sessions — **no mandatory cloud**.
+
+## Launch Drox TUI
+
+After installation, run **`drox-tui`** in your terminal:
+
+```bash
+cd /path/to/your-project
+drox-tui --workspace .
+```
+
+```powershell
+cd C:\path\to\your-project
+drox-tui --workspace .
+```
+
+Without `--workspace`, the current directory is used. On **first launch**, configure Ollama via **`Ctrl+Shift+L`** or **`/server`**.
 
 > ### 🔒 Local certification
 >
@@ -210,7 +245,7 @@ MIT — voir le fichier `LICENSE` fourni avec l’archive d’installation.
 
 ### Windows x64
 
-1. Download `drox-tui-2.0.2-windows-x64-setup.exe` from [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) (`releases/v2.0.2/`).
+1. Download `drox-tui-2.0.3-windows-x64-setup.exe` from [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) (`releases/v2.0.3/`).
 2. Run the **installer** and follow the wizard.
 3. Enable **Add to PATH** if offered.
 
@@ -221,9 +256,10 @@ Uninstall: Windows Settings → Apps → Drox TUI.
 ### Linux x64
 
 ```bash
-tar xzf drox-tui-2.0.2-linux-x64.tar.gz
-cd drox-tui-2.0.2-linux-x64
+tar xzf drox-tui-2.0.3-linux-x64.tar.gz
+cd drox-tui-2.0.3-linux-x64
 ./install.sh
+drox-tui --workspace ~/your-project
 ```
 
 Verify: `drox-tui --list-sessions`

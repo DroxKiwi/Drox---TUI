@@ -17,11 +17,11 @@
 
 ## Linux
 
-- [ ] `publish-or` inclut archive Linux
+- [x] `publish-or` inclut archive Linux (WSL)
 - [ ] Asset Linux sur GitHub Release
-- [ ] Racines workspace (`$HOME`, etc.)
+- [x] Racines workspace (`$HOME`, `/mnt` WSL)
 - [ ] QA terminal Linux (≥ 1 environnement réel)
-- [ ] CI `ubuntu-latest` (tests)
+- [x] CI `ubuntu-latest` (tests)
 
 ## Non-régression
 

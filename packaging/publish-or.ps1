@@ -17,6 +17,7 @@
 param(
     [string]$OrRepo = "",
     [switch]$SkipBuild,
+    [switch]$SkipLinux,
     [switch]$SkipGitCommit
 )
 
@@ -44,6 +45,31 @@ $SetupPath = $result.SetupPath
 $ArtifactName = $result.ArtifactName
 $Sha256 = $result.Sha256
 
+$LinuxTar = Join-Path $RepoRoot "dist\drox-tui-$Version-linux-x64.tar.gz"
+$LinuxName = "drox-tui-$Version-linux-x64.tar.gz"
+$LinuxSha256 = $null
+
+if (-not $SkipLinux) {
+    $LinuxScript = Join-Path $PSScriptRoot 'build-and-pack-linux.sh'
+    if (Get-Command wsl -ErrorAction SilentlyContinue) {
+        Write-Host "==> Build Linux x64 (WSL)" -ForegroundColor Cyan
+        $WslRepo = (wsl wslpath -a $RepoRoot).Trim()
+        $SkipFlag = if ($SkipBuild) { '--skip-build' } else { '' }
+        wsl bash -lc "cd '$WslRepo' && chmod +x packaging/build-and-pack-linux.sh && ./packaging/build-and-pack-linux.sh $SkipFlag"
+        if (-not (Test-Path -LiteralPath $LinuxTar)) {
+            Write-Warning "Archive Linux absente apres build WSL: $LinuxTar"
+        }
+    } else {
+        Write-Host "WSL absent — build Linux ignore (lancez packaging/build-and-pack-linux.sh sur Linux, ou -SkipLinux)" -ForegroundColor Yellow
+    }
+}
+
+if (Test-Path -LiteralPath $LinuxTar) {
+    $LinuxSha256 = (Get-FileHash -LiteralPath $LinuxTar -Algorithm SHA256).Hash.ToLower()
+    Write-Host "Archive Linux: $LinuxTar" -ForegroundColor Green
+    Write-Host "SHA256:        $LinuxSha256" -ForegroundColor DarkGray
+}
+
 $ReleaseDir = Join-Path $OrRepo "releases\v$Version"
 $InstallWin = Join-Path $OrRepo 'install\windows'
 $InstallLinux = Join-Path $OrRepo 'install\linux'
@@ -52,6 +78,14 @@ New-Item -ItemType Directory -Force -Path $ReleaseDir, $InstallWin, $InstallLinu
 
 Copy-Item $SetupPath (Join-Path $ReleaseDir $ArtifactName) -Force
 Copy-Item (Join-Path $RepoRoot "dist\SHA256SUMS-$Version-windows.txt") (Join-Path $ReleaseDir 'SHA256SUMS-windows.txt') -Force
+
+if (Test-Path -LiteralPath $LinuxTar) {
+    Copy-Item $LinuxTar (Join-Path $ReleaseDir $LinuxName) -Force
+    $LinuxSums = Join-Path $RepoRoot "dist\SHA256SUMS-$Version-linux.txt"
+    if (Test-Path -LiteralPath $LinuxSums) {
+        Copy-Item $LinuxSums (Join-Path $ReleaseDir 'SHA256SUMS-linux.txt') -Force
+    }
+}
 
 Copy-Item (Join-Path $RepoRoot 'packaging\windows\install.ps1') (Join-Path $InstallWin 'install.ps1') -Force
 Copy-Item (Join-Path $RepoRoot 'packaging\linux\install.sh') (Join-Path $InstallLinux 'install.sh') -Force
@@ -63,6 +97,9 @@ if (-not (Test-Path -LiteralPath $ReleaseNotesPath)) {
 if (Test-Path -LiteralPath $ReleaseNotesPath) {
     $ReleaseNotes = [System.IO.File]::ReadAllText($ReleaseNotesPath)
     $ReleaseNotes += "`n`n---`n`n## Empreinte Windows`n`nSHA256 ``$ArtifactName`` : ``$Sha256```n"
+    if ($LinuxSha256) {
+        $ReleaseNotes += "`n## Empreinte Linux`n`nSHA256 ``$LinuxName`` : ``$LinuxSha256```n"
+    }
 } else {
 $ReleaseNotes = @"
 # Drox TUI v$Version
@@ -129,11 +166,12 @@ $latest = [ordered]@{
 
 $LinuxTar = Join-Path $RepoRoot "dist\drox-tui-$Version-linux-x64.tar.gz"
 if (Test-Path -LiteralPath $LinuxTar) {
-    $LinuxName = "drox-tui-$Version-linux-x64.tar.gz"
-    $LinuxHash = (Get-FileHash -LiteralPath $LinuxTar -Algorithm SHA256).Hash.ToLower()
+    if (-not $LinuxSha256) {
+        $LinuxSha256 = (Get-FileHash -LiteralPath $LinuxTar -Algorithm SHA256).Hash.ToLower()
+    }
     $latest.linux_x64 = [ordered]@{
         url    = "$GhBase/releases/download/$ReleaseTag/$LinuxName"
-        sha256 = $LinuxHash
+        sha256 = $LinuxSha256
     }
 }
 
@@ -154,6 +192,10 @@ Write-Host "Publie dans: $ReleaseDir" -ForegroundColor Green
 Write-Host "  $ArtifactName"
 Write-Host "  RELEASE_NOTES.md"
 Write-Host "  SHA256SUMS-windows.txt"
+if (Test-Path -LiteralPath $LinuxTar) {
+    Write-Host "  $LinuxName"
+    Write-Host "  SHA256SUMS-linux.txt"
+}
 Write-Host "  releases/latest.json"
 Write-Host ""
 
@@ -163,7 +205,8 @@ if (-not $SkipGitCommit -and (Test-Path (Join-Path $OrRepo '.git'))) {
         git add README.md releases install
         $status = git status --porcelain
         if ($status) {
-            git commit -m "release: Drox TUI v$Version (Windows x64)"
+            $label = if $LinuxSha256 { "release: Drox TUI v$Version (Windows + Linux x64)" } else { "release: Drox TUI v$Version (Windows x64)" }
+            git commit -m $label
             Write-Host "Commit OR cree. Lancez: git push" -ForegroundColor Yellow
         } else {
             Write-Host "Aucun changement git dans OR." -ForegroundColor DarkGray

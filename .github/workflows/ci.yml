@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main, '2.0.*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: drox
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo test drox-tui
+        run: cargo test -p drox-tui
+
+  linux-pack:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: build Linux archive
+        run: ./packaging/build-and-pack-linux.sh
+        shell: bash
+      - name: verify archive
+        run: |
+          test -f dist/drox-tui-*-linux-x64.tar.gz
+          test -f dist/SHA256SUMS-*-linux.txt

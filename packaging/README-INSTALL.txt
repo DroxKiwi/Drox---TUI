@@ -1,6 +1,8 @@
 Drox TUI — installation
 =======================
 
+Launch (after install):  drox-tui --workspace /path/to/project
+
 Product version: see VERSION file after install.
 Engine baseline: Drox IDE agent engine 1.5.0 (local-first, no Drox cloud telemetry).
 
