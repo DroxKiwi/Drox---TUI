@@ -205,7 +205,7 @@ if (-not $SkipGitCommit -and (Test-Path (Join-Path $OrRepo '.git'))) {
         git add README.md releases install
         $status = git status --porcelain
         if ($status) {
-            $label = if $LinuxSha256 { "release: Drox TUI v$Version (Windows + Linux x64)" } else { "release: Drox TUI v$Version (Windows x64)" }
+            $label = if ($LinuxSha256) { "release: Drox TUI v$Version (Windows + Linux x64)" } else { "release: Drox TUI v$Version (Windows x64)" }
             git commit -m $label
             Write-Host "Commit OR cree. Lancez: git push" -ForegroundColor Yellow
         } else {
