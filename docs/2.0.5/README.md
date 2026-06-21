@@ -3,7 +3,7 @@
 **Version produit** : `2.0.5` (plan)  
 **Branche Git** : `2.0.5` (à créer)  
 **Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`**  
-**Prédécesseur** : [`2.0.4`](../2.0.4/README.md) — diff overlay `/diff`, bandeau fin de run, code signing (en cours)
+**Prédécesseur** : [`2.0.4`](../2.0.4/README.md) — diff overlay `/diff`, bandeau fin de run (clôturée)
 
 ---
 

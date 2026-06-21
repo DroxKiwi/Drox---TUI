@@ -6,7 +6,9 @@ Ce dépôt contient les **sources** et la doc interne. Les utilisateurs finaux r
 
 | Chemin | Contenu |
 |---|---|
-| [`docs/2.0.4/`](docs/2.0.4/) | Ligne active — diff visuel, code signing, splash IDE |
+| [`docs/2.0.5/`](docs/2.0.5/) | Ligne active — diff inline dans le fil |
+| [`docs/2.0.4/`](docs/2.0.4/) | Diff visuel overlay (clôturée) |
+| [`docs/2.0.6/`](docs/2.0.6/) | Code signing & Linux (plan) |
 | [`docs/2.0.3/`](docs/2.0.3/) | `/update`, Linux (clôturée) |
 | [`docs/2.0.2/`](docs/2.0.2/) | Phase UI (clôturée) |
 | [`packaging/`](packaging/) | Scripts build, installateurs, `publish-or.ps1` |
@@ -17,9 +19,9 @@ Ce dépôt contient les **sources** et la doc interne. Les utilisateurs finaux r
 ```powershell
 cd drox
 cargo build --release -p drox-tui
-.\packaging\publish-or.ps1
+.\packaging\publish-or.ps1 -SkipLinux   # Windows seul pour l'instant
 ```
 
 Copie binaires + `README.md` public vers `../Drox---TUI---OR`.
 
-Branche active : **`2.0.4`**
+Branche active : **`2.0.5`** · release publique OR : **2.0.4** (Windows)
