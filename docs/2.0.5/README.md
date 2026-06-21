@@ -1,7 +1,8 @@
 # Ligne produit `2.0.5` — Drox TUI · Diff inline dans le fil
 
-**Version produit** : `2.0.5` (plan)  
-**Branche Git** : `2.0.5` (à créer)  
+**Version produit** : `2.0.5` (dev)  
+**Branche Git** : `2.0.5`  
+**Release OR publique** : `2.0.4` (Windows)  
 **Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`**  
 **Prédécesseur** : [`2.0.4`](../2.0.4/README.md) — diff overlay `/diff`, bandeau fin de run (clôturée)
 

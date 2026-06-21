@@ -23,7 +23,7 @@ drox-types.workspace = true
 drox-permissions.workspace = true
 drox-session.workspace = true
 drox-hooks.workspace = true
-drox-cli = { path = "../drox-cli", version = "2.0.4" }
+drox-cli = { path = "../drox-cli", version = "2.0.5" }
 drox-mcp.workspace = true
 
 camino.workspace = true
