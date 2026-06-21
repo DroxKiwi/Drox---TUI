@@ -67,6 +67,126 @@ Ces pistes **ne bloquent pas** les releases courantes ; elles nourrissent la lig
 
 ---
 
+## Guide débutant — installer et démarrer
+
+Tu n’as jamais utilisé Drox TUI ? Suis ces étapes dans l’ordre.
+
+### Ce qu’il te faut
+
+1. Un **terminal moderne** (Windows Terminal recommandé sur Windows).
+2. **[Ollama](https://ollama.com/)** installé et **lancé** (icône ou service actif).
+3. Un **modèle** téléchargé, par exemple :
+
+```bash
+ollama pull qwen2.5-coder:7b
+# ou : ollama pull gemma3:4b
+```
+
+### Étape 1 — Installer Drox TUI
+
+#### Windows x64
+
+1. Télécharge [`drox-tui-2.0.4-windows-x64-setup.exe`](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.4) depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest).
+2. Lance l’installateur → coche **Ajouter au PATH** si proposé.
+3. Ouvre un **nouveau** terminal (obligatoire pour que `drox-tui` soit reconnu).
+
+Windows peut afficher « Éditeur inconnu » (SmartScreen) — l’installeur n’est pas encore signé ; tu peux continuer.
+
+#### Linux x64
+
+```bash
+# Archive 2.0.3 sur OR (2.0.4 Linux à venir)
+tar xzf drox-tui-2.0.3-linux-x64.tar.gz
+cd drox-tui-2.0.3-linux-x64
+./install.sh
+```
+
+Vérifie : `drox-tui --version`
+
+### Étape 2 — Lancer et connecter l’IA
+
+Place-toi dans **ton projet** (dossier de code) :
+
+```powershell
+# Windows
+cd C:\Users\toi\mon-projet
+drox-tui --workspace .
+```
+
+```bash
+# Linux / macOS / WSL
+cd ~/mon-projet
+drox-tui --workspace .
+```
+
+Au **premier lancement**, la modale **Connexion IA** s’ouvre (sinon : **`Ctrl+Shift+L`** ou tape `/server`) :
+
+| Champ | Valeur habituelle |
+|---|---|
+| Adresse serveur | `http://127.0.0.1:11434` |
+| Modèle | celui que tu as pull (ex. `qwen2.5-coder:7b`) |
+
+Clique **Tester**, puis **Enregistrer**. La configuration reste dans `~/.drox/tui-preferences.json`.
+
+### Étape 3 — Ton premier message
+
+1. Écris une demande simple dans le **composer** (zone de saisie en bas), par ex. *« Résume la structure de ce dépôt »*.
+2. Appuie sur **Entrée**.
+3. Observe le **fil** au centre : phases repliables, outils (`file_read`, `grep`, …), réponse finale.
+4. Si l’agent veut **modifier un fichier** ou **lancer une commande**, une **fenêtre permission** s’ouvre — lis l’aperçu (diff, commande bash) puis **Accepte** ou **Refuse**.
+
+Tu n’es pas obligé d’accepter : c’est le comportement normal en mode prudent.
+
+### Étape 4 — L’écran en un coup d’œil
+
+```text
+┌─ En-tête — workspace, modèle, [MAJ on/off] ─────────────┐
+│ Fil — conversation, outils agent, diffs (défile)         │
+│ Composer — tu écris ici                                  │
+└─ Barre du bas — durée, tokens, mode permission ──────────┘
+```
+
+### Étape 5 — Indispensables
+
+| Tu veux… | Fais… |
+|---|---|
+| Voir toutes les commandes | `/help` |
+| Vérifier Ollama / environnement | `/doctor` |
+| Voir les fichiers modifiés | `/diff` ou touche **`e`** sur un diff dans le fil |
+| Changer de modèle ou serveur | **`Ctrl+Shift+L`** |
+| Changer de projet | **`Ctrl+Shift+W`** ou `/workspace` |
+| Annuler un run en cours | **`Esc`** ou **`Ctrl+C`** |
+| Chercher dans la conversation | **`Ctrl+F`** |
+
+Tape **`/`** dans le composer pour la palette de commandes (`/settings`, `/theme`, `/permissions`, …).
+
+### Étape 6 — Modes (ne pas se précipiter)
+
+| Mode | Comment | Effet |
+|---|---|---|
+| **Prudent** (recommandé) | `drox-tui --workspace .` | L’agent **demande** avant d’écrire ou d’exécuter bash |
+| **Plan** | ajoute `--plan` | Lecture et conseil — pas d’écriture sur disque |
+| **Apply** | ajoute `--apply` | Écritures réelles — à n’utiliser que quand tu fais confiance au run |
+
+**Conseil** : reste sans `--apply` les premières sessions ; valide chaque action via les modales.
+
+### Étape 7 — Reprendre une session
+
+```bash
+drox-tui --list-sessions
+drox-tui --workspace . --session ses_XXXXXXXX
+```
+
+Les transcripts sont dans `~/.drox/sessions/`.
+
+### Problème ?
+
+- Ollama ne répond pas → `ollama serve` ou relance l’app Ollama, puis `/doctor`.
+- Commande introuvable → nouveau terminal après install Windows, ou `~/.local/bin` dans le PATH (Linux).
+- [Issues](https://github.com/DroxKiwi/Drox---TUI---OR/issues) · notes [2.0.4](https://github.com/DroxKiwi/Drox---TUI---OR/blob/main/releases/v2.0.4/RELEASE_NOTES.md)
+
+---
+
 ## FR — Vue globale
 
 Tu installes **`drox-tui`**, tu fais tourner **Ollama** avec un modèle (Qwen, Gemma, etc.), tu ouvres ton projet en terminal. Chaque message lance **une boucle agent locale** : le TUI appelle ton modèle, exécute les outils (fichiers, bash, grep, web avec permission) et affiche le fil en streaming.
@@ -376,6 +496,91 @@ These themes **do not block** current releases; they feed **2.0.x+**.
 | **2.0.4 highlights** | `/diff` overlay · `--stat` · status navigation · `e` on diffs · end-of-run banner · `/update` polish. |
 
 **In short**: *the terminal home of the Drox agent loop — diffs you can read, updates under your control.*
+
+---
+
+## EN — Getting started (beginner guide)
+
+Never used Drox TUI? Follow these steps in order.
+
+### What you need
+
+1. A **modern terminal** (Windows Terminal on Windows).
+2. **[Ollama](https://ollama.com/)** installed and **running**.
+3. A **model** pulled locally, e.g.:
+
+```bash
+ollama pull qwen2.5-coder:7b
+```
+
+### Step 1 — Install Drox TUI
+
+**Windows**: download [`drox-tui-2.0.4-windows-x64-setup.exe`](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.4), run the installer, enable **Add to PATH**, open a **new** terminal.
+
+**Linux**: extract `drox-tui-2.0.3-linux-x64.tar.gz`, run `./install.sh`, check `drox-tui --version`.
+
+SmartScreen may warn « Unknown publisher » — expected until signing lands in 2.0.6.
+
+### Step 2 — Launch and connect AI
+
+```bash
+cd /path/to/your-project
+drox-tui --workspace .
+```
+
+On first launch, the **AI connection** dialog opens (or **`Ctrl+Shift+L`** / `/server`):
+
+| Field | Typical value |
+|---|---|
+| Server | `http://127.0.0.1:11434` |
+| Model | your Ollama tag (e.g. `qwen2.5-coder:7b`) |
+
+Click **Test**, then **Save**.
+
+### Step 3 — First message
+
+1. Type a simple request in the **composer** (bottom), e.g. *“Summarize this repo structure”*.
+2. Press **Enter**.
+3. Watch the **stream**: phases, tools (`file_read`, `grep`, …), final answer.
+4. When the agent wants to **write a file** or **run bash**, a **permission modal** appears — preview, then accept or deny.
+
+### Step 4 — Screen layout
+
+```text
+┌─ Header — workspace, model, [MAJ on/off] ───────────────┐
+│ Stream — conversation, tools, diffs (scroll)             │
+│ Composer — you type here                                 │
+└─ Status bar — duration, tokens, permission mode ─────────┘
+```
+
+### Step 5 — Essentials
+
+| Goal | Action |
+|---|---|
+| All slash commands | `/help` |
+| Check Ollama / env | `/doctor` |
+| See file changes | `/diff` or **`e`** on a diff block |
+| Change model / server | **`Ctrl+Shift+L`** |
+| Cancel run | **`Esc`** |
+
+### Step 6 — Modes
+
+| Mode | Command | Effect |
+|---|---|---|
+| **Safe** (default) | `drox-tui --workspace .` | Prompts before writes / bash |
+| **Plan** | add `--plan` | Read-only advice |
+| **Apply** | add `--apply` | Real file writes — use when you trust the run |
+
+Stay **without `--apply`** until you are comfortable with permission prompts.
+
+### Step 7 — Resume a session
+
+```bash
+drox-tui --list-sessions
+drox-tui --workspace . --session ses_XXXXXXXX
+```
+
+**Stuck?** Run `/doctor`, restart Ollama, or open an [Issue](https://github.com/DroxKiwi/Drox---TUI---OR/issues).
 
 ---
 
