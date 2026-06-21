@@ -341,7 +341,7 @@ pub async fn apply_install(
             });
         }
         return Ok(InstallOutcome::Manual {
-            artifact: bin,
+            artifact: bin.clone(),
             hint: format!(
                 "Exécutez : install -m 755 '{}' ~/.local/bin/drox-tui",
                 bin.display()
