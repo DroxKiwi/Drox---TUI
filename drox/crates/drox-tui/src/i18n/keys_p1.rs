@@ -26,6 +26,9 @@ pub const SLASH_PALETTE_COPY: &str = "slash.palette.copy";
 pub const SLASH_PALETTE_ADD_DIR: &str = "slash.palette.add_dir";
 pub const SLASH_PALETTE_EXPORT: &str = "slash.palette.export";
 pub const SLASH_PALETTE_DIFF: &str = "slash.palette.diff";
+pub const DIFF_NOT_REPO: &str = "diff.not_repo";
+pub const DIFF_EMPTY: &str = "diff.empty";
+pub const STATUS_DIFF_VIEWER: &str = "status.diff_viewer";
 pub const SLASH_PALETTE_FILES: &str = "slash.palette.files";
 pub const SLASH_PALETTE_BRANCH: &str = "slash.palette.branch";
 pub const SLASH_PALETTE_THEME: &str = "slash.palette.theme";
@@ -192,6 +195,9 @@ pub const P1_KEYS: &[&str] = &[
     SLASH_PALETTE_ADD_DIR,
     SLASH_PALETTE_EXPORT,
     SLASH_PALETTE_DIFF,
+    DIFF_NOT_REPO,
+    DIFF_EMPTY,
+    STATUS_DIFF_VIEWER,
     SLASH_PALETTE_FILES,
     SLASH_PALETTE_BRANCH,
     SLASH_PALETTE_THEME,

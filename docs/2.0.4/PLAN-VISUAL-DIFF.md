@@ -1,6 +1,17 @@
 # Plan — Diff visuel TUI (ligne 2.0.4)
 
-> **Constat** : le TUI possède déjà une chaîne complète de diff unifié (génération → affichage coloré → viewer scrollable), mais elle n’est active que dans des chemins « agent » (outils, permissions). La commande `/diff` et l’exploration git restent en texte brut.
+> **Principe produit** : l’utilisateur doit **voir** les modifications — ajouts, suppressions, fichiers touchés — **dans le TUI**, sans quitter Drox ni deviner via `git status` seul. Le diff n’est pas une fonction interne agent : c’est une **fonctionnalité visible** pour le workspace et pour les changements proposés/appliqués.
+
+> **Constat technique** : la chaîne diff unifié (génération → couleurs → viewer scrollable) existe déjà, mais n’est branchée que partiellement (`file_edit` + touche `e`, modale permission). `/diff` et plusieurs chemins agent restent sous-exploités.
+
+---
+
+## Règles UX (2.0.4)
+
+1. **Tout changement lisible** — patch unifié coloré (`+` / `-` / `@`), pas seulement un résumé.
+2. **Pas de cul-de-sac** — si le fil tronque, un chemin évident mène au diff complet (overlay ou `e`).
+3. **Même widget partout** — `LinesViewer` + `scroll_overlay` pour workspace git et outils agent.
+4. **Workspace d’abord** — `/diff` ouvre le diff visuel par défaut ; `--stat` garde le mode compact.
 
 ---
 
@@ -71,15 +82,16 @@ Un **diff visuel first-class** : l’utilisateur voit les changements du workspa
 
 ## Jalons
 
-### M1 — `/diff` unifié (quick win)
+### M1 — `/diff` visuel + agent lisible (quick win) ✅
 
-- [ ] `diff_cmd.rs` : ajouter `git diff HEAD` (ou `git diff` staged+unstaged selon prefs)
-- [ ] Parser la sortie en `LinesViewerState::from_diff` ou viewer dédié « workspace »
-- [ ] `/diff` sans arg → overlay scrollable (pas seulement lignes dans le fil)
-- [ ] i18n FR/EN : palette, aide, footer
-- [ ] Option `/diff --stat` pour garder l’ancien comportement compact
+- [x] `diff_cmd.rs` : `git diff HEAD` unifié + en-tête `git status --short`
+- [x] `/diff` sans arg → **overlay scrollable** (`LinesViewer` coloré)
+- [x] `/diff --stat` → ancien résumé texte dans le fil
+- [x] Repo non-git / aucun changement → message i18n clair
+- [x] i18n FR/EN : palette, statut
+- [x] Fil agent : `e` sur tout diff non vide + hint dans le fil
 
-**Fichiers** : `engine/diff_cmd.rs`, `slash.rs`, `app/run.rs`, `i18n/keys_*.rs`
+**Fichiers** : `engine/diff_cmd.rs`, `slash.rs`, `app/run.rs`, `view/lines_viewer.rs`, `view/tool_output.rs`, `i18n/*`
 
 ### M2 — Diff fichier et navigation
 

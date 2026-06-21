@@ -434,7 +434,7 @@ pub fn diff_is_expandable(output: &Value) -> bool {
     output
         .get("diff")
         .and_then(Value::as_str)
-        .is_some_and(|diff| diff.lines().count() > MAX_DIFF_LINES)
+        .is_some_and(|diff| !diff.is_empty())
 }
 
 #[must_use]
@@ -464,6 +464,8 @@ fn append_unified_diff_block(lines: &mut Vec<String>, diff: &str) {
             "    … +{} lignes diff (e pour parcourir)",
             total - MAX_DIFF_LINES
         ));
+    } else if total > 0 {
+        lines.push("    (e pour parcourir le diff)".into());
     }
 }
 

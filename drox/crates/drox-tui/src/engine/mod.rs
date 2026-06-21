@@ -75,4 +75,5 @@ pub use status_bar::{format_elapsed, StatusBarSnapshot};
 pub use statusline_cmd::format_statusline_lines;
 pub use keybindings::{BindingAction, TuiKeybindings};
 pub use commands::{compact_checkpoint_preview, CompactOutcome};
+pub use diff_cmd::GitDiffVisual;
 pub use init_cmd::INIT_AGENT_PROMPT;

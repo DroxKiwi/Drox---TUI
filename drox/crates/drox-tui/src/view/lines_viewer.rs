@@ -37,6 +37,16 @@ impl LinesViewerState {
     }
 
     #[must_use]
+    pub fn from_workspace_git(
+        id: ToolUseId,
+        workspace: &camino::Utf8Path,
+        lines: Vec<String>,
+    ) -> Self {
+        let title = format!(" git — {} ", workspace);
+        Self::new(id, title, lines, LinesViewerStyle::UnifiedDiff)
+    }
+
+    #[must_use]
     pub fn from_diff(
         id: ToolUseId,
         tool: &str,

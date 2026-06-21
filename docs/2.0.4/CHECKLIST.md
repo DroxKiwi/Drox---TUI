@@ -2,7 +2,9 @@
 
 ## Diff visuel
 
-- [ ] M1 — `/diff` affiche `git diff` unifié en overlay
+- [x] M1 — `/diff` affiche `git diff` unifié en overlay
+- [x] `/diff --stat` résumé compact
+- [x] Fil agent : `e` sur tout diff non vide
 - [ ] M2 — `/diff <fichier>` + navigation status
 - [ ] M3 — Numéros de ligne + thème diff
 - [ ] M4 — Bandeau fin de run agent + lien permission

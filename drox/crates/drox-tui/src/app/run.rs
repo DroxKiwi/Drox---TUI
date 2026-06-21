@@ -1575,8 +1575,8 @@ impl App {
             SlashOutcome::Cost => {
                 self.pending_slash = Some(PendingSlash::Cost);
             }
-            SlashOutcome::Diff => {
-                self.pending_slash = Some(PendingSlash::Diff);
+            SlashOutcome::Diff { stat_only } => {
+                self.pending_slash = Some(PendingSlash::Diff { stat_only });
             }
             SlashOutcome::Files => {
                 self.pending_slash = Some(PendingSlash::Files);
@@ -1886,9 +1886,28 @@ impl App {
                     self.state.push_system(line);
                 }
             }
-            PendingSlash::Diff => {
-                for line in runtime.format_git_diff_lines().await {
-                    self.state.push_system(line);
+            PendingSlash::Diff { stat_only } => {
+                if stat_only {
+                    for line in runtime.format_git_diff_lines().await {
+                        self.state.push_system(line);
+                    }
+                } else {
+                    use crate::engine::GitDiffVisual;
+                    match runtime.load_git_diff_visual().await {
+                        GitDiffVisual::NotRepo => {
+                            self.state
+                                .push_system(crate::i18n::t(sk::DIFF_NOT_REPO));
+                        }
+                        GitDiffVisual::Empty => {
+                            self.state.push_system(crate::i18n::t(sk::DIFF_EMPTY));
+                        }
+                        GitDiffVisual::Viewer(viewer) => {
+                            self.state.scroll_viewer =
+                                Some(crate::view::ScrollViewerState::Lines(viewer));
+                            self.state.status_line =
+                                crate::i18n::t(sk::STATUS_DIFF_VIEWER).into();
+                        }
+                    }
                 }
             }
             PendingSlash::Files => {
