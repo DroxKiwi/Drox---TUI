@@ -1,0 +1,45 @@
+name: Publish Linux to OR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version semver (ex. 2.0.3)
+        required: true
+        default: '2.0.3'
+
+jobs:
+  linux-or:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: build Linux archive
+        run: chmod +x packaging/build-and-pack-linux.sh && ./packaging/build-and-pack-linux.sh
+      - name: clone OR and copy artefacts
+        env:
+          OR_TOKEN: ${{ secrets.OR_RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          git clone "https://x-access-token:${OR_TOKEN}@github.com/DroxKiwi/Drox---TUI---OR.git" or-repo
+          DEST="or-repo/releases/v${VERSION}"
+          mkdir -p "$DEST"
+          cp dist/drox-tui-${VERSION}-linux-x64.tar.gz "$DEST/"
+          cp dist/SHA256SUMS-${VERSION}-linux.txt "$DEST/SHA256SUMS-linux.txt"
+          cd or-repo
+          git add "releases/v${VERSION}"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git diff --staged --quiet || git commit -m "release: add Linux x64 v${VERSION}"
+          git push origin main
+      - name: upload GitHub Release assets
+        env:
+          GH_TOKEN: ${{ secrets.OR_RELEASE_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v${VERSION}"
+          gh release upload "$TAG" \
+            "dist/drox-tui-${VERSION}-linux-x64.tar.gz" \
+            "dist/SHA256SUMS-${VERSION}-linux.txt" \
+            --repo DroxKiwi/Drox---TUI---OR --clobber

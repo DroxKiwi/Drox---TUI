@@ -73,8 +73,10 @@ if (-not $SkipLinux) {
         Write-Host "==> Build Linux x64 (WSL)" -ForegroundColor Cyan
         $WslRepo = ConvertTo-WslPath $RepoRoot
         Write-Host "    WSL repo: $WslRepo" -ForegroundColor DarkGray
+        $WslDistro = if (wsl -l -q 2>$null | Where-Object { $_ -match '^Ubuntu$' }) { 'Ubuntu' } else { '' }
+        $WslExec = if ($WslDistro) { @('-d', $WslDistro) } else { @() }
         $SkipFlag = if ($SkipBuild) { '--skip-build' } else { '' }
-        wsl bash -lc "cd '$WslRepo' && chmod +x packaging/build-and-pack-linux.sh && ./packaging/build-and-pack-linux.sh $SkipFlag"
+        wsl @WslExec bash -lc "cd '$WslRepo' && chmod +x packaging/build-and-pack-linux.sh && ./packaging/build-and-pack-linux.sh $SkipFlag"
         if (-not (Test-Path -LiteralPath $LinuxTar)) {
             Write-Warning "Archive Linux absente apres build WSL: $LinuxTar"
         }
