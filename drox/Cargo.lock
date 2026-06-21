@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "drox-bash"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "insta",
  "pretty_assertions",
@@ -734,7 +734,7 @@ dependencies = [
 
 [[package]]
 name = "drox-cli"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -764,7 +764,7 @@ dependencies = [
 
 [[package]]
 name = "drox-context"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "async-trait",
  "drox-types",
@@ -780,7 +780,7 @@ dependencies = [
 
 [[package]]
 name = "drox-engine"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "async-trait",
  "camino",
@@ -811,7 +811,7 @@ dependencies = [
 
 [[package]]
 name = "drox-hooks"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "camino",
  "dirs",
@@ -826,7 +826,7 @@ dependencies = [
 
 [[package]]
 name = "drox-llm"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "async-trait",
  "bytes",
@@ -849,7 +849,7 @@ dependencies = [
 
 [[package]]
 name = "drox-mcp"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "async-trait",
  "camino",
@@ -866,7 +866,7 @@ dependencies = [
 
 [[package]]
 name = "drox-permissions"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "camino",
  "ignore",
@@ -881,7 +881,7 @@ dependencies = [
 
 [[package]]
 name = "drox-session"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "async-trait",
  "camino",
@@ -901,7 +901,7 @@ dependencies = [
 
 [[package]]
 name = "drox-tools"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "async-trait",
  "camino",
@@ -931,7 +931,7 @@ dependencies = [
 
 [[package]]
 name = "drox-tui"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -969,7 +969,7 @@ dependencies = [
 
 [[package]]
 name = "drox-types"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "camino",
  "chrono",
