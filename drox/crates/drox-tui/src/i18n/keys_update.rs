@@ -16,6 +16,13 @@ pub const UPDATE_OFF: &str = "update.off";
 pub const UPDATE_SNOOZE: &str = "update.snooze";
 pub const UPDATE_DISMISS: &str = "update.dismiss";
 pub const UPDATE_CHECK_STUB: &str = "update.check.stub";
+pub const UPDATE_CHECK_RUNNING: &str = "update.check.running";
+pub const UPDATE_CHECK_REMOTE: &str = "update.check.remote";
+pub const UPDATE_CHECK_UP_TO_DATE: &str = "update.check.up_to_date";
+pub const UPDATE_CHECK_AVAILABLE: &str = "update.check.available";
+pub const UPDATE_CHECK_NEWER_LOCAL: &str = "update.check.newer_local";
+pub const UPDATE_CHECK_FAILED: &str = "update.check.failed";
+pub const UPDATE_CHECK_RELEASE_NOTES: &str = "update.check.release_notes";
 pub const UPDATE_INSTALL_STUB: &str = "update.install.stub";
 pub const UPDATE_SNOOZE_USAGE: &str = "update.snooze.usage";
 pub const SETTINGS_UPDATE: &str = "settings.update";
@@ -37,6 +44,13 @@ pub const UPDATE_KEYS: &[&str] = &[
     UPDATE_SNOOZE,
     UPDATE_DISMISS,
     UPDATE_CHECK_STUB,
+    UPDATE_CHECK_RUNNING,
+    UPDATE_CHECK_REMOTE,
+    UPDATE_CHECK_UP_TO_DATE,
+    UPDATE_CHECK_AVAILABLE,
+    UPDATE_CHECK_NEWER_LOCAL,
+    UPDATE_CHECK_FAILED,
+    UPDATE_CHECK_RELEASE_NOTES,
     UPDATE_INSTALL_STUB,
     UPDATE_SNOOZE_USAGE,
     SETTINGS_UPDATE,

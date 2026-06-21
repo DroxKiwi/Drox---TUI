@@ -318,9 +318,16 @@ pub fn get(key: &str) -> Option<&'static str> {
         UPDATE_OFF => Some("Update checks disabled."),
         UPDATE_SNOOZE => Some("Update reminder snoozed for {} day(s)."),
         UPDATE_DISMISS => Some("Update notification dismissed for current version."),
-        UPDATE_CHECK_STUB => Some(
-            "Network check not available yet (M2) — enable first with /update on.",
+        UPDATE_CHECK_STUB => Some("Network check unavailable — retry /update check."),
+        UPDATE_CHECK_RUNNING => Some("Checking for updates…"),
+        UPDATE_CHECK_REMOTE => Some("Remote version: {}"),
+        UPDATE_CHECK_UP_TO_DATE => Some("You are up to date."),
+        UPDATE_CHECK_AVAILABLE => Some("Update {} available — /update install (coming soon)."),
+        UPDATE_CHECK_NEWER_LOCAL => Some(
+            "Local version ({}) is newer than OR repo ({}).",
         ),
+        UPDATE_CHECK_FAILED => Some("Update check failed: {}"),
+        UPDATE_CHECK_RELEASE_NOTES => Some("Notes: {}"),
         UPDATE_INSTALL_STUB => Some(
             "Automatic install not available yet (M4) — download from GitHub Releases.",
         ),

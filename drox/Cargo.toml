@@ -124,6 +124,7 @@ scraper = "0.21"
 # Crypto / encoding
 sha2 = "0.10"
 base64 = "0.22"
+semver = "1.0"
 url = { version = "2.5", features = ["serde"] }
 percent-encoding = "2.3"
 

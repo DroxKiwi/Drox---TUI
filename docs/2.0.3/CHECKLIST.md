@@ -6,8 +6,8 @@
 - [x] Handler slash + sous-commandes
 - [x] Clés i18n FR/EN
 - [x] Prefs `update.*` persistées
-- [ ] `engine/update.rs` + fetch `latest.json`
-- [ ] `publish-or.ps1` génère `latest.json`
+- [x] `engine/update.rs` + fetch `latest.json`
+- [x] `publish-or.ps1` génère `latest.json`
 - [ ] Bandeau opt-in (M3)
 - [x] Aucune requête réseau au boot par défaut
 

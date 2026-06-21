@@ -91,6 +91,8 @@ pub struct App {
     vim: VimComposer,
     /// Résultat async test connexion IA.
     ai_server_test_rx: Option<mpsc::Receiver<Result<Vec<String>, String>>>,
+    /// Dernier manifeste OR récupéré (`/update check`).
+    remote_release: Option<crate::engine::update::LatestRelease>,
 }
 
 impl App {
@@ -130,6 +132,7 @@ impl App {
             skill_suggestions: Vec::new(),
             vim,
             ai_server_test_rx: None,
+            remote_release: None,
         }
     }
 
@@ -934,8 +937,14 @@ impl App {
 
     fn apply_update_enabled(&mut self, enabled: bool) {
         self.tui_prefs.update.enabled = enabled;
+        if enabled {
+            self.tui_prefs.update.check_on_startup = true;
+        }
         let mut prefs = crate::engine::preferences::load_preferences();
         prefs.update.enabled = enabled;
+        if enabled {
+            prefs.update.check_on_startup = true;
+        }
         if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
             self.state
                 .push_system(format!("Mises à jour : échec persistance — {e}"));
@@ -954,6 +963,14 @@ impl App {
         }
     }
 
+    fn persist_update_last_check(&mut self) {
+        let now = chrono::Utc::now().to_rfc3339();
+        self.tui_prefs.update.last_check_at = Some(now.clone());
+        let mut prefs = crate::engine::preferences::load_preferences();
+        prefs.update.last_check_at = Some(now);
+        let _ = crate::engine::preferences::save_preferences(&prefs);
+    }
+
     fn apply_update_command(&mut self, cmd: crate::slash::UpdateCommand) {
         use crate::i18n::keys_update as u;
         use crate::slash::UpdateCommand;
@@ -964,7 +981,7 @@ impl App {
                 self.push_update_status();
             }
             UpdateCommand::Check => {
-                self.state.push_system(crate::i18n::t(u::UPDATE_CHECK_STUB));
+                self.pending_slash = Some(PendingSlash::UpdateCheck);
             }
             UpdateCommand::On => self.apply_update_enabled(true),
             UpdateCommand::Off => self.apply_update_enabled(false),
@@ -1584,6 +1601,30 @@ impl App {
                 for line in crate::engine::format_statusline_lines(runtime, &self.status_snapshot)
                 {
                     self.state.push_system(line);
+                }
+            }
+            PendingSlash::UpdateCheck => {
+                use crate::engine::update::{check_for_update, format_check_lines};
+                use crate::i18n::keys_update as u;
+
+                self.state
+                    .status_line = crate::i18n::t(u::UPDATE_CHECK_RUNNING).into();
+                match check_for_update().await {
+                    Ok((release, cmp)) => {
+                        self.remote_release = Some(release.clone());
+                        for line in format_check_lines(&release, &cmp) {
+                            self.state.push_system(line);
+                        }
+                        self.persist_update_last_check();
+                        self.state.status_line.clear();
+                    }
+                    Err(e) => {
+                        self.state.push_system(crate::i18n::tf(
+                            u::UPDATE_CHECK_FAILED,
+                            &e.to_string(),
+                        ));
+                        self.state.status_line.clear();
+                    }
                 }
             }
             PendingSlash::Permissions => {

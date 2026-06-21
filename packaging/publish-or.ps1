@@ -56,7 +56,10 @@ Copy-Item (Join-Path $RepoRoot "dist\SHA256SUMS-$Version-windows.txt") (Join-Pat
 Copy-Item (Join-Path $RepoRoot 'packaging\windows\install.ps1') (Join-Path $InstallWin 'install.ps1') -Force
 Copy-Item (Join-Path $RepoRoot 'packaging\linux\install.sh') (Join-Path $InstallLinux 'install.sh') -Force
 
-$ReleaseNotesPath = Join-Path $RepoRoot "docs\2.0.2\RELEASE_NOTES.md"
+$ReleaseNotesPath = Join-Path $RepoRoot "docs\$Version\RELEASE_NOTES.md"
+if (-not (Test-Path -LiteralPath $ReleaseNotesPath)) {
+    $ReleaseNotesPath = Join-Path $RepoRoot 'docs\2.0.2\RELEASE_NOTES.md'
+}
 if (Test-Path -LiteralPath $ReleaseNotesPath) {
     $ReleaseNotes = [System.IO.File]::ReadAllText($ReleaseNotesPath)
     $ReleaseNotes += "`n`n---`n`n## Empreinte Windows`n`nSHA256 ``$ArtifactName`` : ``$Sha256```n"
@@ -106,6 +109,39 @@ Date de publication : $(Get-Date -Format 'yyyy-MM-dd')
 
 [System.IO.File]::WriteAllText((Join-Path $ReleaseDir 'RELEASE_NOTES.md'), $ReleaseNotes, (New-Object System.Text.UTF8Encoding $false))
 
+$PublishedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+$ReleaseTag = "v$Version"
+$GhBase = 'https://github.com/DroxKiwi/Drox---TUI---OR'
+$WindowsUrl = "$GhBase/releases/download/$ReleaseTag/$ArtifactName"
+$ReleaseNotesUrl = "$GhBase/blob/main/releases/v$Version/RELEASE_NOTES.md"
+
+$latest = [ordered]@{
+    version          = $Version
+    published_at     = $PublishedAt
+    product          = 'drox-tui'
+    engine_baseline  = '1.5.0'
+    windows_x64      = [ordered]@{
+        url    = $WindowsUrl
+        sha256 = $Sha256
+    }
+    release_notes    = $ReleaseNotesUrl
+}
+
+$LinuxTar = Join-Path $RepoRoot "dist\drox-tui-$Version-linux-x64.tar.gz"
+if (Test-Path -LiteralPath $LinuxTar) {
+    $LinuxName = "drox-tui-$Version-linux-x64.tar.gz"
+    $LinuxHash = (Get-FileHash -LiteralPath $LinuxTar -Algorithm SHA256).Hash.ToLower()
+    $latest.linux_x64 = [ordered]@{
+        url    = "$GhBase/releases/download/$ReleaseTag/$LinuxName"
+        sha256 = $LinuxHash
+    }
+}
+
+$LatestJsonPath = Join-Path $OrRepo 'releases\latest.json'
+New-Item -ItemType Directory -Force -Path (Split-Path $LatestJsonPath -Parent) | Out-Null
+$JsonBody = ($latest | ConvertTo-Json -Depth 4) + "`n"
+[System.IO.File]::WriteAllText($LatestJsonPath, $JsonBody, (New-Object System.Text.UTF8Encoding $false))
+
 $PublicReadme = Join-Path $RepoRoot 'README.md'
 if (-not (Test-Path -LiteralPath $PublicReadme)) {
     throw "README public introuvable: $PublicReadme"
@@ -118,6 +154,7 @@ Write-Host "Publie dans: $ReleaseDir" -ForegroundColor Green
 Write-Host "  $ArtifactName"
 Write-Host "  RELEASE_NOTES.md"
 Write-Host "  SHA256SUMS-windows.txt"
+Write-Host "  releases/latest.json"
 Write-Host ""
 
 if (-not $SkipGitCommit -and (Test-Path (Join-Path $OrRepo '.git'))) {

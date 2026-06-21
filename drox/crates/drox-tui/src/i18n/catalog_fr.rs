@@ -345,8 +345,17 @@ pub fn get(key: &str) -> Option<&'static str> {
         UPDATE_SNOOZE => Some("Rappel MAJ reporté de {} jour(s)."),
         UPDATE_DISMISS => Some("Notification MAJ ignorée pour la version courante."),
         UPDATE_CHECK_STUB => Some(
-            "Vérification réseau non disponible (M2) — activez d'abord avec /update on.",
+            "Vérification réseau non disponible — relancez /update check.",
         ),
+        UPDATE_CHECK_RUNNING => Some("Vérification des mises à jour…"),
+        UPDATE_CHECK_REMOTE => Some("Version distante : {}"),
+        UPDATE_CHECK_UP_TO_DATE => Some("Vous êtes à jour."),
+        UPDATE_CHECK_AVAILABLE => Some("Mise à jour {} disponible — /update install (bientôt)."),
+        UPDATE_CHECK_NEWER_LOCAL => Some(
+            "Version locale ({}) plus récente que le dépôt OR ({}).",
+        ),
+        UPDATE_CHECK_FAILED => Some("Vérification MAJ échouée : {}"),
+        UPDATE_CHECK_RELEASE_NOTES => Some("Notes : {}"),
         UPDATE_INSTALL_STUB => Some(
             "Installation automatique non disponible (M4) — téléchargez depuis GitHub Releases.",
         ),

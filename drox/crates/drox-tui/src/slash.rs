@@ -144,6 +144,8 @@ pub enum PendingSlash {
     BashExec { command: String },
     MemorySearch { query: String, limit: usize },
     Statusline,
+    /// Vérification MAJ TUI (`/update check`).
+    UpdateCheck,
     /// Applique le modèle choisi dans `/server`.
     ApplyAiServer { index: usize },
     /// Applique le workspace validé dans `/workspace`.
