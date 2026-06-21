@@ -21,4 +21,4 @@ cargo build --release -p drox-tui
 
 Copie binaires + `README.md` public vers `../Drox---TUI---OR`.
 
-Branche active : **`2.0.2`**
+Branche active : **`main`** (ligne `2.0.2` mergée)

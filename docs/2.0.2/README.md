@@ -1,9 +1,23 @@
 # Ligne produit `2.0.2` — Drox TUI · Phase UI
 
-**Version produit** : `2.0.2` (release)  
-**Branche Git** : `2.0.2`  
+> **Statut : clôturée** — mergée sur `main`. Release officielle : [Drox---TUI---OR v2.0.2](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.2).
+
+**Version produit** : `2.0.2`  
+**Branche Git** : `2.0.2` (archivée)  
 **Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`**  
 **Prédécesseur** : [`2.0.1`](../2.0.1/README.md) (clôturée, release OR publiée)
+
+---
+
+## Livrables 2.0.2
+
+| Domaine | Résultat |
+|---|---|
+| Charte UI | Thème Drox phosphor, modales Pip-Boy, boot splash, animations |
+| Interactions | Souris (scroll, clic modales), parité clavier |
+| i18n | FR/EN P0+P1, modale `/settings`, changement à chaud |
+| Connexions LLM | Bibliothèque profils, wizard `/server`, presets cloud |
+| Release OR | Installateur Windows, [RELEASE_NOTES.md](RELEASE_NOTES.md) |
 
 ---
 
