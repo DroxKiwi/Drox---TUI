@@ -1,5 +1,7 @@
 # Plan — Diff inline dans le fil + split pane (ligne 2.0.5)
 
+> **Statut** : **sous-feature M3** — le plan principal 2.0.5 est [PLAN-MULTI-PANE.md](PLAN-MULTI-PANE.md) (poste de pilotage multi-pane + observe). Ce document reste la spec du **diff inline fil**, intégré au panneau changements (F04) en fin de release.
+
 > **Intention produit** (clarification post-2.0.4) : le diff doit être **visible dans le fil de discussion**, pas uniquement via overlay `/diff` ou touche `e`. Référence UX : **Claude Code TUI** — patch coloré sous l’outil, clic pour agrandir.
 
 **Statut** : plan  

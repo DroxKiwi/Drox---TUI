@@ -1,29 +1,45 @@
 # Checklist — Ligne 2.0.5
 
-## Diff inline fil
+## Architecture & externalisation
 
-- [ ] M1 — Bloc diff coloré systématique sous outils fichier
-- [ ] Hint `Entrée` / clic documenté
-- [ ] Thème `diff_*` appliqué au bloc inline
+- [ ] Crate `drox-observe` créé (sans dépendance ratatui)
+- [ ] `ObserveEvent` + feature flags documentés
+- [ ] Hook moteur opt-in (pas de régression `drox-engine` tests)
+- [ ] Fiches [`docs/features/`](../features/README.md) F01–F05 validées
 
-## Split pane
+## M0 — Shell multi-pane (F01)
 
-- [ ] M2 — Layout 50/50 fil + diff
-- [ ] Scroll indépendant + focus Tab
-- [ ] Esc ferme split
-- [ ] Clic bloc diff ouvre split
+- [ ] `PaneManager` + toggles masquer/afficher
+- [ ] Focus Tab · Esc restore
+- [ ] Fallback terminal étroit
+- [ ] Adaptateur TUI observe (stub)
 
-## Navigation
+## M1 — Changements + beats (F04, F02)
 
-- [ ] M3 — Multi-fichiers fin de run
-- [ ] `/diff` compatible split (ou doc fallback overlay)
-- [ ] i18n FR/EN
+- [ ] `RunChangesSnapshot` live pendant run
+- [ ] Beat ID mécaniques sur tools fichier
+- [ ] Panneau diff : liste j/k + clic
+- [ ] Corrélation couleur fil ↔ panneau changements
 
-## Qualité
+## M2 — Contexte & carte (F03, F05)
 
-- [ ] Tests rendu + hit-test
-- [ ] Fallback terminal étroit → overlay
-- [ ] Non-régression overlay 2.0.4 et permission diff
+- [ ] `ContextManifestBuilder` post-tour LLM
+- [ ] Panneau carte : arbre ● ○ ◇ ▲
+- [ ] Corrélation beat sur 3 panes
+- [ ] Scroll auto nœud actif
+
+## M3 — Finitions
+
+- [ ] Diff inline fil (optionnel)
+- [ ] i18n FR/EN panes
+- [ ] Prefs layout mémorisé
+- [ ] Non-régression overlay 2.0.4
+
+## M4 — Portabilité IDE
+
+- [ ] `observe_schema_version` + exemples JSON
+- [ ] Spec relay RPC (doc)
+- [ ] Matrice port par feature
 
 ## Release
 
