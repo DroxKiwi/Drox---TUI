@@ -82,8 +82,8 @@ Drox TUI **n’embarque pas** de modèle : il appelle un **serveur LLM** que tu 
 
 | Moteur | En local (chez toi) | En cloud (distant) |
 |---|---|---|
-| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` — modèles sur ton PC / serveur | **[Ollama Cloud](https://ollama.com/cloud)** — modèles hébergés, connexion par clé API (preset *Ollama Cloud*) |
-| **[vLLM](https://docs.vllm.ai/)** | API **OpenAI-compatible** sur ta machine (ex. `http://127.0.0.1:8000/v1`) | Instance vLLM sur **ton** VPS, cluster ou cloud privé (même API, URL + token) |
+| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` — modèles sur ton PC / serveur ([matériel testé](#matériel-testé-inférence-locale)) | **[Ollama Cloud](https://ollama.com/cloud)** — modèles hébergés, connexion par clé API (preset *Ollama Cloud*) |
+| **[vLLM](https://docs.vllm.ai/)** | API **OpenAI-compatible** sur ta machine (ex. `http://127.0.0.1:8000/v1`) — GPU recommandé ([matériel testé](#matériel-testé-inférence-locale)) | Instance vLLM sur **ton** VPS, cluster ou cloud privé (même API, URL + token) |
 
 Presets intégrés dans la modale connexion : *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
 
@@ -95,7 +95,7 @@ Presets intégrés dans la modale connexion : *Ollama local*, *Ollama Cloud*, *v
 | **Confidentialité** | Souveraineté maximale (alignée Drox) | Dépend du **contrat du service** : Ollama et les hébergeurs vLLM annoncent transport chiffré (HTTPS) et politiques de non-rétention **selon leurs propres docs** — à lire avant usage pro |
 | **Choix** | **100 % opt-in** : Drox n’impose aucun cloud KDDS ; tu saisis l’URL et la clé |
 
-Pour commencer en local avec Ollama :
+Pour commencer en local avec Ollama (voir [matériel testé](#matériel-testé-inférence-locale)) :
 
 ```bash
 ollama pull qwen2.5-coder:7b
@@ -103,6 +103,31 @@ ollama pull qwen2.5-coder:7b
 ```
 
 Puis dans Drox TUI : adresse `http://127.0.0.1:11434`, modèle = tag Ollama choisi.
+
+### Matériel testé (inférence locale)
+
+Drox TUI tourne sur **toute machine** où Ollama ou vLLM fonctionne. Voici les configs **réellement testées** par l’équipe (Windows, Ollama local, agent sur de vrais dépôts) :
+
+| Profil | Machine | GPU | VRAM | RAM système |
+|---|---|---|---|---|
+| **Station** | PC bureau | NVIDIA **RTX 3090** | **24 Go** | **96 Go** |
+| **Portable** | **MSI Helios AI 16** | NVIDIA **RTX 5070 Ti** | **12 Go** | *(selon config)* |
+
+**Ce qu’on en retient**
+
+- **RTX 3090 + 96 Go RAM** — grosse config : modèles code **7B–14B** fluides, parfois **32B** quantisés, contextes plus longs sans stress. C’est la référence « confortable » pour du travail agent intensif.
+- **RTX 5070 Ti 12 Go** (Helios AI 16) — laptop récent : **tout à fait utilisable** ; privilégier modèles **compacts** (`gemma3:4b`, `qwen2.5-coder:7b`, …), contexte modéré dans **`/server`**, et accepter des runs un peu plus lents sur gros repos.
+
+**Repères généraux (local, indicatif)**
+
+| VRAM GPU | Modèles Ollama raisonnables |
+|---|---|
+| **12 Go** | 4B–7B (Q4/Q5), 14B légers avec contexte réduit |
+| **24 Go** | 7B–14B confort, 32B quantisé possible |
+
+La **RAM système** compte aussi (contexte, outils, IDE terminal) — **32 Go+** recommandé en local ; **96 Go** apporte de la marge sur gros workspaces.
+
+Ce ne sont **pas** des minimums officiels Drox : lance **`/doctor`**, teste ton modèle, ajuste `num_ctx` dans la connexion IA. Une machine plus modeste peut suffire avec un petit modèle ; une config cloud reste toujours possible.
 
 ### Étape 1 — Installer Drox TUI
 
@@ -536,8 +561,8 @@ Drox TUI does **not** ship a model: it calls an **LLM server** you choose via **
 
 | Engine | Local (on your hardware) | Cloud (remote) |
 |---|---|---|
-| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` | **[Ollama Cloud](https://ollama.com/cloud)** — API key, hosted models |
-| **[vLLM](https://docs.vllm.ai/)** | OpenAI-compatible API (e.g. `http://127.0.0.1:8000/v1`) | Your VPS / private cloud instance (URL + token) |
+| **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` ([tested hardware](#en--tested-hardware-local-inference)) | **[Ollama Cloud](https://ollama.com/cloud)** — API key, hosted models |
+| **[vLLM](https://docs.vllm.ai/)** | OpenAI-compatible API (e.g. `http://127.0.0.1:8000/v1`) — GPU recommended ([tested hardware](#en--tested-hardware-local-inference)) | Your VPS / private cloud instance (URL + token) |
 
 Built-in presets: *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
 
@@ -549,11 +574,32 @@ Built-in presets: *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, 
 | **Privacy** | Maximum sovereignty | Depends on **provider terms** — Ollama and vLLM hosts advertise HTTPS and no-retention policies **per their documentation**; review before professional use |
 | **Choice** | **Opt-in only** — no mandatory KDDS cloud |
 
-Quick local start:
+Quick local start ([tested hardware](#en--tested-hardware-local-inference)):
 
 ```bash
 ollama pull qwen2.5-coder:7b
 ```
+
+### EN — Tested hardware (local inference)
+
+Drox TUI runs on **any machine** where Ollama or vLLM works. Configurations **actually tested** (Windows, local Ollama, real repos):
+
+| Profile | Machine | GPU | VRAM | System RAM |
+|---|---|---|---|---|
+| **Desktop** | Workstation | NVIDIA **RTX 3090** | **24 GB** | **96 GB** |
+| **Laptop** | **MSI Helios AI 16** | NVIDIA **RTX 5070 Ti** | **12 GB** | *(varies by SKU)* |
+
+**Takeaways**
+
+- **RTX 3090 + 96 GB RAM** — high-end: smooth **7B–14B** code models, sometimes **32B** quantized; comfortable for long agent runs.
+- **RTX 5070 Ti 12 GB** (Helios AI 16) — **fully usable**; prefer **compact** models (`gemma3:4b`, `qwen2.5-coder:7b`, …), moderate context in **`/server`**.
+
+| GPU VRAM | Reasonable Ollama models (indicative) |
+|---|---|
+| **12 GB** | 4B–7B (Q4/Q5), light 14B with reduced context |
+| **24 GB** | 7B–14B comfortably, quantized 32B possible |
+
+These are **not** official Drox minimums — run **`/doctor`**, test your model, tune `num_ctx`. Smaller hardware can work with tiny models; cloud inference remains an option.
 
 ### Step 1 — Install Drox TUI
 
