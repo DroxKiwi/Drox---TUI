@@ -5,7 +5,7 @@
 - [ ] Crate `drox-observe` créé (sans dépendance ratatui)
 - [ ] `ObserveEvent` + feature flags documentés
 - [ ] Hook moteur opt-in (pas de régression `drox-engine` tests)
-- [ ] Fiches [`docs/features/`](../features/README.md) F01–F05 validées
+- [ ] Specs F01–F05 validées ([FEATURES.md](FEATURES.md))
 
 ## M0 — Shell multi-pane (F01)
 

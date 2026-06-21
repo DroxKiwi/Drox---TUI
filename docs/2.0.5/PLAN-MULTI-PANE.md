@@ -2,8 +2,8 @@
 
 > **Vision** : le TUI devient un **triptyque configurable** (fil · carte contexte · changements+diff), corrélé par **beat IDs** colorés (A1, A2…), alimenté par une couche **observe** découplée du moteur legacy.
 
-**Architecture** : [ARCHITECTURE-FEATURES.md](ARCHITECTURE-FEATURES.md)  
-**Catalogue portable** : [`docs/features/`](../features/README.md)
+**Architecture code** : [ARCHITECTURE-FEATURES.md](ARCHITECTURE-FEATURES.md)  
+**Specs features** : [FEATURES.md](FEATURES.md)
 
 ---
 
@@ -124,4 +124,4 @@ flowchart TD
 | [ARCHITECTURE-FEATURES.md](ARCHITECTURE-FEATURES.md) | Découplage moteur / observe / UI |
 | [PLAN-DIFF-INLINE.md](PLAN-DIFF-INLINE.md) | Sous-feature M3 (historique) |
 | [CHECKLIST.md](CHECKLIST.md) | Suivi implémentation |
-| [`docs/features/`](../features/README.md) | Specs portables IDE |
+| [FEATURES.md](FEATURES.md) | Index specs F01–F05 |

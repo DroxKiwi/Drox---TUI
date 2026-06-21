@@ -1,84 +1,108 @@
-# Architecture — Externalisation des features (2.0.5)
+# Architecture — Externalisation des features moteur (2.0.5)
 
-> **Objectif** : dissocier fortement les nouveautés 2.0.5 du **moteur legacy** (`drox-engine`, boucle `tui_mono`) pour limiter les effets de bord et **porter les features vers Drox IDE** (fork VS Code) sans réécrire le TUI.
+> **Objectif** : le **code** des nouveautés 2.0.5 vit dans des **modules / crate séparés** du moteur legacy (`drox-engine`, boucle `tui_mono`) — pas dans un arbre doc `docs/features/`. La doc produit reste dans [`docs/2.0.5/`](README.md) ; le découpage code est ici.
 
 ---
 
 ## Problème
 
-Aujourd’hui, une partie significative de la logique produit vit dans `drox-tui` (layout, fil, collecte changements) avec des accès directs au moteur. Enrichir `AgentEvent` ou `app/run.rs` pour chaque feature UI augmente le risque de :
+Aujourd’hui, logique observe, collecte changements et accès carte workspace sont **mélangés** à `drox-tui` et au fil agent. Chaque feature UI qui touche `agent.rs` ou `app/run.rs` augmente le risque de :
 
 - régressions sur le run agent ;
-- code non réutilisable côté IDE (webview ≠ ratatui) ;
-- rollback coûteux si une feature pose problème.
+- effets de bord difficiles à isoler ;
+- port IDE coûteux (logique noyée dans ratatui).
 
 ---
 
-## Stratégie : trois couches
+## Stratégie : code en trois couches
 
 ```mermaid
 flowchart LR
-  subgraph L1["L1 — Moteur legacy"]
+  subgraph L1["L1 — Moteur legacy (stable)"]
     E["drox-engine"]
     T["drox-tools"]
     S["drox-session"]
   end
 
-  subgraph L2["L2 — Observe (nouveau crate)"]
-    O["drox-observe"]
+  subgraph L2["L2 — drox-observe (features moteur)"]
+    B["beat/"]
+    M["manifest/"]
+    C["changes/"]
+    V["map_view/"]
+    A["adapter/"]
   end
 
-  subgraph L3["L3 — Shells UI"]
-    TU["drox-tui"]
-    ID["Drox IDE webview"]
+  subgraph L3["L3 — Présentation"]
+    TU["drox-tui — panes/, view/"]
+    ID["Drox IDE — webview"]
   end
 
-  E -->|"hooks opt-in, pas de fork logique"| O
-  S --> O
-  O --> TU
-  O --> ID
+  E -->|"hooks opt-in uniquement"| A
+  S --> A
+  A --> B
+  A --> M
+  A --> C
+  A --> V
+  B --> TU
+  M --> TU
+  C --> TU
+  V --> TU
+  B --> ID
+  M --> ID
+  C --> ID
+  V --> ID
 ```
 
 ### L1 — Moteur legacy (touch minimal)
 
-**Interdit sans review** : refactor boucle agent, changement protocole phases, nouveaux tools obligatoires.
+**Interdit sans review** : refactor boucle agent, changement protocole phases.
 
 **Autorisé** :
 
-- Émettre des événements **déjà prévus** (`ContextSnip`, `ToolFinish`, …).
-- Hook optionnel post-tour : `observe::on_turn_end(&messages)` — feature flag `DROX_OBSERVE=1`.
-- Extension `AgentEvent` **additive** uniquement (`#[non_exhaustive]` déjà en place).
+- Événements **existants** (`ContextSnip`, `ToolFinish`, `PhaseEnter`, …).
+- Un seul hook opt-in : adaptateur observe branché sur le stream `AgentEvent`.
+- Extension `AgentEvent` **additive** (`#[non_exhaustive]`).
 
-### L2 — `drox-observe` (nouveau)
+### L2 — `drox-observe` — une feature = un module
 
-Crate **sans dépendance TUI** :
+| Module | Feature | Spec doc |
+|---|---|---|
+| `beat/` | F02 Beat ID | [F02-beat-id-correlation.md](F02-beat-id-correlation.md) |
+| `manifest/` | F03 Context manifest | [F03-context-manifest.md](F03-context-manifest.md) |
+| `changes/` | F04 Changements run | [F04-run-changes-panel.md](F04-run-changes-panel.md) |
+| `map_view/` | F05 Carte workspace | [F05-workspace-map-view.md](F05-workspace-map-view.md) |
+| `adapter/` | Pont `AgentEvent` → état observe | — |
+| `event.rs` | `ObserveEvent` (stream UI-neutral) | — |
 
-| Module | Rôle |
+**Pas de dépendance** : `ratatui`, `crossterm`, `drox-tui`.
+
+Feature flags (compile-time ou prefs) :
+
+| Flag | Module |
 |---|---|
-| `beat` | `BeatRegistry`, assignation A1…An |
-| `manifest` | `ContextManifestBuilder` |
-| `changes` | Agrégation `RunChangesSnapshot` |
-| `map_view` | Fusion manifest + workspace map |
-| `event` | `ObserveEvent` (stream UI-neutral) |
-| `adapter` | Écoute `AgentEvent` → met à jour état |
+| `observe_beat` | `beat/` |
+| `observe_manifest` | `manifest/` |
+| `observe_changes` | `changes/` |
+| `observe_map` | `map_view/` |
 
-**Dépendances** : `drox-types`, `drox-session`, `serde` — **pas** `ratatui`, **pas** `drox-tui`.
+Désactiver un flag = module stub / no-op ; **L1 inchangé**.
 
-### L3 — Shells
+### L3 — TUI / IDE
 
-| Shell | Rôle |
-|---|---|
-| `drox-tui` | `PaneManager`, widgets ratatui, consomme snapshots observe |
-| Drox IDE | Extension TS consomme même JSON via RPC / fichier session |
+| Composant | Feature | Emplacement code |
+|---|---|---|
+| F01 Multi-pane | Layout seul | `drox-tui/src/panes/` |
+| Rendu diff | Consomme `changes/` snapshot | `drox-tui/src/view/` (existant 2.0.4) |
+| Subscription observe | Adaptateur fin | `drox-tui/src/observe/` |
+
+F01 est **pure UI TUI** ; les features F02–F05 passent par L2.
 
 ---
 
 ## Contrat `ObserveEvent`
 
-Flux parallèle au fil agent — l’UI **s’abonne**, ne parse pas le transcript :
-
 ```rust
-// Concept — drox-observe/src/event.rs
+// drox-observe/src/event.rs — concept
 pub enum ObserveEvent {
     BeatAssigned { beat: BeatRecord },
     ContextSnapshot { manifest: ContextManifest },
@@ -87,59 +111,40 @@ pub enum ObserveEvent {
 }
 ```
 
-Feature flags (env ou prefs) :
+L’UI **s’abonne** au flux observe ; elle ne recalcule pas le contexte LLM ni les beats.
 
-| Flag | Feature |
+---
+
+## Migration depuis 2.0.4
+
+| Code actuel | Cible |
 |---|---|
-| `observe.beat_id` | F02 |
-| `observe.context_manifest` | F03 |
-| `observe.changes_panel` | F04 |
-| `observe.map_view` | F05 |
-| `observe.multi_pane` | F01 (TUI only — layout local) |
+| `run_file_changes` dans `app/run.rs` | `drox-observe::changes` |
+| `RunFileChange` types | `drox-observe` (+ re-export TUI si besoin) |
+| Lecture `WorkspaceMapStore` pour UI | `drox-observe::map_view` |
+| Diff render | Reste TUI (`view/diff_render.rs`) |
 
-Désactiver un flag = retour comportement 2.0.4 **sans** toucher L1.
-
----
-
-## Portage IDE
-
-1. **Types stables** — fiches [`docs/features/`](../features/README.md) + JSON exemples.
-2. **Pas de ratatui** dans observe — IDE réimplémente widgets.
-3. **Stream** — shim RPC existant (`drox-cli/jsonrpc`) peut relayer `ObserveEvent` comme sous-flux `agent/observe`.
-4. **Référence** — [`VSCODE-FORK.md`](../animation-start/VSCODE-FORK.md) pour points d’accroche workbench.
-
-Ordre de port suggéré IDE : **F04** (diff) → **F02** (timeline) → **F03/F05** (contexte) → **F01** (layout).
+Ordre implémentation : crate stub → `adapter/` → `changes/` + `beat/` → `manifest/` + `map_view/` → `panes/` (F01).
 
 ---
 
-## Migration code existant 2.0.4
+## Critères « bien externalisé » (code)
 
-| Aujourd’hui | Cible 2.0.5 |
+1. `cargo test -p drox-engine` passe **sans** activer observe.
+2. `cargo test -p drox-observe` couvre chaque module isolément.
+3. Désactiver un flag observe ne change **aucun** comportement agent.
+4. Types publics `drox-observe` documentés dans les fiches [FEATURES.md](FEATURES.md) (JSON exemples).
+5. Port IDE = consommer `drox-observe` (crate Rust partagé) ou JSON RPC — **sans** copier la logique depuis `drox-tui`.
+
+---
+
+## Fichiers cibles
+
+| Chemin | Action |
 |---|---|
-| `RunFileChange` dans `tool_output.rs` | Déplacer agrégation → `drox-observe::changes`, TUI = renderer |
-| Collecte `run_file_changes` dans `app/run.rs` | Adapter observe écoute `ToolFinish` |
-| `WorkspaceMapStore` moteur | Reste L1 ; **lecture** via observe pour F05 |
-| Diff render | Reste L3 (`view/diff_render.rs`) |
-
-Pas de big-bang : M0 shell vide + observe stub, puis brancher feature par feature.
-
----
-
-## Critères « bien externalisé »
-
-1. Désactiver F0x ne change **aucun** comportement agent mesurable (tests engine inchangés).
-2. `cargo test -p drox-engine` passe sans activer observe.
-3. Snapshot JSON observe documenté et versionné (`observe_schema_version`).
-4. Une feature portable a une fiche dans `docs/features/`.
-
----
-
-## Fichiers cibles (implémentation future)
-
-| Fichier | Action |
-|---|---|
-| `drox/crates/drox-observe/` | **Créer** |
-| `drox/crates/drox-tui/src/observe/` | Adaptateur TUI → subscriptions |
+| `drox/crates/drox-observe/` | **Créer** — modules feature |
+| `drox/crates/drox-tui/src/observe/` | Subscription L2 |
 | `drox/crates/drox-tui/src/panes/` | F01 layout |
-| `drox/crates/drox-engine/src/agent.rs` | Hook opt-in fin de tour (minimal) |
-| `drox/crates/drox-cli/src/jsonrpc/` | Relay observe (optionnel M4) |
+| `drox/crates/drox-engine/src/agent.rs` | Hook stream → adapter (minimal) |
+
+Index specs : [FEATURES.md](FEATURES.md) · Plan intégration : [PLAN-MULTI-PANE.md](PLAN-MULTI-PANE.md)

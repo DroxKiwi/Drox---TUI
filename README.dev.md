@@ -6,8 +6,7 @@ Ce dépôt contient les **sources** et la doc interne. Les utilisateurs finaux r
 
 | Chemin | Contenu |
 |---|---|
-| [`docs/features/`](docs/features/) | **Catalogue features portables** TUI ↔ IDE |
-| [`docs/2.0.5/`](docs/2.0.5/) | Ligne active — multi-pane + observe |
+| [`docs/2.0.5/`](docs/2.0.5/) | Ligne active — multi-pane + `drox-observe` |
 | [`docs/2.0.4/`](docs/2.0.4/) | Diff visuel overlay (clôturée) |
 | [`docs/2.0.6/`](docs/2.0.6/) | Code signing & Linux (plan) |
 | [`docs/2.0.3/`](docs/2.0.3/) | `/update`, Linux (clôturée) |

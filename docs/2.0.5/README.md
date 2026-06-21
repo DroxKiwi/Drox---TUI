@@ -12,7 +12,7 @@
 
 Transformer le TUI en **poste de pilotage agent** : jusqu’à **3 vues simultanées** (fil · carte contexte · changements+diff), panneaux masquables, corrélés par **beat IDs** colorés (A1, A2…).
 
-La release introduit surtout une **architecture features externalisées** (`drox-observe`) pour limiter les effets de bord moteur et **faciliter le port vers Drox IDE**.
+La release introduit une **architecture code externalisée** (crate `drox-observe`, modules par feature) pour limiter les effets de bord moteur et faciliter le port vers Drox IDE.
 
 ```mermaid
 flowchart LR
@@ -31,22 +31,22 @@ flowchart LR
 | Document | Rôle |
 |---|---|
 | [PLAN-MULTI-PANE.md](PLAN-MULTI-PANE.md) | Vision UX, jalons M0–M4 |
-| [ARCHITECTURE-FEATURES.md](ARCHITECTURE-FEATURES.md) | Découplage moteur / observe / UI |
+| [ARCHITECTURE-FEATURES.md](ARCHITECTURE-FEATURES.md) | Découplage **code** moteur / `drox-observe` / TUI |
+| [FEATURES.md](FEATURES.md) | Index specs F01–F05 |
 | [CHECKLIST.md](CHECKLIST.md) | Suivi implémentation |
-| [`docs/features/`](../features/README.md) | **Catalogue features portables IDE** |
 | [PLAN-DIFF-INLINE.md](PLAN-DIFF-INLINE.md) | Sous-feature M3 (diff fil — historique) |
 
 ---
 
-## Features 2.0.5 (catalogue)
+## Features 2.0.5
 
-| ID | Feature | Jalon |
-|---|---|---|
-| F01 | Multi-pane shell (toggle) | M0 |
-| F02 | Beat ID & corrélation couleur | M1 |
-| F03 | Context manifest (connaissance LLM) | M2 |
-| F04 | Panneau changements + diff live | M1 |
-| F05 | Carte workspace lisible | M2 |
+| ID | Feature | Spec | Module code |
+|---|---|---|---|
+| F01 | Multi-pane shell | [F01](F01-multi-pane-shell.md) | `drox-tui/panes/` |
+| F02 | Beat ID | [F02](F02-beat-id-correlation.md) | `drox-observe/beat/` |
+| F03 | Context manifest | [F03](F03-context-manifest.md) | `drox-observe/manifest/` |
+| F04 | Changements + diff | [F04](F04-run-changes-panel.md) | `drox-observe/changes/` |
+| F05 | Carte workspace | [F05](F05-workspace-map-view.md) | `drox-observe/map_view/` |
 
 ---
 
