@@ -18,19 +18,19 @@
 ## Linux
 
 - [x] `publish-or` inclut archive Linux (WSL)
-- [ ] Asset Linux sur GitHub Release
+- [x] Asset Linux sur GitHub Release
 - [x] Racines workspace (`$HOME`, `/mnt` WSL)
 - [ ] QA terminal Linux (≥ 1 environnement réel)
 - [x] CI `ubuntu-latest` (tests)
 
 ## Non-régression
 
-- [ ] `cargo test -p drox-tui`
-- [ ] Build installateur Windows
-- [ ] Certification local-first (opt-in MAJ)
+- [x] `cargo test -p drox-tui`
+- [x] Build installateur Windows
+- [x] Certification local-first (opt-in MAJ)
 
 ## Release
 
-- [ ] Bump version 2.0.3
-- [ ] RELEASE_NOTES OR
-- [ ] Merge `2.0.3` → `main`
+- [x] Bump version 2.0.3
+- [x] RELEASE_NOTES OR
+- [x] Merge `2.0.3` → `main`
