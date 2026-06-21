@@ -51,6 +51,10 @@ pub const ENTRIES: &[SlashPaletteEntry] = &[
     SlashPaletteEntry { command: "/keybindings", desc_key: k::SLASH_PALETTE_KEYBINDINGS },
     SlashPaletteEntry { command: "/terminal-setup", desc_key: k::SLASH_PALETTE_TERMINAL_SETUP },
     SlashPaletteEntry { command: "/settings", desc_key: k::SLASH_PALETTE_SETTINGS },
+    SlashPaletteEntry {
+        command: "/update",
+        desc_key: crate::i18n::keys_update::SLASH_PALETTE_UPDATE,
+    },
     SlashPaletteEntry { command: "/language", desc_key: k::SLASH_PALETTE_LANGUAGE },
     SlashPaletteEntry { command: "/onboarding", desc_key: k::SLASH_PALETTE_ONBOARDING },
     SlashPaletteEntry { command: "/init", desc_key: k::SLASH_PALETTE_INIT },

@@ -9,6 +9,7 @@ mod mcp;
 mod plan;
 pub(crate) mod palette;
 mod skills;
+mod update;
 
 use camino::Utf8Path;
 
@@ -24,6 +25,7 @@ pub use init::handle_init;
 pub use mcp::handle_mcp;
 pub use plan::handle_plan;
 pub use skills::handle_skills;
+pub use update::{handle_update, UpdateCommand};
 pub use palette::{filter_entries, SlashPaletteEntry, ENTRIES as SLASH_PALETTE_ENTRIES};
 
 /// Résultat d'une commande `/…`.
@@ -104,6 +106,8 @@ pub enum SlashOutcome {
     Onboarding,
     /// Bascule langue UI (`/language fr|en`).
     SettingsLocale { locale: crate::i18n::UiLocale },
+    /// MAJ TUI opt-in (`/update`).
+    Update(UpdateCommand),
 }
 
 /// Action slash différée (appels async LLM / disque).
@@ -467,6 +471,13 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
             }
         },
         "/onboarding" => SlashOutcome::Onboarding,
+        "/update" => {
+            let args = trimmed
+                .strip_prefix("/update")
+                .unwrap_or("")
+                .trim();
+            handle_update(args, state)
+        }
         _ => {
             state.push_system(i18n::tf2(
                 k::SLASH_MSG_UNKNOWN_CMD,

@@ -2,6 +2,7 @@
 
 use super::keys::*;
 use super::keys_p1::*;
+use super::keys_update::*;
 
 #[must_use]
 pub fn get(key: &str) -> Option<&'static str> {
@@ -199,7 +200,7 @@ pub fn get(key: &str) -> Option<&'static str> {
         SLASH_PALETTE_FOOTER => Some("↑↓ choose · Enter insert · Esc close"),
         SLASH_HELP_BODY => Some(
             "Commands: /help /clear /exit /status /model /server /session /sessions \
-/newsession /resume <id> /rename [/rename <title>] /copy [/copy N] /add-dir <path> /workspace [/workspace <path>] /vim /settings /onboarding /compact /memory [/memory <slug>|search <q>] /search <q> /permissions /plan [/plan off] /context /hooks [/hooks reload] /config /doctor /mcp [/mcp tools|resources|ping] /skills [/skills <name>] /cost /stats /usage /branch /rewind /export [/export file] /theme [/theme dark] /color [/color cyan] /keybindings [/keybindings init] /diff /files /init [/init run] /terminal-setup /sandbox /review [/review PR] /security-review /statusline [/statusline run]",
+/newsession /resume <id> /rename [/rename <title>] /copy [/copy N] /add-dir <path> /workspace [/workspace <path>] /vim /settings /update [/update check|on|off|snooze|dismiss|install] /onboarding /compact /memory [/memory <slug>|search <q>] /search <q> /permissions /plan [/plan off] /context /hooks [/hooks reload] /config /doctor /mcp [/mcp tools|resources|ping] /skills [/skills <name>] /cost /stats /usage /branch /rewind /export [/export file] /theme [/theme dark] /color [/color cyan] /keybindings [/keybindings init] /diff /files /init [/init run] /terminal-setup /sandbox /review [/review PR] /security-review /statusline [/statusline run]",
         ),
         COMPOSER_HELP_TITLE => Some(" Composer help (?) — Esc close "),
         COMPOSER_HELP_0 => Some("Ctrl+Shift+L  AI connection (Ollama) · /server"),
@@ -298,6 +299,33 @@ pub fn get(key: &str) -> Option<&'static str> {
         TOAST_ONBOARDING_DONE => Some("Onboarding done — /onboarding to review"),
         SYSTEM_CLIPBOARD_UNAVAILABLE => Some("Clipboard unavailable — use /copy"),
         SYSTEM_COPY_NO_ASSISTANT => Some("No assistant reply to copy."),
+        SLASH_PALETTE_UPDATE => Some("check for TUI updates"),
+        UPDATE_HELP_BODY => Some(
+            "TUI updates (opt-in) — /update check · on · off · snooze [days] · dismiss · install",
+        ),
+        UPDATE_STATUS_HEADER => Some("— TUI updates —"),
+        UPDATE_STATUS_VERSION => Some("Installed version: {}"),
+        UPDATE_STATUS_ENABLED => Some("Checks: enabled (no automatic network without consent)"),
+        UPDATE_STATUS_DISABLED => Some("Checks: disabled — /update on to enable"),
+        UPDATE_STATUS_DISMISSED => Some("Dismissed version: {}"),
+        UPDATE_STATUS_SNOOZE => Some("Snoozed until: {}"),
+        UPDATE_STATUS_LAST_CHECK => Some("Last check: {}"),
+        UPDATE_STATUS_NEVER_CHECKED => Some("Last check: never"),
+        UPDATE_STATUS_HINTS => Some(
+            "Subcommands: check · on · off · snooze [days] · dismiss · install",
+        ),
+        UPDATE_ON => Some("Update checks enabled."),
+        UPDATE_OFF => Some("Update checks disabled."),
+        UPDATE_SNOOZE => Some("Update reminder snoozed for {} day(s)."),
+        UPDATE_DISMISS => Some("Update notification dismissed for current version."),
+        UPDATE_CHECK_STUB => Some(
+            "Network check not available yet (M2) — enable first with /update on.",
+        ),
+        UPDATE_INSTALL_STUB => Some(
+            "Automatic install not available yet (M4) — download from GitHub Releases.",
+        ),
+        UPDATE_SNOOZE_USAGE => Some("Usage: /update snooze <days> — e.g. /update snooze 7"),
+        SETTINGS_UPDATE => Some("Updates"),
         _ => None,
     }
 }

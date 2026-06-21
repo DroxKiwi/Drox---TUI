@@ -866,6 +866,9 @@ impl App {
             SettingsRowKind::Vim => {
                 self.apply_vim_setting(!self.tui_prefs.vim_enabled);
             }
+            SettingsRowKind::Updates => {
+                self.apply_update_enabled(!self.tui_prefs.update.enabled);
+            }
         }
     }
 
@@ -927,6 +930,66 @@ impl App {
         };
         self.state.push_system(msg);
         self.state.status_line = msg.into();
+    }
+
+    fn apply_update_enabled(&mut self, enabled: bool) {
+        self.tui_prefs.update.enabled = enabled;
+        let mut prefs = crate::engine::preferences::load_preferences();
+        prefs.update.enabled = enabled;
+        if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
+            self.state
+                .push_system(format!("Mises à jour : échec persistance — {e}"));
+        } else {
+            self.state.push_system(crate::i18n::t(if enabled {
+                crate::i18n::keys_update::UPDATE_ON
+            } else {
+                crate::i18n::keys_update::UPDATE_OFF
+            }));
+        }
+    }
+
+    fn push_update_status(&mut self) {
+        for line in self.tui_prefs.update.format_status_lines() {
+            self.state.push_system(line);
+        }
+    }
+
+    fn apply_update_command(&mut self, cmd: crate::slash::UpdateCommand) {
+        use crate::i18n::keys_update as u;
+        use crate::slash::UpdateCommand;
+
+        match cmd {
+            UpdateCommand::ShowHelp => {
+                self.state.push_system(crate::i18n::t(u::UPDATE_HELP_BODY));
+                self.push_update_status();
+            }
+            UpdateCommand::Check => {
+                self.state.push_system(crate::i18n::t(u::UPDATE_CHECK_STUB));
+            }
+            UpdateCommand::On => self.apply_update_enabled(true),
+            UpdateCommand::Off => self.apply_update_enabled(false),
+            UpdateCommand::Snooze { days } => {
+                let until = (chrono::Utc::now() + chrono::Duration::days(days as i64))
+                    .to_rfc3339();
+                self.tui_prefs.update.snooze_until = Some(until.clone());
+                let mut prefs = crate::engine::preferences::load_preferences();
+                prefs.update.snooze_until = Some(until);
+                let _ = crate::engine::preferences::save_preferences(&prefs);
+                self.state
+                    .push_system(crate::i18n::tf(u::UPDATE_SNOOZE, &days.to_string()));
+            }
+            UpdateCommand::Dismiss => {
+                let version = env!("CARGO_PKG_VERSION").to_string();
+                self.tui_prefs.update.dismissed_version = Some(version.clone());
+                let mut prefs = crate::engine::preferences::load_preferences();
+                prefs.update.dismissed_version = Some(version);
+                let _ = crate::engine::preferences::save_preferences(&prefs);
+                self.state.push_system(crate::i18n::t(u::UPDATE_DISMISS));
+            }
+            UpdateCommand::Install => {
+                self.state.push_system(crate::i18n::t(u::UPDATE_INSTALL_STUB));
+            }
+        }
     }
 
     /// `true` = quitter l'application.
@@ -1409,6 +1472,9 @@ impl App {
             }
             SlashOutcome::ToggleVim => {
                 self.apply_vim_setting(!self.tui_prefs.vim_enabled);
+            }
+            SlashOutcome::Update(cmd) => {
+                self.apply_update_command(cmd);
             }
         }
         Ok(false)

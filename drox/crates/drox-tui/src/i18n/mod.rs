@@ -4,12 +4,14 @@ mod catalog_en;
 mod catalog_fr;
 pub mod keys;
 pub mod keys_p1;
+pub mod keys_update;
 mod locale;
 
 use std::sync::RwLock;
 
 pub use keys::{ONBOARDING_STEPS, P0_KEYS};
 pub use keys_p1::{COMPOSER_HELP_LINES, P1_KEYS};
+pub use keys_update::UPDATE_KEYS;
 pub use locale::UiLocale;
 
 static LOCALE: RwLock<UiLocale> = RwLock::new(UiLocale::Fr);
@@ -102,6 +104,20 @@ mod tests {
         let s = tf(keys::MODAL_PERMISSION_QUEUE, "2");
         assert!(s.contains('2'));
         assert!(!s.contains("{}"));
+    }
+
+    #[test]
+    fn update_keys_exist_in_fr_and_en() {
+        for key in UPDATE_KEYS {
+            assert!(
+                catalog_fr::get(key).is_some(),
+                "clé FR manquante: {key}"
+            );
+            assert!(
+                catalog_en::get(key).is_some(),
+                "clé EN manquante: {key}"
+            );
+        }
     }
 
     #[test]

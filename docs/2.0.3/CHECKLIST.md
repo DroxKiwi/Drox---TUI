@@ -2,14 +2,14 @@
 
 ## `/update`
 
-- [ ] Entrée palette slash `/update`
-- [ ] Handler slash + sous-commandes
-- [ ] Clés i18n FR/EN
-- [ ] Prefs `update.*` persistées
+- [x] Entrée palette slash `/update`
+- [x] Handler slash + sous-commandes
+- [x] Clés i18n FR/EN
+- [x] Prefs `update.*` persistées
 - [ ] `engine/update.rs` + fetch `latest.json`
 - [ ] `publish-or.ps1` génère `latest.json`
 - [ ] Bandeau opt-in (M3)
-- [ ] Aucune requête réseau au boot par défaut
+- [x] Aucune requête réseau au boot par défaut
 
 ## Linux
 

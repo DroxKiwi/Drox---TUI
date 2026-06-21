@@ -834,10 +834,17 @@ pub enum SettingsRowKind {
     Animations,
     Mouse,
     Vim,
+    Updates,
 }
 
 impl SettingsRowKind {
-    pub const ALL: &'static [Self] = &[Self::Language, Self::Animations, Self::Mouse, Self::Vim];
+    pub const ALL: &'static [Self] = &[
+        Self::Language,
+        Self::Animations,
+        Self::Mouse,
+        Self::Vim,
+        Self::Updates,
+    ];
 }
 
 /// Modale réglages TUI (`/settings`).

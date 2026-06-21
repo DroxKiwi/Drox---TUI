@@ -8,7 +8,7 @@ use ratatui::Frame;
 
 use crate::app::{AppState, SettingsRowKind};
 use crate::engine::preferences::preferences_path;
-use crate::i18n::{self, keys};
+use crate::i18n::{self, keys, keys_update as ku};
 use crate::widgets::modal_frame;
 
 fn row_label(kind: SettingsRowKind) -> &'static str {
@@ -17,6 +17,7 @@ fn row_label(kind: SettingsRowKind) -> &'static str {
         SettingsRowKind::Animations => i18n::t(keys::SETTINGS_ANIMATIONS),
         SettingsRowKind::Mouse => i18n::t(keys::SETTINGS_MOUSE),
         SettingsRowKind::Vim => i18n::t(keys::SETTINGS_VIM),
+        SettingsRowKind::Updates => i18n::t(ku::SETTINGS_UPDATE),
     }
 }
 
@@ -28,6 +29,7 @@ fn row_value(state: &AppState, kind: SettingsRowKind, prefs: &crate::engine::pre
         SettingsRowKind::Animations => bool_label(state.animations_enabled),
         SettingsRowKind::Mouse => bool_label(state.mouse_enabled),
         SettingsRowKind::Vim => bool_label(prefs.vim_enabled),
+        SettingsRowKind::Updates => bool_label(prefs.update.enabled),
     }
 }
 

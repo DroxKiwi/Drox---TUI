@@ -15,6 +15,8 @@ use super::connection_library::{
 };
 use super::validate_workspace_path;
 
+use super::update_prefs::UpdatePrefs;
+
 static PREFS_PATH_OVERRIDE: Mutex<Option<Utf8PathBuf>> = Mutex::new(None);
 
 #[cfg(test)]
@@ -99,6 +101,9 @@ pub struct TuiPreferences {
     /// Langue interface (`fr` / `en`).
     #[serde(default)]
     pub ui_locale: UiLocale,
+    /// Vérification MAJ TUI opt-in (`/update`).
+    #[serde(default)]
+    pub update: UpdatePrefs,
 }
 
 /// Version courante du schéma `tui-preferences.json`.
@@ -131,6 +136,7 @@ impl Default for TuiPreferences {
             recent_workspaces: Vec::new(),
             ui_prefs_version: UI_PREFS_VERSION,
             ui_locale: UiLocale::default(),
+            update: UpdatePrefs::default(),
         }
     }
 }
@@ -502,6 +508,11 @@ pub fn format_settings_lines(prefs: &TuiPreferences) -> Vec<String> {
             prefs.ui_locale.label(),
             prefs.ui_locale.code()
         ),
+        format!(
+            "  {} : {}",
+            i18n::t(crate::i18n::keys_update::SETTINGS_UPDATE),
+            prefs.update.enabled
+        ),
         i18n::t(keys::SETTINGS_HINTS).into(),
     ];
     if !prefs.recent_workspaces.is_empty() {
@@ -579,12 +590,22 @@ pub fn persist_from_state(state: &crate::app::AppState) -> anyhow::Result<()> {
         recent_workspaces: existing.recent_workspaces.clone(),
         ui_prefs_version: existing.ui_prefs_version.max(UI_PREFS_VERSION),
         ui_locale: existing.ui_locale,
+        update: existing.update.clone(),
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_update_prefs_opt_in_off() {
+        let prefs = TuiPreferences::default();
+        assert!(!prefs.update.enabled);
+        assert!(!prefs.update.check_on_startup);
+        let json = serde_json::to_string(&prefs).unwrap();
+        assert!(json.contains("\"update\""));
+    }
 
     #[test]
     fn default_preferences_json() {

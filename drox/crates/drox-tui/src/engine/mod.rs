@@ -17,6 +17,7 @@ mod mcp;
 pub(crate) mod keybindings;
 pub(crate) mod keybindings_cmd;
 pub(crate) mod preferences;
+pub(crate) mod update_prefs;
 mod rewind;
 mod skills;
 pub(crate) mod notices;
