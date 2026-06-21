@@ -24,5 +24,6 @@ pub mod modal_frame;
 pub mod onboarding;
 pub mod settings_dialog;
 pub mod toast;
+pub mod update_install_dialog;
 pub mod todo_panel;
 pub mod tool_call;

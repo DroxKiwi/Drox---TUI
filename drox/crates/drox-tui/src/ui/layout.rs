@@ -11,7 +11,7 @@ use crate::engine::preferences::TuiPreferences;
 use crate::engine::status_bar::StatusBarSnapshot;
 use crate::engine::VimComposer;
 use crate::i18n::{self, keys};
-use crate::widgets::{ai_server_dialog, composer, composer_help, composer_suggestions, copy_selector, course_panel, mcp_panel, message_log, onboarding, prompt_modal, rewind_selector, scroll_viewer, search_bar, settings_dialog, slash_palette, status_bar, status_notices, theme_picker, toast, todo_panel, workspace_dialog};
+use crate::widgets::{ai_server_dialog, composer, composer_help, composer_suggestions, copy_selector, course_panel, mcp_panel, message_log, onboarding, prompt_modal, rewind_selector, scroll_viewer, search_bar, settings_dialog, slash_palette, status_bar, status_notices, theme_picker, toast, todo_panel, update_install_dialog, workspace_dialog};
 
 const HEADER_H: u16 = 3;
 const COMPOSER_H: u16 = 5;
@@ -165,6 +165,9 @@ pub fn draw(
     }
     if state.phase == AppPhase::Settings {
         settings_dialog::render(frame, area, state, prefs);
+    }
+    if state.phase == AppPhase::UpdateInstall {
+        update_install_dialog::render(frame, area, state);
     }
     if let Some(ref viewer) = state.scroll_viewer {
         scroll_viewer::render(frame, area, state, viewer);

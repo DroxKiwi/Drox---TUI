@@ -8,5 +8,6 @@ pub use state::{
     AiServerDialog, AiServerSelectFocus, AiServerStep, AppConfig, AppPhase, AppState, AuthTypeChoice,
     CloudProviderChoice, ComposerMode, ComposerSuggestionDialog, ConfigureField, CourseSnapshot,
     CourseStepView, DeploymentKind, OnboardingDialog, PersonalEngineChoice, PromptDialog,
-    RunStatus, SettingsDialog, SettingsRowKind, TodoItemView, TodoSnapshot, WorkspaceDialog, WorkspaceField, WorkspaceStep,
+    RunStatus, SettingsDialog, SettingsRowKind, TodoItemView, TodoSnapshot, UpdateInstallDialog,
+    WorkspaceDialog, WorkspaceField, WorkspaceStep,
 };

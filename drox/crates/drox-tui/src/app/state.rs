@@ -85,6 +85,7 @@ pub enum AppPhase {
     AiServer,
     Workspace,
     Settings,
+    UpdateInstall,
 }
 
 impl AppPhase {
@@ -101,6 +102,7 @@ impl AppPhase {
                 | Self::AiServer
                 | Self::Workspace
                 | Self::Settings
+                | Self::UpdateInstall
         )
     }
 }
@@ -853,6 +855,15 @@ pub struct SettingsDialog {
     pub cursor: usize,
 }
 
+/// Confirmation installation MAJ (`/update install`).
+#[derive(Debug, Clone)]
+pub struct UpdateInstallDialog {
+    pub from_version: String,
+    pub to_version: String,
+    pub sha256: String,
+    pub release_notes: Option<String>,
+}
+
 /// Sélecteur `/copy` — réponse complète ou bloc de code.
 #[derive(Debug, Clone)]
 pub struct CopyDialog {
@@ -911,6 +922,8 @@ pub struct AppState {
     pub rewind: Option<RewindDialog>,
     pub theme_dialog: Option<ThemeDialog>,
     pub settings_dialog: Option<SettingsDialog>,
+    /// Confirmation `/update install`.
+    pub update_install: Option<UpdateInstallDialog>,
     pub pending_ask: bool,
     /// Messages en attente pendant un run agent.
     pub queued_messages: usize,
@@ -1070,6 +1083,7 @@ impl AppState {
             rewind: None,
             theme_dialog: None,
             settings_dialog: None,
+            update_install: None,
             pending_ask: false,
             queued_messages: 0,
             expanded_tools: HashSet::new(),

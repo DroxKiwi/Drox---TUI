@@ -24,6 +24,19 @@ pub const UPDATE_CHECK_NEWER_LOCAL: &str = "update.check.newer_local";
 pub const UPDATE_CHECK_FAILED: &str = "update.check.failed";
 pub const UPDATE_CHECK_RELEASE_NOTES: &str = "update.check.release_notes";
 pub const UPDATE_INSTALL_STUB: &str = "update.install.stub";
+pub const UPDATE_INSTALL_MODAL_TITLE: &str = "update.install.modal.title";
+pub const UPDATE_INSTALL_MODAL_BODY: &str = "update.install.modal.body";
+pub const UPDATE_INSTALL_MODAL_SHA: &str = "update.install.modal.sha";
+pub const UPDATE_INSTALL_MODAL_NOTES: &str = "update.install.modal.notes";
+pub const UPDATE_INSTALL_MODAL_FOOTER: &str = "update.install.modal.footer";
+pub const UPDATE_INSTALL_RUNNING: &str = "update.install.running";
+pub const UPDATE_INSTALL_LAUNCHED: &str = "update.install.launched";
+pub const UPDATE_INSTALL_SCHEDULED: &str = "update.install.scheduled";
+pub const UPDATE_INSTALL_MANUAL: &str = "update.install.manual";
+pub const UPDATE_INSTALL_FAILED: &str = "update.install.failed";
+pub const UPDATE_INSTALL_NO_RELEASE: &str = "update.install.no_release";
+pub const UPDATE_INSTALL_NOT_AVAILABLE: &str = "update.install.not_available";
+pub const UPDATE_INSTALL_UNSUPPORTED: &str = "update.install.unsupported";
 pub const UPDATE_SNOOZE_USAGE: &str = "update.snooze.usage";
 pub const SETTINGS_UPDATE: &str = "settings.update";
 pub const UPDATE_BANNER: &str = "update.banner";
@@ -54,6 +67,19 @@ pub const UPDATE_KEYS: &[&str] = &[
     UPDATE_CHECK_FAILED,
     UPDATE_CHECK_RELEASE_NOTES,
     UPDATE_INSTALL_STUB,
+    UPDATE_INSTALL_MODAL_TITLE,
+    UPDATE_INSTALL_MODAL_BODY,
+    UPDATE_INSTALL_MODAL_SHA,
+    UPDATE_INSTALL_MODAL_NOTES,
+    UPDATE_INSTALL_MODAL_FOOTER,
+    UPDATE_INSTALL_RUNNING,
+    UPDATE_INSTALL_LAUNCHED,
+    UPDATE_INSTALL_SCHEDULED,
+    UPDATE_INSTALL_MANUAL,
+    UPDATE_INSTALL_FAILED,
+    UPDATE_INSTALL_NO_RELEASE,
+    UPDATE_INSTALL_NOT_AVAILABLE,
+    UPDATE_INSTALL_UNSUPPORTED,
     UPDATE_SNOOZE_USAGE,
     SETTINGS_UPDATE,
     UPDATE_BANNER,

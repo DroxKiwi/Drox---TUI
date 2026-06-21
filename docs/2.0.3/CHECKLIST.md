@@ -10,6 +10,10 @@
 - [x] `publish-or.ps1` génère `latest.json`
 - [x] Bandeau opt-in (M3)
 - [x] Aucune requête réseau au boot par défaut
+- [x] Modale confirmation + `/update install` / Ctrl+Shift+U
+- [x] Téléchargement HTTPS + vérification SHA256
+- [x] Windows : installateur setup.exe ou remplacement binaire scripté
+- [x] Linux : extraction tar.gz + script remplacement / instructions manuelles
 
 ## Linux
 

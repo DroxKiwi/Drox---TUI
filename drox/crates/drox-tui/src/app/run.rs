@@ -39,7 +39,7 @@ use crate::app::state::{
     DeploymentKind,
     OnboardingDialog, PersonalEngineChoice, PromptDialog, RewindChoiceView, RewindDialog, RunStatus,
     SettingsDialog, SettingsRowKind,
-    SlashPaletteDialog, ThemeDialog, WorkspaceDialog, WorkspaceField, WorkspaceStep,
+    SlashPaletteDialog, ThemeDialog, UpdateInstallDialog, WorkspaceDialog, WorkspaceField, WorkspaceStep,
 };
 use crate::engine::at_typeahead::{self, AtFileIndex};
 use crate::engine::unified_suggestions::{
@@ -97,6 +97,8 @@ pub struct App {
     update_comparison: Option<crate::engine::update::UpdateComparison>,
     /// `/update check` manuel cette session (bandeau même si opt-in off).
     update_manual_check: bool,
+    /// Quitter la boucle après lancement installateur / script MAJ.
+    request_quit: bool,
 }
 
 impl App {
@@ -139,6 +141,7 @@ impl App {
             remote_release: None,
             update_comparison: None,
             update_manual_check: false,
+            request_quit: false,
         }
     }
 
@@ -157,6 +160,15 @@ impl App {
         self.state.animations_enabled = self.tui_prefs.animations_enabled;
         self.state.mouse_enabled = self.tui_prefs.mouse_enabled;
         crate::i18n::set_locale(self.tui_prefs.ui_locale);
+        if let Ok(exe) = std::env::current_exe() {
+            let path = exe.to_string_lossy();
+            if !path.contains("\\target\\") && !path.contains("/target/") {
+                let _ = crate::engine::update_install::persist_install_path(&exe);
+                if let Some(utf) = crate::engine::update_install::install_path_utf8(&exe) {
+                    self.tui_prefs.update.install_path = Some(utf.to_string());
+                }
+            }
+        }
         if loaded.theme_migrated_to_drox {
             self.state.status_line = crate::i18n::t(sk::STATUS_THEME_MIGRATED).into();
         }
@@ -241,6 +253,9 @@ impl App {
             }
             if let Some(cmd) = self.pending_slash.take() {
                 self.execute_slash(cmd).await?;
+                if self.request_quit {
+                    break;
+                }
             }
             if self.status_tick == 0 {
                 self.refresh_status_snapshot().await;
@@ -827,6 +842,64 @@ impl App {
         self.state.phase = AppPhase::Idle;
     }
 
+    fn open_update_install_dialog(&mut self) {
+        use crate::engine::update::UpdateComparison;
+        use crate::engine::update_install::platform_asset;
+        use crate::i18n::keys_update as u;
+
+        if self.state.phase == AppPhase::Running {
+            self.state
+                .push_system(crate::i18n::t(sk::STATUS_AGENT_BUSY));
+            return;
+        }
+        let Some(release) = self.remote_release.clone() else {
+            self.state.push_system(crate::i18n::t(u::UPDATE_INSTALL_NO_RELEASE));
+            return;
+        };
+        if !matches!(
+            self.update_comparison,
+            Some(UpdateComparison::UpdateAvailable { .. })
+        ) {
+            self.state
+                .push_system(crate::i18n::t(u::UPDATE_INSTALL_NOT_AVAILABLE));
+            return;
+        }
+        let Some(asset) = platform_asset(&release) else {
+            self.state
+                .push_system(crate::i18n::t(u::UPDATE_INSTALL_UNSUPPORTED));
+            return;
+        };
+        self.state.update_install = Some(UpdateInstallDialog {
+            from_version: crate::engine::update::LOCAL_VERSION.to_string(),
+            to_version: release.version.clone(),
+            sha256: asset.sha256.clone(),
+            release_notes: release.release_notes.clone(),
+        });
+        self.state.reset_modal_anim();
+        self.state.phase = AppPhase::UpdateInstall;
+    }
+
+    fn close_update_install_dialog(&mut self) {
+        self.state.update_install = None;
+        self.state.phase = AppPhase::Idle;
+    }
+
+    fn handle_update_install_key(&mut self, key: KeyEvent) -> bool {
+        if self.state.update_install.is_none() {
+            self.state.phase = AppPhase::Idle;
+            return false;
+        }
+        match key.code {
+            KeyCode::Esc => self.close_update_install_dialog(),
+            KeyCode::Enter => {
+                self.close_update_install_dialog();
+                self.pending_slash = Some(PendingSlash::UpdateInstall);
+            }
+            _ => {}
+        }
+        true
+    }
+
     fn handle_settings_key(&mut self, key: KeyEvent) -> bool {
         if self.state.settings_dialog.is_none() {
             self.state.phase = AppPhase::Idle;
@@ -1073,9 +1146,7 @@ impl App {
                 self.state.push_system(crate::i18n::t(u::UPDATE_DISMISS));
                 self.refresh_update_banner();
             }
-            UpdateCommand::Install => {
-                self.state.push_system(crate::i18n::t(u::UPDATE_INSTALL_STUB));
-            }
+            UpdateCommand::Install => self.open_update_install_dialog(),
         }
     }
 
@@ -1100,11 +1171,7 @@ impl App {
                 return Ok(false);
             }
             if self.keybindings.matches(BindingAction::UpdateInstall, &key) {
-                if self.state.update_available_version.is_some() {
-                    self.apply_update_command(crate::slash::UpdateCommand::Install);
-                } else {
-                    self.apply_update_command(crate::slash::UpdateCommand::Check);
-                }
+                self.open_update_install_dialog();
                 return Ok(false);
             }
         }
@@ -1142,6 +1209,10 @@ impl App {
 
         if self.state.phase == AppPhase::Settings {
             return Ok(self.handle_settings_key(key));
+        }
+
+        if self.state.phase == AppPhase::UpdateInstall {
+            return Ok(self.handle_update_install_key(key));
         }
 
         if self.state.scroll_viewer.is_some() {
@@ -1733,6 +1804,52 @@ impl App {
                         self.state.status_line.clear();
                     }
                 }
+            }
+            PendingSlash::UpdateInstall => {
+                use crate::engine::update_install::{
+                    apply_install, platform_asset, InstallOutcome,
+                };
+                use crate::i18n::keys_update as u;
+
+                let release = self
+                    .remote_release
+                    .clone()
+                    .context("manifeste MAJ absent")?;
+                let asset = platform_asset(&release).context("artefact plateforme absent")?;
+                self.state
+                    .status_line = crate::i18n::t(u::UPDATE_INSTALL_RUNNING).into();
+                let install_path = self.tui_prefs.update.install_path.as_deref();
+                match apply_install(&release, asset, install_path).await {
+                    Ok(InstallOutcome::LaunchedInstaller { path: _ }) => {
+                        self.state
+                            .push_system(crate::i18n::t(u::UPDATE_INSTALL_LAUNCHED));
+                        self.request_quit = true;
+                    }
+                    Ok(InstallOutcome::ScheduledReplace { target, .. }) => {
+                        self.state
+                            .push_system(crate::i18n::t(u::UPDATE_INSTALL_SCHEDULED));
+                        if let Some(utf) =
+                            crate::engine::update_install::install_path_utf8(&target)
+                        {
+                            self.tui_prefs.update.install_path = Some(utf.to_string());
+                        }
+                        self.request_quit = true;
+                    }
+                    Ok(InstallOutcome::Manual { hint, artifact }) => {
+                        self.state.push_system(crate::i18n::tf(u::UPDATE_INSTALL_MANUAL, &hint));
+                        self.state.push_system(format!(
+                            "Artefact : {}",
+                            artifact.display()
+                        ));
+                    }
+                    Err(e) => {
+                        self.state.push_system(crate::i18n::tf(
+                            u::UPDATE_INSTALL_FAILED,
+                            &e.to_string(),
+                        ));
+                    }
+                }
+                self.state.status_line.clear();
             }
             PendingSlash::Permissions => {
                 for line in runtime.format_permissions_lines() {

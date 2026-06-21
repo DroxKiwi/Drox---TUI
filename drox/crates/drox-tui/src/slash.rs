@@ -146,6 +146,8 @@ pub enum PendingSlash {
     Statusline,
     /// Vérification MAJ TUI (`/update check`).
     UpdateCheck { quiet: bool },
+    /// Installation MAJ confirmée (modale).
+    UpdateInstall,
     /// Applique le modèle choisi dans `/server`.
     ApplyAiServer { index: usize },
     /// Applique le workspace validé dans `/workspace`.

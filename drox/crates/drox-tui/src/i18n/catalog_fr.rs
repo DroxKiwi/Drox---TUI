@@ -350,15 +350,30 @@ pub fn get(key: &str) -> Option<&'static str> {
         UPDATE_CHECK_RUNNING => Some("Vérification des mises à jour…"),
         UPDATE_CHECK_REMOTE => Some("Version distante : {}"),
         UPDATE_CHECK_UP_TO_DATE => Some("Vous êtes à jour."),
-        UPDATE_CHECK_AVAILABLE => Some("Mise à jour {} disponible — /update install (bientôt)."),
+        UPDATE_CHECK_AVAILABLE => Some("Mise à jour {} disponible — /update install ou Ctrl+Shift+U."),
         UPDATE_CHECK_NEWER_LOCAL => Some(
             "Version locale ({}) plus récente que le dépôt OR ({}).",
         ),
         UPDATE_CHECK_FAILED => Some("Vérification MAJ échouée : {}"),
         UPDATE_CHECK_RELEASE_NOTES => Some("Notes : {}"),
         UPDATE_INSTALL_STUB => Some(
-            "Installation automatique non disponible (M4) — téléchargez depuis GitHub Releases.",
+            "Installation automatique non disponible — téléchargez depuis GitHub Releases.",
         ),
+        UPDATE_INSTALL_MODAL_TITLE => Some("Installer la mise à jour"),
+        UPDATE_INSTALL_MODAL_BODY => Some("{} → {}"),
+        UPDATE_INSTALL_MODAL_SHA => Some("SHA256 : {}"),
+        UPDATE_INSTALL_MODAL_NOTES => Some("Notes : {}"),
+        UPDATE_INSTALL_MODAL_FOOTER => {
+            Some("Entrée = télécharger et installer · Esc = annuler")
+        }
+        UPDATE_INSTALL_RUNNING => Some("Téléchargement et vérification…"),
+        UPDATE_INSTALL_LAUNCHED => Some("Installateur lancé — fermeture du TUI…"),
+        UPDATE_INSTALL_SCHEDULED => Some("Mise à jour programmée — relance imminente…"),
+        UPDATE_INSTALL_MANUAL => Some("{}"),
+        UPDATE_INSTALL_FAILED => Some("Installation MAJ échouée : {}"),
+        UPDATE_INSTALL_NO_RELEASE => Some("Aucun manifeste distant — lancez /update check."),
+        UPDATE_INSTALL_NOT_AVAILABLE => Some("Aucune mise à jour disponible à installer."),
+        UPDATE_INSTALL_UNSUPPORTED => Some("Aucun artefact pour cette plateforme dans latest.json."),
         UPDATE_SNOOZE_USAGE => Some("Usage : /update snooze <jours> — ex. /update snooze 7"),
         SETTINGS_UPDATE => Some("Mises à jour"),
         UPDATE_BANNER => Some(

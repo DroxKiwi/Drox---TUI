@@ -19,6 +19,7 @@ pub(crate) mod keybindings_cmd;
 pub(crate) mod preferences;
 pub(crate) mod update_prefs;
 pub(crate) mod update;
+pub(crate) mod update_install;
 mod rewind;
 mod skills;
 pub(crate) mod notices;
