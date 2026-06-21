@@ -18,7 +18,8 @@ Produit **2.0.2** · moteur dérivé IDE **1.5.0** · dépôt OR : `../Drox---TU
 ```
 
 Artefact : `dist/drox-tui-<version>-windows-x64-setup.exe`  
-Script Inno Setup : `packaging/windows/drox-tui-setup.iss`
+Script Inno Setup : `packaging/windows/drox-tui-setup.iss`  
+Icône officielle : `packaging/assets/drox.ico` (installateur + exe Windows)
 
 ### Installation utilisateur
 

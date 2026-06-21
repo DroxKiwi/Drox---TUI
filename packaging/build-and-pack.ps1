@@ -58,6 +58,7 @@ if (Test-Path $StageDir) { Remove-Item -Recurse -Force $StageDir }
 New-Item -ItemType Directory -Force -Path $BinStage | Out-Null
 
 Copy-Item $Binary (Join-Path $BinStage 'drox-tui.exe')
+Copy-Item (Join-Path $PackagingDir 'assets\drox.ico') (Join-Path $StageDir 'drox.ico')
 Copy-Item (Join-Path $PackagingDir 'LICENSE-MIT.txt') (Join-Path $StageDir 'LICENSE')
 Set-Content -Path (Join-Path $StageDir 'VERSION') -Value $Version -Encoding ASCII
 

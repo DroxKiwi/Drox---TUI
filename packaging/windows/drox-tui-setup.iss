@@ -29,7 +29,8 @@ WizardStyle=modern
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-UninstallDisplayIcon={app}\bin\{#MyAppExeName}
+SetupIconFile=..\..\packaging\assets\drox.ico
+UninstallDisplayIcon={app}\drox.ico
 LicenseFile=..\..\packaging\LICENSE-MIT.txt
 InfoBeforeFile=..\..\packaging\README-INSTALL.txt
 
@@ -42,11 +43,12 @@ Name: "addpath"; Description: "Ajouter Drox TUI au PATH utilisateur"; GroupDescr
 
 [Files]
 Source: "..\..\dist\stage-windows\bin\{#MyAppExeName}"; DestDir: "{app}\bin"; Flags: ignoreversion
+Source: "..\..\dist\stage-windows\drox.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\dist\stage-windows\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\dist\stage-windows\VERSION"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"; Parameters: "--workspace ""{userdocs}"""
+Name: "{group}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"; IconFilename: "{app}\drox.ico"; Parameters: "--workspace ""{userdocs}"""
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 [Registry]
