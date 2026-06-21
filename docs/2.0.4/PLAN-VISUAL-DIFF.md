@@ -93,18 +93,19 @@ Un **diff visuel first-class** : l’utilisateur voit les changements du workspa
 
 **Fichiers** : `engine/diff_cmd.rs`, `slash.rs`, `app/run.rs`, `view/lines_viewer.rs`, `view/tool_output.rs`, `i18n/*`
 
-### M2 — Diff fichier et navigation
+### M2 — Diff fichier et navigation ✅
 
-- [ ] `/diff <chemin>` → diff du fichier (git ou working tree)
-- [ ] Liste `git status --short` cliquable (souris déjà active sur modales)
-- [ ] Raccourci `o` dans le viewer → `file_read` sur le fichier
+- [x] `/diff <chemin>` → diff du fichier (git ou working tree)
+- [x] Liste `git status --short` cliquable (souris déjà active sur modales)
+- [x] Raccourci `o` dans le viewer → `file_read` sur le fichier
+- [x] `Entrée` / ↑↓ sur la sélection status pour cibler un fichier
 
-### M3 — Enrichissement visuel
+### M3 — Enrichissement visuel ✅
 
-- [ ] Numéros de ligne dans la marge (parser les en-têtes `@@`)
-- [ ] Surlignage intra-ligne (optionnel, `similar` word-diff) pour petits hunks
-- [ ] Thème : couleurs diff depuis `ThemePalette` (pas hardcodé Green/Red)
-- [ ] `file_write` proposé : afficher unified diff dans le fil (comme `file_edit`)
+- [x] Numéros de ligne dans la marge (parser les en-têtes `@@`)
+- [x] Surlignage intra-ligne (`similar` word-diff) pour petits hunks
+- [x] Thème : couleurs diff depuis `ThemePalette` (pas hardcodé Green/Red)
+- [x] `file_write` proposé : afficher unified diff dans le fil (comme `file_edit`)
 
 ### M4 — Diff agent intégré (polish)
 

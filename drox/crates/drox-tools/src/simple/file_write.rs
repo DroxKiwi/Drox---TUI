@@ -71,11 +71,18 @@ impl Tool for FileWriteTool {
                 "bytes_written": args.content.len(),
             }))
         } else {
+            let before = std::fs::read_to_string(&resolved).unwrap_or_default();
+            let diff = crate::diff_util::unified_line_diff(
+                resolved.as_str(),
+                &before,
+                &args.content,
+            );
             Ok(json!({
                 "applied": false,
                 "proposed": true,
                 "path": resolved.as_str(),
                 "content": args.content,
+                "diff": diff,
             }))
         }
     }
@@ -104,6 +111,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(out["applied"], false);
+        assert!(out.get("diff").and_then(|v| v.as_str()).is_some_and(|d| !d.is_empty()));
         assert!(!root.join("d/x.txt").exists());
     }
 

@@ -1,13 +1,116 @@
 //! Viewer scrollable générique (diff, LSP, skill, MCP, rapports).
 
+use std::collections::HashMap;
+
 use drox_types::ToolUseId;
-use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
+use ratatui::text::Line;
+
+use crate::ui::theme::ThemePalette;
+
+use super::diff_render::{
+    self, build_diff_line_meta, render_diff_line, word_diff_pair, DiffColors, DiffLineMeta,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LinesViewerStyle {
     Plain,
     UnifiedDiff,
+}
+
+/// Navigation git workspace (`/diff`) : lignes status cliquables + sélection clavier.
+#[derive(Debug, Clone, Default)]
+pub struct GitWorkspaceNav {
+    pub selected_path: Option<String>,
+    /// Index dans `lines` → chemin relatif au dépôt.
+    pub status_line_paths: HashMap<usize, String>,
+}
+
+impl GitWorkspaceNav {
+    #[must_use]
+    pub fn index_body(body: &[String], preset_path: Option<String>) -> Self {
+        let mut status_line_paths = HashMap::new();
+        let mut in_status = false;
+        for (i, line) in body.iter().enumerate() {
+            if line.as_str() == "— status —" {
+                in_status = true;
+                continue;
+            }
+            if line.starts_with('—') && line.ends_with('—') && line.as_str() != "— status —" {
+                in_status = false;
+                continue;
+            }
+            if in_status {
+                if let Some(path) = parse_status_line_path(line) {
+                    status_line_paths.insert(i, path);
+                }
+            }
+        }
+        Self {
+            selected_path: preset_path,
+            status_line_paths,
+        }
+    }
+
+    #[must_use]
+    pub fn path_at_line(&self, line_idx: usize) -> Option<&str> {
+        self.status_line_paths.get(&line_idx).map(String::as_str)
+    }
+
+    pub fn cycle_selection(&mut self, delta: i32) {
+        let mut indices: Vec<usize> = self.status_line_paths.keys().copied().collect();
+        indices.sort_unstable();
+        if indices.is_empty() {
+            return;
+        }
+        let current_pos = self.selected_path.as_ref().and_then(|sel| {
+            indices.iter().position(|&idx| {
+                self.status_line_paths
+                    .get(&idx)
+                    .is_some_and(|p| p == sel)
+            })
+        });
+        let next_pos = match current_pos {
+            None => {
+                if delta < 0 {
+                    indices.len() - 1
+                } else {
+                    0
+                }
+            }
+            Some(pos) => {
+                let len = indices.len() as i32;
+                (pos as i32 + delta).rem_euclid(len) as usize
+            }
+        };
+        self.selected_path = self
+            .status_line_paths
+            .get(&indices[next_pos])
+            .cloned();
+    }
+}
+
+/// Parse une ligne `git status --short` (ex. ` M src/lib.rs`).
+#[must_use]
+pub fn parse_status_line_path(line: &str) -> Option<String> {
+    let line = line.trim_end();
+    let bytes = line.as_bytes();
+    if bytes.len() < 4 || bytes[2] != b' ' {
+        return None;
+    }
+    let rest = line.get(3..)?.trim();
+    if rest.is_empty() {
+        return None;
+    }
+    let path = if let Some((_, new)) = rest.split_once(" -> ") {
+        new.trim()
+    } else {
+        rest
+    };
+    if path.is_empty() {
+        None
+    } else {
+        Some(path.to_string())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -17,6 +120,8 @@ pub struct LinesViewerState {
     pub lines: Vec<String>,
     pub scroll_top: usize,
     pub style: LinesViewerStyle,
+    pub git_nav: Option<GitWorkspaceNav>,
+    diff_meta: Option<Vec<DiffLineMeta>>,
 }
 
 impl LinesViewerState {
@@ -27,13 +132,25 @@ impl LinesViewerState {
         lines: Vec<String>,
         style: LinesViewerStyle,
     ) -> Self {
-        Self {
+        let mut viewer = Self {
             tool_id: id,
             title: title.into(),
             lines,
             scroll_top: 0,
             style,
-        }
+            git_nav: None,
+            diff_meta: None,
+        };
+        viewer.refresh_diff_meta();
+        viewer
+    }
+
+    fn refresh_diff_meta(&mut self) {
+        self.diff_meta = if self.style == LinesViewerStyle::UnifiedDiff {
+            Some(build_diff_line_meta(&self.lines))
+        } else {
+            None
+        };
     }
 
     #[must_use]
@@ -41,9 +158,16 @@ impl LinesViewerState {
         id: ToolUseId,
         workspace: &camino::Utf8Path,
         lines: Vec<String>,
+        nav: GitWorkspaceNav,
     ) -> Self {
-        let title = format!(" git — {} ", workspace);
-        Self::new(id, title, lines, LinesViewerStyle::UnifiedDiff)
+        let title = if let Some(ref path) = nav.selected_path {
+            format!(" git — {} — {path} ", workspace)
+        } else {
+            format!(" git — {} ", workspace)
+        };
+        let mut viewer = Self::new(id, title, lines, LinesViewerStyle::UnifiedDiff);
+        viewer.git_nav = Some(nav);
+        viewer
     }
 
     #[must_use]
@@ -86,34 +210,60 @@ impl LinesViewerState {
     }
 
     #[must_use]
-    pub fn render_lines(&self, visible: usize) -> Vec<Line<'static>> {
+    pub fn render_lines(&self, visible: usize, palette: &ThemePalette) -> Vec<Line<'static>> {
+        let colors = DiffColors::from_palette(palette);
         let end = (self.scroll_top + visible).min(self.lines.len());
         self.lines[self.scroll_top..end]
             .iter()
-            .map(|line| match self.style {
-                LinesViewerStyle::Plain => Line::from(Span::styled(
-                    line.clone(),
-                    Style::default().fg(Color::Gray),
-                )),
-                LinesViewerStyle::UnifiedDiff => render_diff_line(line),
+            .enumerate()
+            .map(|(row, line)| {
+                let abs = self.scroll_top + row;
+                let git_highlight = self.git_nav.as_ref().and_then(|nav| {
+                    let path = nav.path_at_line(abs)?;
+                    let selected = nav.selected_path.as_deref() == Some(path);
+                    Some((selected, nav.status_line_paths.contains_key(&abs)))
+                });
+                match self.style {
+                    LinesViewerStyle::Plain => Line::from(ratatui::text::Span::styled(
+                        line.clone(),
+                        ratatui::style::Style::default().fg(palette.text_muted),
+                    )),
+                    LinesViewerStyle::UnifiedDiff => {
+                        let meta = self
+                            .diff_meta
+                            .as_ref()
+                            .and_then(|m| m.get(abs).copied())
+                            .unwrap_or_default();
+                        let bounds = diff_render::hunk_bounds_for_line(&self.lines, abs);
+                        let pair = word_diff_pair(&self.lines, abs, bounds);
+                        render_diff_line(
+                            line,
+                            meta,
+                            &colors,
+                            git_highlight,
+                            pair,
+                        )
+                    }
+                }
             })
             .collect()
     }
-}
 
-fn render_diff_line(line: &str) -> Line<'static> {
-    let style = if line.starts_with("+++") || line.starts_with("---") {
-        Style::default().fg(Color::Cyan)
-    } else if line.starts_with('+') {
-        Style::default().fg(Color::Green)
-    } else if line.starts_with('-') {
-        Style::default().fg(Color::Red)
-    } else if line.starts_with('@') {
-        Style::default().fg(Color::Magenta)
-    } else {
-        Style::default().fg(Color::Gray)
-    };
-    Line::from(Span::styled(line.to_string(), style))
+    /// Chemin cible pour `o` (sélection status ou en-tête `+++ b/`).
+    #[must_use]
+    pub fn git_open_path(&self) -> Option<String> {
+        if let Some(nav) = &self.git_nav {
+            if let Some(path) = &nav.selected_path {
+                return Some(path.clone());
+            }
+        }
+        for line in &self.lines {
+            if let Some(path) = line.strip_prefix("+++ b/") {
+                return Some(path.to_string());
+            }
+        }
+        None
+    }
 }
 
 #[must_use]
@@ -129,21 +279,71 @@ pub fn viewer_footer(scroll_top: usize, total: usize, visible: usize) -> String 
     )
 }
 
+#[must_use]
+pub fn viewer_footer_git(
+    scroll_top: usize,
+    total: usize,
+    visible: usize,
+    _has_selection: bool,
+) -> String {
+    if total == 0 {
+        return format!(" {} ", crate::i18n::t(crate::i18n::keys_p1::DIFF_VIEWER_FOOTER_EMPTY));
+    }
+    let base = viewer_footer(scroll_top, total, visible);
+    format!(
+        "{}· {} ",
+        base.trim_end(),
+        crate::i18n::t(crate::i18n::keys_p1::DIFF_VIEWER_FOOTER_GIT_EXTRA)
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    fn parses_status_paths() {
+        assert_eq!(
+            parse_status_line_path(" M src/lib.rs").as_deref(),
+            Some("src/lib.rs")
+        );
+        assert_eq!(
+            parse_status_line_path("?? tmp.log").as_deref(),
+            Some("tmp.log")
+        );
+        assert_eq!(
+            parse_status_line_path("R  old.rs -> new.rs").as_deref(),
+            Some("new.rs")
+        );
+    }
+
+    #[test]
+    fn git_nav_indexes_status_section() {
+        let body = vec![
+            "— status —".into(),
+            " M src/a.rs".into(),
+            "?? b.txt".into(),
+            "— diff (HEAD) —".into(),
+            "+++ b/src/a.rs".into(),
+        ];
+        let nav = GitWorkspaceNav::index_body(&body, None);
+        assert_eq!(nav.status_line_paths.len(), 2);
+        assert_eq!(nav.path_at_line(1), Some("src/a.rs"));
+    }
+
+    #[test]
     fn diff_lines_colored() {
+        let palette = crate::ui::theme::TuiThemeSetting::Drox.palette();
         let v = LinesViewerState::from_diff(
             ToolUseId::new(),
             "file_edit",
             "a.rs",
-            "--- a\n+++ b\n@@\n-old\n+new",
+            "--- a\n+++ b\n@@ -1,1 +1,1 @@\n-old\n+new",
             "appliqué",
         );
         assert_eq!(v.line_count(), 5);
-        let rendered = v.render_lines(10);
+        let rendered = v.render_lines(10, &palette);
         assert!(!rendered.is_empty());
+        assert!(v.diff_meta.is_some());
     }
 }

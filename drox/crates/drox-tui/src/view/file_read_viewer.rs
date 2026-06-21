@@ -48,6 +48,35 @@ impl FileReadViewerState {
         })
     }
 
+    #[must_use]
+    pub fn from_workspace_path(
+        id: ToolUseId,
+        abs_path: &camino::Utf8Path,
+        rel_path: &str,
+    ) -> Option<Self> {
+        const MAX_BYTES: u64 = 512 * 1024;
+        let meta = std::fs::metadata(abs_path.as_std_path()).ok()?;
+        let size = meta.len();
+        let bytes = std::fs::read(abs_path.as_std_path()).ok()?;
+        let truncated = size > MAX_BYTES;
+        let capped = &bytes[..usize::min(bytes.len(), MAX_BYTES as usize)];
+        let content = String::from_utf8_lossy(capped);
+        let lines = content
+            .lines()
+            .enumerate()
+            .map(|(i, line)| ((i + 1) as u64, line.to_string()))
+            .collect();
+        Some(Self {
+            tool_id: id,
+            path: rel_path.to_string(),
+            lines,
+            truncated,
+            size_bytes: size,
+            scroll_top: 0,
+            lang: lang_from_path(rel_path),
+        })
+    }
+
     pub fn scroll_page(&mut self, delta_lines: usize, visible: usize) {
         if delta_lines == 0 || self.lines.is_empty() {
             return;

@@ -87,7 +87,7 @@ impl ScrollViewerState {
     }
 
     #[must_use]
-    pub fn render_lines(&self, visible: usize) -> Vec<Line<'static>> {
+    pub fn render_lines(&self, visible: usize, palette: &crate::ui::theme::ThemePalette) -> Vec<Line<'static>> {
         match self {
             Self::FileRead(v) => v.render_lines(visible),
             Self::Bash(v) => v.render_lines(visible),
@@ -95,7 +95,7 @@ impl ScrollViewerState {
             Self::Glob(v) => v.render_lines(visible),
             Self::WebFetch(v) => v.render_lines(visible),
             Self::WebSearch(v) => v.render_lines(visible),
-            Self::Lines(v) => v.render_lines(visible),
+            Self::Lines(v) => v.render_lines(visible, palette),
         }
     }
 
@@ -123,7 +123,20 @@ impl ScrollViewerState {
             Self::Glob(_) => glob_viewer::viewer_footer(top, total, visible),
             Self::WebFetch(_) => web_fetch_viewer::viewer_footer(top, total, visible),
             Self::WebSearch(_) => web_search_viewer::viewer_footer(top, total, visible),
-            Self::Lines(_) => lines_viewer::viewer_footer(top, total, visible),
+            Self::Lines(v) => {
+                if v.git_nav.is_some() {
+                    lines_viewer::viewer_footer_git(
+                        top,
+                        total,
+                        visible,
+                        v.git_nav
+                            .as_ref()
+                            .is_some_and(|n| n.selected_path.is_some()),
+                    )
+                } else {
+                    lines_viewer::viewer_footer(top, total, visible)
+                }
+            }
         }
     }
 }

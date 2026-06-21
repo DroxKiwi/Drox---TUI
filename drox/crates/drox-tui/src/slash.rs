@@ -66,8 +66,8 @@ pub enum SlashOutcome {
     Init,
     /// Tokens / usage session.
     Cost,
-    /// Git diff workspace (`/diff`, `/diff --stat`).
-    Diff { stat_only: bool },
+    /// Git diff workspace (`/diff`, `/diff --stat`, `/diff <chemin>`).
+    Diff { stat_only: bool, file: Option<String> },
     /// Fichiers vus dans le fil.
     Files,
     /// Branche git courante.
@@ -122,7 +122,7 @@ pub enum PendingSlash {
     Mcp { args: String },
     Skills { args: String },
     Cost,
-    Diff { stat_only: bool },
+    Diff { stat_only: bool, file: Option<String> },
     Files,
     Branch,
     Init,
@@ -396,8 +396,21 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
                 .strip_prefix("/diff")
                 .unwrap_or("")
                 .trim();
-            SlashOutcome::Diff {
-                stat_only: rest.eq_ignore_ascii_case("--stat"),
+            if rest.is_empty() {
+                SlashOutcome::Diff {
+                    stat_only: false,
+                    file: None,
+                }
+            } else if rest.eq_ignore_ascii_case("--stat") {
+                SlashOutcome::Diff {
+                    stat_only: true,
+                    file: None,
+                }
+            } else {
+                SlashOutcome::Diff {
+                    stat_only: false,
+                    file: Some(rest.to_string()),
+                }
             }
         }
         "/files" => SlashOutcome::Files,

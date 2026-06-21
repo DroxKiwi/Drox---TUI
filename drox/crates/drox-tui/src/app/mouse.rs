@@ -94,11 +94,65 @@ impl App {
     }
 
     fn mouse_click(&mut self, x: u16, y: u16) {
+        if self.mouse_click_scroll_viewer(x, y) {
+            return;
+        }
         match self.state.phase {
             AppPhase::Prompt => self.mouse_click_prompt(x, y),
             AppPhase::AiServer => self.mouse_click_ai_server(x, y),
             _ => {}
         }
+    }
+
+    fn mouse_click_scroll_viewer(&mut self, x: u16, y: u16) -> bool {
+        let Some(popup) = self.state.hit_areas.scroll_viewer_popup else {
+            return false;
+        };
+        if !HitAreas::contains(popup, x, y) {
+            return false;
+        }
+
+        let scroll_top = self
+            .state
+            .scroll_viewer
+            .as_ref()
+            .map(crate::view::ScrollViewerState::scroll_top)
+            .unwrap_or(0);
+        let Some(line_idx) =
+            crate::widgets::scroll_viewer::line_index_at_click(popup, scroll_top, x, y)
+        else {
+            return true;
+        };
+
+        let path = self
+            .state
+            .scroll_viewer
+            .as_ref()
+            .and_then(|v| {
+                if let crate::view::ScrollViewerState::Lines(lines) = v {
+                    lines.git_nav.as_ref()?.path_at_line(line_idx).map(str::to_string)
+                } else {
+                    None
+                }
+            });
+
+        let Some(path) = path else {
+            return true;
+        };
+
+        if let Some(crate::view::ScrollViewerState::Lines(lines)) =
+            self.state.scroll_viewer.as_mut()
+        {
+            if let Some(nav) = lines.git_nav.as_mut() {
+                nav.selected_path = Some(path.clone());
+            }
+        }
+
+        self.pending_slash = Some(crate::slash::PendingSlash::Diff {
+            stat_only: false,
+            file: Some(path),
+        });
+        true
     }
 
     fn mouse_click_prompt(&mut self, x: u16, y: u16) {

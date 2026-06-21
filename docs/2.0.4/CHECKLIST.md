@@ -5,8 +5,8 @@
 - [x] M1 — `/diff` affiche `git diff` unifié en overlay
 - [x] `/diff --stat` résumé compact
 - [x] Fil agent : `e` sur tout diff non vide
-- [ ] M2 — `/diff <fichier>` + navigation status
-- [ ] M3 — Numéros de ligne + thème diff
+- [x] M2 — `/diff <fichier>` + navigation status
+- [x] M3 — Numéros de ligne + thème diff + file_write
 - [ ] M4 — Bandeau fin de run agent + lien permission
 - [ ] Tests `diff_cmd` + viewer
 - [ ] i18n FR/EN

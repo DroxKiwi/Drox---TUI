@@ -19,6 +19,7 @@ pub mod spinner;
 pub mod system_message;
 pub mod syntax;
 pub mod tool_output;
+pub mod diff_render;
 pub mod lines_viewer;
 pub mod glob_viewer;
 pub mod grep_viewer;

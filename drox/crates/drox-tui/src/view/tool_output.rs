@@ -357,7 +357,9 @@ pub fn format_file_write_finish(id: &ToolUseId, output: &Value, is_error: bool) 
     let proposed = output.get("proposed").and_then(Value::as_bool).unwrap_or(false);
     let tag = file_edit_tag(applied, proposed);
     let mut lines = vec![format!("◂ file_write ({id}) {path} [{tag}]")];
-    if applied {
+    if let Some(diff) = output.get("diff").and_then(Value::as_str) {
+        append_unified_diff_block(&mut lines, diff);
+    } else if applied {
         if let Some(bytes) = output.get("bytes_written").and_then(Value::as_u64) {
             lines.push(format!("    {bytes} octet(s) écrits"));
         }
@@ -620,16 +622,18 @@ mod tests {
     }
 
     #[test]
-    fn file_write_proposed_shows_content() {
+    fn file_write_proposed_shows_diff() {
         let id = ToolUseId::new();
         let out = serde_json::json!({
             "proposed": true,
             "path": "new.txt",
-            "content": "hello\nworld"
+            "content": "hello\nworld",
+            "diff": "--- new.txt\n+++ new.txt\n@@ -0,0 +1,2 @@\n+hello\n+world"
         });
         let lines = format_file_write_finish(&id, &out, false);
         assert!(lines.iter().any(|l| l.contains("proposé")));
-        assert!(lines.iter().any(|l| l.contains("hello")));
+        assert!(lines.iter().any(|l| l.contains("+hello")));
+        assert!(lines.iter().any(|l| l.contains("e pour parcourir")));
     }
 
     #[test]

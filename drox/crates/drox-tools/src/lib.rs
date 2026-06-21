@@ -27,6 +27,7 @@ mod tool;
 pub use asker::{UserAnswer, UserAsker, UserQuestion};
 pub use progress::{ShellProgressUpdate, ToolProgressSink};
 pub use context::ToolContext;
+pub use diff_util::unified_line_diff;
 pub use error::ToolError;
 pub use registry::ToolRegistry;
 pub use skills::{format_skills_listing_for_prompt, load_skills_catalog};

@@ -1026,6 +1026,10 @@ enum LatestExpandable<'a> {
         id: ToolUseId,
         output: &'a Value,
     },
+    FileWrite {
+        id: ToolUseId,
+        output: &'a Value,
+    },
     NotebookEdit {
         id: ToolUseId,
         output: &'a Value,
@@ -1315,6 +1319,17 @@ impl AppState {
                 self.toggle_scroll_viewer(id, ScrollViewerState::Lines(viewer))
                     .then_some("file_edit")
             }
+            Some(LatestExpandable::FileWrite { id, output }) => {
+                let id = id.clone();
+                let output = output.clone();
+                let viewer = crate::view::tool_output::diff_viewer_from_output(
+                    "file_write",
+                    id.clone(),
+                    &output,
+                )?;
+                self.toggle_scroll_viewer(id, ScrollViewerState::Lines(viewer))
+                    .then_some("file_write")
+            }
             Some(LatestExpandable::NotebookEdit { id, output }) => {
                 let id = id.clone();
                 let output = output.clone();
@@ -1502,6 +1517,19 @@ impl AppState {
                     && crate::view::tool_output::diff_is_expandable(output) =>
                 {
                     return Some(LatestExpandable::FileEdit {
+                        id: id.clone(),
+                        output,
+                    });
+                }
+                LogEntry::ToolFinish {
+                    id,
+                    name,
+                    output,
+                    is_error: false,
+                } if name == "file_write"
+                    && crate::view::tool_output::diff_is_expandable(output) =>
+                {
+                    return Some(LatestExpandable::FileWrite {
                         id: id.clone(),
                         output,
                     });

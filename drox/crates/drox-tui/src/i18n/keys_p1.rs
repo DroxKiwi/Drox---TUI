@@ -29,6 +29,10 @@ pub const SLASH_PALETTE_DIFF: &str = "slash.palette.diff";
 pub const DIFF_NOT_REPO: &str = "diff.not_repo";
 pub const DIFF_EMPTY: &str = "diff.empty";
 pub const STATUS_DIFF_VIEWER: &str = "status.diff_viewer";
+pub const STATUS_DIFF_FILE_OPEN: &str = "status.diff_file_open";
+pub const DIFF_FILE_OPEN_FAILED: &str = "diff.file_open_failed";
+pub const DIFF_VIEWER_FOOTER_EMPTY: &str = "diff.viewer_footer_empty";
+pub const DIFF_VIEWER_FOOTER_GIT_EXTRA: &str = "diff.viewer_footer_git_extra";
 pub const SLASH_PALETTE_FILES: &str = "slash.palette.files";
 pub const SLASH_PALETTE_BRANCH: &str = "slash.palette.branch";
 pub const SLASH_PALETTE_THEME: &str = "slash.palette.theme";
@@ -198,6 +202,10 @@ pub const P1_KEYS: &[&str] = &[
     DIFF_NOT_REPO,
     DIFF_EMPTY,
     STATUS_DIFF_VIEWER,
+    STATUS_DIFF_FILE_OPEN,
+    DIFF_FILE_OPEN_FAILED,
+    DIFF_VIEWER_FOOTER_EMPTY,
+    DIFF_VIEWER_FOOTER_GIT_EXTRA,
     SLASH_PALETTE_FILES,
     SLASH_PALETTE_BRANCH,
     SLASH_PALETTE_THEME,

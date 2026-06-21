@@ -735,15 +735,99 @@ impl App {
             self.state.status_line = crate::i18n::t(sk::STATUS_VIEWER_CLOSED).into();
             return false;
         }
+
+        if matches!(key.code, KeyCode::Char('o') | KeyCode::Char('O')) {
+            if self.open_git_viewer_file_read() {
+                return false;
+            }
+        }
+
+        if key.code == KeyCode::Enter {
+            if self.drill_git_viewer_file_diff() {
+                return false;
+            }
+        }
+
         let Some(viewer) = self.state.scroll_viewer.as_mut() else {
             return false;
         };
+
+        if let crate::view::ScrollViewerState::Lines(lines) = viewer {
+            if lines.git_nav.is_some() {
+                match key.code {
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        if let Some(nav) = lines.git_nav.as_mut() {
+                            nav.cycle_selection(-1);
+                        }
+                        return false;
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        if let Some(nav) = lines.git_nav.as_mut() {
+                            nav.cycle_selection(1);
+                        }
+                        return false;
+                    }
+                    _ => {}
+                }
+            }
+        }
+
         if self.keybindings.matches(BindingAction::ScrollUp, &key) {
             viewer.scroll_page(PAGE, PAGE);
         } else if self.keybindings.matches(BindingAction::ScrollDown, &key) {
             viewer.scroll_page_down(PAGE, PAGE);
         }
         false
+    }
+
+    fn open_git_viewer_file_read(&mut self) -> bool {
+        let rel = match self.state.scroll_viewer.as_ref().and_then(|v| {
+            if let crate::view::ScrollViewerState::Lines(lines) = v {
+                lines.git_open_path()
+            } else {
+                None
+            }
+        }) {
+            Some(p) => p,
+            None => return false,
+        };
+        let Some(runtime) = self.runtime.as_ref() else {
+            return false;
+        };
+        let abs = runtime.workspace.join(&rel);
+        let Some(viewer) = crate::view::file_read_viewer::FileReadViewerState::from_workspace_path(
+            drox_types::ToolUseId::new(),
+            &abs,
+            &rel,
+        ) else {
+            self.state.status_line = crate::i18n::t(sk::DIFF_FILE_OPEN_FAILED).into();
+            return true;
+        };
+        self.state.scroll_viewer =
+            Some(crate::view::ScrollViewerState::FileRead(viewer));
+        self.state.status_line = crate::i18n::t(sk::STATUS_DIFF_FILE_OPEN).into();
+        true
+    }
+
+    fn drill_git_viewer_file_diff(&mut self) -> bool {
+        let path = match self.state.scroll_viewer.as_ref().and_then(|v| {
+            if let crate::view::ScrollViewerState::Lines(lines) = v {
+                lines
+                    .git_nav
+                    .as_ref()
+                    .and_then(|n| n.selected_path.clone())
+            } else {
+                None
+            }
+        }) {
+            Some(p) => p,
+            None => return false,
+        };
+        self.pending_slash = Some(PendingSlash::Diff {
+            stat_only: false,
+            file: Some(path),
+        });
+        true
     }
 
     fn handle_copy_key(&mut self, key: KeyEvent) -> bool {
@@ -1575,8 +1659,8 @@ impl App {
             SlashOutcome::Cost => {
                 self.pending_slash = Some(PendingSlash::Cost);
             }
-            SlashOutcome::Diff { stat_only } => {
-                self.pending_slash = Some(PendingSlash::Diff { stat_only });
+            SlashOutcome::Diff { stat_only, file } => {
+                self.pending_slash = Some(PendingSlash::Diff { stat_only, file });
             }
             SlashOutcome::Files => {
                 self.pending_slash = Some(PendingSlash::Files);
@@ -1886,14 +1970,14 @@ impl App {
                     self.state.push_system(line);
                 }
             }
-            PendingSlash::Diff { stat_only } => {
+            PendingSlash::Diff { stat_only, file } => {
                 if stat_only {
                     for line in runtime.format_git_diff_lines().await {
                         self.state.push_system(line);
                     }
                 } else {
                     use crate::engine::GitDiffVisual;
-                    match runtime.load_git_diff_visual().await {
+                    match runtime.load_git_diff_visual(file.as_deref()).await {
                         GitDiffVisual::NotRepo => {
                             self.state
                                 .push_system(crate::i18n::t(sk::DIFF_NOT_REPO));
