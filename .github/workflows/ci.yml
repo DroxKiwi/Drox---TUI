@@ -34,3 +34,9 @@ jobs:
         run: |
           test -f dist/drox-tui-*-linux-x64.tar.gz
           test -f dist/SHA256SUMS-*-linux.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-2.0.3
+          path: |
+            dist/drox-tui-*-linux-x64.tar.gz
+            dist/SHA256SUMS-*-linux.txt
