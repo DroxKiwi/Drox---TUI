@@ -49,18 +49,37 @@ $LinuxTar = Join-Path $RepoRoot "dist\drox-tui-$Version-linux-x64.tar.gz"
 $LinuxName = "drox-tui-$Version-linux-x64.tar.gz"
 $LinuxSha256 = $null
 
+function ConvertTo-WslPath {
+    param([string]$WindowsPath)
+    $normalized = (Resolve-Path -LiteralPath $WindowsPath).Path
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    try {
+        $wslOut = & wsl.exe wslpath -a $normalized 2>&1
+        if ($LASTEXITCODE -eq 0 -and $wslOut -and ($wslOut -notmatch 'wslpath:')) {
+            return ($wslOut | Out-String).Trim()
+        }
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+    $drive = $normalized.Substring(0, 1).ToLower()
+    $rest = $normalized.Substring(2).Replace('\', '/')
+    return "/mnt/$drive$rest"
+}
+
 if (-not $SkipLinux) {
     $LinuxScript = Join-Path $PSScriptRoot 'build-and-pack-linux.sh'
     if (Get-Command wsl -ErrorAction SilentlyContinue) {
         Write-Host "==> Build Linux x64 (WSL)" -ForegroundColor Cyan
-        $WslRepo = (wsl wslpath -a $RepoRoot).Trim()
+        $WslRepo = ConvertTo-WslPath $RepoRoot
+        Write-Host "    WSL repo: $WslRepo" -ForegroundColor DarkGray
         $SkipFlag = if ($SkipBuild) { '--skip-build' } else { '' }
         wsl bash -lc "cd '$WslRepo' && chmod +x packaging/build-and-pack-linux.sh && ./packaging/build-and-pack-linux.sh $SkipFlag"
         if (-not (Test-Path -LiteralPath $LinuxTar)) {
             Write-Warning "Archive Linux absente apres build WSL: $LinuxTar"
         }
     } else {
-        Write-Host "WSL absent — build Linux ignore (lancez packaging/build-and-pack-linux.sh sur Linux, ou -SkipLinux)" -ForegroundColor Yellow
+        Write-Host "WSL absent - build Linux ignore (lancez packaging/build-and-pack-linux.sh sur Linux, ou -SkipLinux)" -ForegroundColor Yellow
     }
 }
 
