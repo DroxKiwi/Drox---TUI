@@ -1,6 +1,6 @@
 # Drox TUI — agent local en terminal
 
-> **Version produit : `2.0.1`** · Moteur dérivé de **Drox IDE `1.5.0`**
+> **Version produit : `2.0.2`** · Moteur dérivé de **Drox IDE `1.5.0`**
 
 **Drox TUI** est un assistant IA en terminal : LLM local (Ollama par défaut), fichiers, shell, permissions, sessions — **sans cloud obligatoire**.
 
@@ -37,7 +37,7 @@
 
 ### Windows x64
 
-1. Téléchargez `drox-tui-2.0.1-windows-x64-setup.exe` depuis le dépôt [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) (`releases/v2.0.1/`).
+1. Téléchargez `drox-tui-2.0.2-windows-x64-setup.exe` depuis le dépôt [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) (`releases/v2.0.2/`).
 2. Lancez l’**installateur** (double-clic) et suivez l’assistant.
 3. Cochez **Ajouter au PATH** si proposé.
 
@@ -47,12 +47,12 @@ Désinstallation : Paramètres Windows → Applications → Drox TUI.
 
 ### Linux x64
 
-1. Téléchargez `drox-tui-2.0.1-linux-x64.tar.gz` depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases).
+1. Téléchargez `drox-tui-2.0.2-linux-x64.tar.gz` depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases).
 2. Extrayez et installez :
 
 ```bash
-tar xzf drox-tui-2.0.1-linux-x64.tar.gz
-cd drox-tui-2.0.1-linux-x64
+tar xzf drox-tui-2.0.2-linux-x64.tar.gz
+cd drox-tui-2.0.2-linux-x64
 ./install.sh              # ~/.local/bin
 # ou : ./install.sh --system   # /usr/local/bin (sudo)
 ```
@@ -173,7 +173,7 @@ MIT — voir le fichier `LICENSE` fourni avec l’archive d’installation.
 
 # English version
 
-> **Product version: `2.0.1`** · Engine derived from **Drox IDE `1.5.0`**
+> **Product version: `2.0.2`** · Engine derived from **Drox IDE `1.5.0`**
 
 **Drox TUI** is a terminal AI assistant: local LLM (Ollama by default), files, shell, permissions, sessions — **no mandatory cloud**.
 
@@ -210,7 +210,7 @@ MIT — voir le fichier `LICENSE` fourni avec l’archive d’installation.
 
 ### Windows x64
 
-1. Download `drox-tui-2.0.1-windows-x64-setup.exe` from [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) (`releases/v2.0.1/`).
+1. Download `drox-tui-2.0.2-windows-x64-setup.exe` from [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) (`releases/v2.0.2/`).
 2. Run the **installer** and follow the wizard.
 3. Enable **Add to PATH** if offered.
 
@@ -221,8 +221,8 @@ Uninstall: Windows Settings → Apps → Drox TUI.
 ### Linux x64
 
 ```bash
-tar xzf drox-tui-2.0.1-linux-x64.tar.gz
-cd drox-tui-2.0.1-linux-x64
+tar xzf drox-tui-2.0.2-linux-x64.tar.gz
+cd drox-tui-2.0.2-linux-x64
 ./install.sh
 ```
 

@@ -459,7 +459,7 @@ pub fn mark_onboarding_done() -> anyhow::Result<()> {
 /// Lignes `/settings` — préférences TUI utilisateur.
 #[must_use]
 pub fn format_settings_lines(prefs: &TuiPreferences) -> Vec<String> {
-    use crate::i18n::{self, keys};
+    use crate::i18n::{self, keys, keys_p1 as k};
 
     let path = preferences_path();
     let mut lines = vec![
@@ -541,23 +541,23 @@ pub fn format_settings_lines(prefs: &TuiPreferences) -> Vec<String> {
         lines.push(format!(
             "  x-api-key : {}",
             if llm.api_key.as_ref().is_some_and(|k| !k.is_empty()) {
-                "définie"
+                i18n::t(k::SETTINGS_API_KEY_SET)
             } else {
-                "absente"
+                i18n::t(k::SETTINGS_API_KEY_ABSENT)
             }
         ));
     } else {
-        lines.push("— Connexion IA : non configurée (Ctrl+Shift+L ou `/server`)".into());
+        lines.push(i18n::t(k::SETTINGS_LLM_UNCONFIGURED).into());
     }
     let mut lib = prefs.connection_library.clone();
     lib.ensure_builtin_presets();
     if !lib.profiles.is_empty() {
-        lines.push(format!(
-            "  profils LLM : {} (actif: {})",
-            lib.profiles.len(),
+        lines.push(i18n::tf2(
+            k::SETTINGS_PROFILES,
+            &lib.profiles.len().to_string(),
             lib.active_profile()
                 .map(|p| p.name.as_str())
-                .unwrap_or("aucun")
+                .unwrap_or("aucun"),
         ));
     }
     lines

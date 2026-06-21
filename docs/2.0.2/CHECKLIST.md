@@ -35,7 +35,8 @@
 - [x] `/language` ou `/settings language`
 - [x] Changement à chaud
 - [x] Tests clés FR/EN
-- [ ] P1 : slash palette, `/help`, toasts, status lines
+- [x] P1 : slash palette, `/help`, toasts, status lines
+- [x] Modale `/settings` (langue, animations, souris, vim)
 
 ## Connexions LLM
 
@@ -50,12 +51,12 @@
 ## Non-régression
 
 - [x] `cargo test -p drox-tui`
-- [ ] Session resume / export
-- [ ] Permissions modales
-- [ ] Certification locale inchangée (pas de phone home)
+- [x] Session resume / export (QA partielle)
+- [x] Permissions modales (QA partielle)
+- [x] Certification locale inchangée (pas de phone home)
 
 ## Release (fin de ligne)
 
-- [ ] Bump version 2.0.2
-- [ ] Installateur OR Windows
-- [ ] RELEASE_NOTES OR
+- [x] Bump version 2.0.2 (workspace Cargo)
+- [ ] Installateur OR Windows (`packaging/build-and-pack.ps1` + push OR)
+- [x] RELEASE_NOTES — [RELEASE_NOTES.md](RELEASE_NOTES.md)

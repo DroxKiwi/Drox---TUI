@@ -56,10 +56,15 @@ Copy-Item (Join-Path $RepoRoot "dist\SHA256SUMS-$Version-windows.txt") (Join-Pat
 Copy-Item (Join-Path $RepoRoot 'packaging\windows\install.ps1') (Join-Path $InstallWin 'install.ps1') -Force
 Copy-Item (Join-Path $RepoRoot 'packaging\linux\install.sh') (Join-Path $InstallLinux 'install.sh') -Force
 
+$ReleaseNotesPath = Join-Path $RepoRoot "docs\2.0.2\RELEASE_NOTES.md"
+if (Test-Path -LiteralPath $ReleaseNotesPath) {
+    $ReleaseNotes = [System.IO.File]::ReadAllText($ReleaseNotesPath)
+    $ReleaseNotes += "`n`n---`n`n## Empreinte Windows`n`nSHA256 ``$ArtifactName`` : ``$Sha256```n"
+} else {
 $ReleaseNotes = @"
 # Drox TUI v$Version
 
-**Produit** : Drox TUI `2.0.1`  
+**Produit** : Drox TUI `$Version`  
 **Moteur** : dérivé du moteur agent Drox IDE `1.5.0`  
 **Certification** : local-first — pas de télémétrie Drox, pas de cloud obligatoire.
 
@@ -97,6 +102,7 @@ drox-tui --workspace ~/projets/mon-repo
 
 Date de publication : $(Get-Date -Format 'yyyy-MM-dd')
 "@
+}
 
 [System.IO.File]::WriteAllText((Join-Path $ReleaseDir 'RELEASE_NOTES.md'), $ReleaseNotes, (New-Object System.Text.UTF8Encoding $false))
 

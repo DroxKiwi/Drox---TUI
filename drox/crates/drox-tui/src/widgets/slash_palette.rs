@@ -7,6 +7,7 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::AppState;
+use crate::i18n::{self, keys_p1 as k};
 use crate::slash::palette::ENTRIES;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
@@ -25,13 +26,13 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 
     let mut lines = vec![
         Line::from(Span::styled(
-            "Commandes slash",
+            i18n::t(k::SLASH_PALETTE_TITLE),
             Style::default()
                 .fg(state.palette.header_primary)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
-            format!("Filtre : /{}", dialog.filter),
+            i18n::tf(k::SLASH_PALETTE_FILTER, &dialog.filter),
             Style::default().fg(Color::White),
         )),
         Line::from(""),
@@ -39,7 +40,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 
     if dialog.matches.is_empty() {
         lines.push(Line::from(Span::styled(
-            "Aucune commande correspondante",
+            i18n::t(k::SLASH_PALETTE_EMPTY),
             Style::default().fg(Color::DarkGray),
         )));
     } else {
@@ -55,12 +56,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             };
             lines.push(Line::from(vec![
                 Span::styled(format!(" {:<14}", entry.command), marker),
-                Span::styled(entry.description, Style::default().fg(Color::DarkGray)),
+                Span::styled(entry.description(), Style::default().fg(Color::DarkGray)),
             ]));
         }
         if dialog.matches.len() > 10 {
             lines.push(Line::from(Span::styled(
-                format!(" … +{} autres", dialog.matches.len() - 10),
+                i18n::tf(k::SLASH_PALETTE_MORE, &(dialog.matches.len() - 10).to_string()),
                 Style::default().fg(Color::DarkGray),
             )));
         }
@@ -68,7 +69,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 
     lines.push(Line::from(""));
     lines.push(Line::from(Span::styled(
-        "↑↓ choisir · Entrée insérer · Esc fermer",
+        i18n::t(k::SLASH_PALETTE_FOOTER),
         Style::default().fg(Color::DarkGray),
     )));
 

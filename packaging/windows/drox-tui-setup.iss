@@ -2,7 +2,7 @@
 ; Compile via packaging/build-and-pack.ps1
 
 #ifndef MyAppVersion
-  #define MyAppVersion "2.0.1"
+  #define MyAppVersion "2.0.2"
 #endif
 
 #define MyAppName "Drox TUI"

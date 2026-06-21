@@ -208,9 +208,9 @@ impl App {
         let _ = crate::engine::preferences::save_preferences(&prefs);
         let _ = terminal::set_mouse_capture(enabled);
         self.state.status_line = if enabled {
-            "Souris activée — scroll fil et clic modales".into()
+            crate::i18n::t(crate::i18n::keys_p1::STATUS_MOUSE_ON).into()
         } else {
-            "Souris désactivée — clavier inchangé".into()
+            crate::i18n::t(crate::i18n::keys_p1::STATUS_MOUSE_OFF).into()
         };
     }
 }

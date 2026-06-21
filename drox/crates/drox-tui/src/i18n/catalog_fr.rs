@@ -1,6 +1,7 @@
-//! Catalogue français (P0).
+//! Catalogue français (P0 + P1).
 
 use super::keys::*;
+use super::keys_p1::*;
 
 #[must_use]
 pub fn get(key: &str) -> Option<&'static str> {
@@ -127,8 +128,13 @@ pub fn get(key: &str) -> Option<&'static str> {
         SETTINGS_ONBOARDING => Some("onboarding vu"),
         SETTINGS_LANGUAGE => Some("langue UI"),
         SETTINGS_HINTS => Some(
-            "Modifier : `/theme` · `/color` · `/vim` · `/language fr|en` · `/settings animations on|off` · `/settings mouse on|off` · Ctrl+Shift+L ou `/server` · Ctrl+Shift+W ou `/workspace` · `/onboarding`",
+            "Modale : `/settings` · dump texte : `/settings print` · thème `/theme` · connexion Ctrl+Shift+L ou `/server`",
         ),
+        SETTINGS_MODAL_FOOTER => {
+            Some("↑↓ naviguer · Entrée/Espace/←→ modifier · Esc fermer")
+        }
+        SETTINGS_VALUE_ON => Some("oui"),
+        SETTINGS_VALUE_OFF => Some("non"),
         SETTINGS_RECENT_WS => Some("workspaces récents"),
         SETTINGS_LLM_SECTION => Some("— Connexion IA"),
         SETTINGS_LLM_ENGINE => Some("moteur"),
@@ -162,6 +168,162 @@ pub fn get(key: &str) -> Option<&'static str> {
         WORKSPACE_VALIDATE_NOT_FOUND => Some("chemin introuvable ou inaccessible : {} ({})"),
         WORKSPACE_VALIDATE_NOT_DIR => Some("{} n'est pas un répertoire"),
         WORKSPACE_VALIDATE_NOT_UTF8 => Some("chemin non UTF-8"),
+        SLASH_PALETTE_HELP => Some("aide — liste des commandes"),
+        SLASH_PALETTE_SERVER => Some("connexion IA Ollama (Ctrl+Shift+L)"),
+        SLASH_PALETTE_WORKSPACE => Some("changer workspace (Ctrl+Shift+W)"),
+        SLASH_PALETTE_CLEAR => Some("effacer le fil UI"),
+        SLASH_PALETTE_STATUS => Some("workspace, modèle, session"),
+        SLASH_PALETTE_CONTEXT => Some("tokens et marge contexte"),
+        SLASH_PALETTE_COST => Some("usage tokens session"),
+        SLASH_PALETTE_COMPACT => Some("compaction LLM transcript"),
+        SLASH_PALETTE_MEMORY => Some("sessions archivées · search"),
+        SLASH_PALETTE_SEARCH => Some("recherche mémoire longue"),
+        SLASH_PALETTE_PERMISSIONS => Some("règles permission"),
+        SLASH_PALETTE_PLAN => Some("mode plan"),
+        SLASH_PALETTE_CONFIG => Some("réglages runtime"),
+        SLASH_PALETTE_DOCTOR => Some("diagnostic environnement"),
+        SLASH_PALETTE_HOOKS => Some("hooks Pre/Post tool"),
+        SLASH_PALETTE_MCP => Some("serveurs MCP"),
+        SLASH_PALETTE_SKILLS => Some("skills locaux"),
+        SLASH_PALETTE_SESSION => Some("transcript courant"),
+        SLASH_PALETTE_RENAME => Some("titre personnalisé session"),
+        SLASH_PALETTE_SESSIONS => Some("lister sessions"),
+        SLASH_PALETTE_RESUME => Some("reprendre ses_…"),
+        SLASH_PALETTE_REWIND => Some("rembobiner transcript"),
+        SLASH_PALETTE_COPY => Some("copier dernière réponse assistant"),
+        SLASH_PALETTE_ADD_DIR => Some("répertoire de travail additionnel"),
+        SLASH_PALETTE_EXPORT => Some("exporter conversation"),
+        SLASH_PALETTE_DIFF => Some("git diff workspace"),
+        SLASH_PALETTE_FILES => Some("fichiers vus dans le fil"),
+        SLASH_PALETTE_BRANCH => Some("branche git"),
+        SLASH_PALETTE_THEME => Some("palette couleurs TUI"),
+        SLASH_PALETTE_COLOR => Some("accent session"),
+        SLASH_PALETTE_VIM => Some("mode vim composer (Esc NORMAL/INSERT)"),
+        SLASH_PALETTE_KEYBINDINGS => Some("raccourcis · init · reload"),
+        SLASH_PALETTE_TERMINAL_SETUP => Some("guide terminal + keybindings"),
+        SLASH_PALETTE_SETTINGS => Some("préférences TUI"),
+        SLASH_PALETTE_LANGUAGE => Some("langue UI (fr|en)"),
+        SLASH_PALETTE_ONBOARDING => Some("guide premier lancement"),
+        SLASH_PALETTE_INIT => Some("scaffold workspace"),
+        SLASH_PALETTE_SANDBOX => Some("état sandbox bash"),
+        SLASH_PALETTE_REVIEW => Some("revue code (agent)"),
+        SLASH_PALETTE_SECURITY_REVIEW => Some("revue sécurité (agent)"),
+        SLASH_PALETTE_STATUSLINE => Some("barre de statut TUI"),
+        SLASH_PALETTE_EXIT => Some("quitter"),
+        SLASH_PALETTE_TITLE => Some("Commandes slash"),
+        SLASH_PALETTE_FILTER => Some("Filtre : /{}"),
+        SLASH_PALETTE_EMPTY => Some("Aucune commande correspondante"),
+        SLASH_PALETTE_MORE => Some(" … +{} autres"),
+        SLASH_PALETTE_FOOTER => Some("↑↓ choisir · Entrée insérer · Esc fermer"),
+        SLASH_HELP_BODY => Some(
+            "Commandes : /help /clear /exit /status /model /server /session /sessions \
+/newsession /resume <id> /rename [/rename <titre>] /copy [/copy N] /add-dir <chemin> /workspace [/workspace <chemin>] /vim /settings /onboarding /compact /memory [/memory <slug>|search <q>] /search <q> /permissions /plan [/plan off] /context /hooks [/hooks reload] /config /doctor /mcp [/mcp tools|resources|ping] /skills [/skills <name>] /cost /stats /usage /branch /rewind /export [/export fichier] /theme [/theme dark] /color [/color cyan] /keybindings [/keybindings init] /diff /files /init [/init run] /terminal-setup /sandbox /review [/review PR] /security-review /statusline [/statusline run]",
+        ),
+        COMPOSER_HELP_TITLE => Some(" Aide composer (?) — Esc fermer "),
+        COMPOSER_HELP_0 => Some("Ctrl+Shift+L  connexion IA (Ollama) · /server"),
+        COMPOSER_HELP_1 => Some("Ctrl+Shift+W  changer workspace · /workspace"),
+        COMPOSER_HELP_2 => Some("!          mode bash (shell sans agent)"),
+        COMPOSER_HELP_3 => Some("/          commandes slash · /help liste complète"),
+        COMPOSER_HELP_4 => Some("@          référence fichier · Tab compléter"),
+        COMPOSER_HELP_5 => Some("/skills    complétion nom de skill"),
+        COMPOSER_HELP_6 => Some("Tab        accepter suggestion · ↑↓ naviguer"),
+        COMPOSER_HELP_7 => Some("Ctrl+R     historique prompts · Ctrl+F recherche fil"),
+        COMPOSER_HELP_8 => Some("e          développer dernière sortie outil"),
+        COMPOSER_HELP_9 => Some("Ctrl+V     collage texte · image (chemin ou presse-papiers Win)"),
+        COMPOSER_HELP_10 => Some("/vim       mode vim composer (Esc INSERT/NORMAL)"),
+        COMPOSER_HELP_11 => Some("Esc        annuler · Ctrl+Q quitter"),
+        SLASH_MSG_CLEAR => Some("Fil effacé (transcript disque conservé)."),
+        SLASH_MSG_RESUME_USAGE => Some("Usage : /resume ses_<uuid>"),
+        SLASH_MSG_UNKNOWN_CMD => Some("Commande inconnue : {}. {}"),
+        SLASH_MSG_MEMORY_SEARCH_USAGE => {
+            Some("Usage : /search <mots-clés> — mémoire `.drox/memory/sessions/`")
+        }
+        SLASH_MSG_MEMORY_SEARCH_SHORT => Some("Usage : /memory search <mots-clés>"),
+        SLASH_MSG_NO_SESSIONS => Some("Aucune session transcript (ses_*.jsonl)."),
+        SLASH_MSG_SESSIONS_LIST_ERR => Some("Liste sessions : {}"),
+        SLASH_MSG_COPY_USAGE => Some("Usage : /copy [N] — N=1 (dernier), 2, … Reçu : {}"),
+        SLASH_MSG_RUN_BLOCKED => {
+            Some("Impossible : un run est en cours. Annulez d'abord (Esc).")
+        }
+        SETTINGS_LLM_UNCONFIGURED => {
+            Some("— Connexion IA : non configurée (Ctrl+Shift+L ou `/server`)")
+        }
+        SETTINGS_API_KEY_SET => Some("définie"),
+        SETTINGS_API_KEY_ABSENT => Some("absente"),
+        SETTINGS_PROFILES => Some("  profils LLM : {} (actif: {})"),
+        STATUS_READY => {
+            Some("Prêt — @fichier · Ctrl+F fil · Ctrl+R historique · ! bash · Entrée envoyer")
+        }
+        STATUS_AGENT_RUNNING => Some("Agent en cours…"),
+        STATUS_REWIND_CANCELLED => Some("Rembobinage annulé"),
+        STATUS_VIEWER_CLOSED => Some("Viewer outil fermé"),
+        STATUS_COPY_CANCELLED => Some("Copie annulée"),
+        STATUS_THEME_CANCELLED => Some("Sélection thème annulée"),
+        STATUS_THEME_APPLIED => Some("Thème appliqué"),
+        STATUS_BASH_EXITED => Some("Mode bash quitté"),
+        STATUS_DISPLAY_TOGGLED => Some("Affichage {} basculé (e)"),
+        STATUS_RUN_CANCELLED => Some("Run annulé (Ctrl+C)"),
+        STATUS_RUN_ABORTED => Some("Annulé"),
+        STATUS_RUN_ERROR => Some("Erreur — prêt"),
+        STATUS_CTRL_C_QUIT => Some("Ctrl+C encore pour quitter"),
+        STATUS_BASH_MODE => Some("Mode bash — commande sans agent"),
+        STATUS_BASH_MODE_HINT => Some("Entrée exécuter · Esc quitter bash"),
+        STATUS_THEME_PICKER => Some("/theme — choisir un thème"),
+        STATUS_COMPACTION_RUNNING => Some("Compaction LLM en cours…"),
+        STATUS_COMPACTION_DONE => Some("Compaction live terminée"),
+        STATUS_COMPACTION_PREVIEW => Some("Aperçu compaction affiché"),
+        STATUS_COMPACTION_FAILED => Some("Compaction échouée"),
+        STATUS_LLM_SAVE_FAILED => Some("Échec enregistrement connexion IA"),
+        STATUS_WORKSPACE_CHANGE_FAILED => Some("Échec changement workspace"),
+        STATUS_DOCTOR_RUNNING => Some("Diagnostic en cours…"),
+        STATUS_DOCTOR_DONE => Some("Diagnostic terminé"),
+        STATUS_MCP_RUNNING => Some("MCP…"),
+        STATUS_REWIND_PICKER => Some("/rewind — choisir un message"),
+        STATUS_TRANSCRIPT_REWOUND => Some("Transcript rembobiné"),
+        STATUS_EXPORT_DONE => Some("Export terminé"),
+        STATUS_SESSION_RENAMED => Some("Titre session mis à jour"),
+        STATUS_COPY_DONE => Some("Copie terminée"),
+        STATUS_COPY_PICKER => Some("/copy — choisir le contenu"),
+        STATUS_BASH_ERROR => Some("bash en erreur"),
+        STATUS_AGENT_BUSY => Some("Impossible pendant un run agent — annulez d'abord (Esc)."),
+        STATUS_AGENT_IDLE => Some("Prêt"),
+        STATUS_TRANSCRIPT_SEARCH => Some("Recherche transcript (Ctrl+F)"),
+        STATUS_SEARCH_CLOSED => Some("Recherche fermée"),
+        STATUS_HISTORY_SEARCH => Some("Recherche historique (Ctrl+R)"),
+        STATUS_HISTORY_CANCELLED => Some("Recherche historique annulée"),
+        STATUS_HISTORY_ACCEPTED => Some("Historique accepté"),
+        STATUS_SERVER_DIALOG => Some("/server — assistant connexion IA (Ctrl+Shift+L)"),
+        STATUS_WORKSPACE_DIALOG => {
+            Some("/workspace — changer le répertoire de travail (Ctrl+Shift+W)")
+        }
+        STATUS_WORKSPACE_CHANGED => Some("Workspace : {}"),
+        STATUS_WORKSPACE_CANCELLED => Some("Changement workspace annulé"),
+        STATUS_LLM_SAVED => Some("Connexion IA enregistree"),
+        STATUS_LLM_CANCELLED => Some("Connexion IA annulée"),
+        STATUS_SLASH_PALETTE => Some("Palette slash — /"),
+        STATUS_SLASH_PALETTE_CLOSED => Some("Palette slash fermee"),
+        STATUS_AT_REF_INSERTED => Some("Référence @{} insérée"),
+        STATUS_SLASH_CMD_READY => Some("Commande {} — Entrée pour exécuter"),
+        STATUS_SKILL_READY => Some("Skill {} — Entrée pour lire"),
+        STATUS_BASH_MODE_FOOTER => Some("Mode bash — Entrée exécute · Esc quitte"),
+        STATUS_IMAGE_PASTED => Some("Image collée — {}"),
+        STATUS_IMAGE_PATH => Some("Image — {} → {}"),
+        STATUS_PERMISSION_WAITING => Some("Réponse requise"),
+        STATUS_ANIMATIONS_ON => Some("Animations UI activées"),
+        STATUS_ANIMATIONS_OFF => Some("Animations UI désactivées"),
+        STATUS_MOUSE_ON => Some("Souris activée — scroll fil et clic modales"),
+        STATUS_MOUSE_OFF => Some("Souris désactivée — clavier inchangé"),
+        STATUS_THEME_MIGRATED => {
+            Some("Thème Drox appliqué (charte 2.0.2) — /theme pour changer")
+        }
+        TOAST_LLM_REQUIRED => Some("Configurez Ollama pour envoyer des messages à l'agent"),
+        TOAST_ASSISTANT_COPIED => Some("Réponse assistant copiée"),
+        TOAST_CLIPBOARD => Some("Copié dans le presse-papiers"),
+        TOAST_WORKSPACE_CHANGED => Some("Workspace changé · nouvelle session"),
+        TOAST_LLM_SAVED => Some("Connexion IA enregistree"),
+        TOAST_ONBOARDING_DONE => Some("Onboarding terminé — /onboarding pour revoir"),
+        SYSTEM_CLIPBOARD_UNAVAILABLE => Some("Presse-papiers indisponible — utilisez /copy"),
+        SYSTEM_COPY_NO_ASSISTANT => Some("Aucune réponse assistant à copier."),
         _ => None,
     }
 }

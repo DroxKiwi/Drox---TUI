@@ -149,7 +149,7 @@ fn filter_slash_commands(prefix: &str) -> Vec<ComposerSuggestionItem> {
             Some(ComposerSuggestionItem {
                 kind: SuggestionKind::Slash,
                 label: e.command.to_string(),
-                detail: Some(e.description.to_string()),
+                detail: Some(e.description().to_string()),
                 payload: e.command.to_string(),
             })
         })

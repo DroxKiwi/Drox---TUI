@@ -6,7 +6,8 @@ Ce dépôt contient les **sources** et la doc interne. Les utilisateurs finaux r
 
 | Chemin | Contenu |
 |---|---|
-| [`docs/2.0.1/`](docs/2.0.1/) | Plans produit, build, checklist, MAJ opt-in |
+| [`docs/2.0.2/`](docs/2.0.2/) | Ligne UI active — build, release, checklist |
+| [`docs/2.0.1/`](docs/2.0.1/) | Ligne précédente (clôturée) |
 | [`packaging/`](packaging/) | Scripts build, installateurs, `publish-or.ps1` |
 | [`drox/`](drox/) | Workspace Rust (crates moteur + TUI) |
 
@@ -20,4 +21,4 @@ cargo build --release -p drox-tui
 
 Copie binaires + `README.md` public vers `../Drox---TUI---OR`.
 
-Branche active : **`2.0.1`**
+Branche active : **`2.0.2`**

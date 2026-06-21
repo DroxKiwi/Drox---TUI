@@ -105,6 +105,9 @@ pub const SETTINGS_TITLE_RENAME: &str = "settings.title_rename";
 pub const SETTINGS_ONBOARDING: &str = "settings.onboarding";
 pub const SETTINGS_LANGUAGE: &str = "settings.language";
 pub const SETTINGS_HINTS: &str = "settings.hints";
+pub const SETTINGS_MODAL_FOOTER: &str = "settings.modal.footer";
+pub const SETTINGS_VALUE_ON: &str = "settings.value.on";
+pub const SETTINGS_VALUE_OFF: &str = "settings.value.off";
 pub const SETTINGS_RECENT_WS: &str = "settings.recent_ws";
 pub const SETTINGS_LLM_SECTION: &str = "settings.llm.section";
 pub const SETTINGS_LLM_ENGINE: &str = "settings.llm.engine";
@@ -234,6 +237,9 @@ pub const P0_KEYS: &[&str] = &[
     SETTINGS_ONBOARDING,
     SETTINGS_LANGUAGE,
     SETTINGS_HINTS,
+    SETTINGS_MODAL_FOOTER,
+    SETTINGS_VALUE_ON,
+    SETTINGS_VALUE_OFF,
     SETTINGS_RECENT_WS,
     SETTINGS_LLM_SECTION,
     SETTINGS_LLM_ENGINE,

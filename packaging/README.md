@@ -1,6 +1,6 @@
 # Pipeline release officielle — Drox TUI
 
-Produit **2.0.1** · moteur dérivé IDE **1.5.0** · dépôt OR : `../Drox---TUI---OR`
+Produit **2.0.2** · moteur dérivé IDE **1.5.0** · dépôt OR : `../Drox---TUI---OR`
 
 ## Prérequis Windows (build installateur)
 

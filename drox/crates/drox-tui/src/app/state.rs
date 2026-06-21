@@ -84,6 +84,7 @@ pub enum AppPhase {
     Onboarding,
     AiServer,
     Workspace,
+    Settings,
 }
 
 impl AppPhase {
@@ -99,6 +100,7 @@ impl AppPhase {
                 | Self::Onboarding
                 | Self::AiServer
                 | Self::Workspace
+                | Self::Settings
         )
     }
 }
@@ -825,6 +827,25 @@ pub struct ThemeDialog {
     pub cursor: usize,
 }
 
+/// Ligne éditable dans la modale `/settings` (extensible).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SettingsRowKind {
+    Language,
+    Animations,
+    Mouse,
+    Vim,
+}
+
+impl SettingsRowKind {
+    pub const ALL: &'static [Self] = &[Self::Language, Self::Animations, Self::Mouse, Self::Vim];
+}
+
+/// Modale réglages TUI (`/settings`).
+#[derive(Debug, Clone)]
+pub struct SettingsDialog {
+    pub cursor: usize,
+}
+
 /// Sélecteur `/copy` — réponse complète ou bloc de code.
 #[derive(Debug, Clone)]
 pub struct CopyDialog {
@@ -882,6 +903,7 @@ pub struct AppState {
     pub prompt: Option<PromptDialog>,
     pub rewind: Option<RewindDialog>,
     pub theme_dialog: Option<ThemeDialog>,
+    pub settings_dialog: Option<SettingsDialog>,
     pub pending_ask: bool,
     /// Messages en attente pendant un run agent.
     pub queued_messages: usize,
@@ -1031,13 +1053,14 @@ impl AppState {
             theme: prefs.theme,
             session_accent: prefs.session_color,
             palette,
-            status_line: "Prêt — @fichier · Ctrl+F fil · Ctrl+R historique · ! bash · Entrée envoyer".into(),
+            status_line: crate::i18n::t(crate::i18n::keys_p1::STATUS_READY).into(),
             entries: Vec::new(),
             streaming: None,
             scroll: 0,
             prompt: None,
             rewind: None,
             theme_dialog: None,
+            settings_dialog: None,
             pending_ask: false,
             queued_messages: 0,
             expanded_tools: HashSet::new(),

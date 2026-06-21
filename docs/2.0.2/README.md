@@ -1,6 +1,6 @@
 # Ligne produit `2.0.2` — Drox TUI · Phase UI
 
-**Version produit** : `2.0.2` (en cours)  
+**Version produit** : `2.0.2` (release)  
 **Branche Git** : `2.0.2`  
 **Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`**  
 **Prédécesseur** : [`2.0.1`](../2.0.1/README.md) (clôturée, release OR publiée)
@@ -38,6 +38,8 @@ flowchart TB
 | [PLAN-I18N.md](PLAN-I18N.md) | Internationalisation FR/EN, choix utilisateur, architecture strings |
 | [PLAN-CONNEXIONS-LLM.md](PLAN-CONNEXIONS-LLM.md) | Bibliothèque de profils LLM (Ollama cloud/local, vLLM, custom headers) |
 | [CHECKLIST.md](CHECKLIST.md) | Checklist tests manuels phase 2 |
+| [BUILD.md](BUILD.md) | Compilation release et installateur OR |
+| [RELEASE_NOTES.md](RELEASE_NOTES.md) | Notes de release v2.0.2 |
 
 ---
 

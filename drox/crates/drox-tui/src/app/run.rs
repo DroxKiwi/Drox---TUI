@@ -30,6 +30,7 @@ use crate::view::{
     messages_to_log_entries, parse_plan_approval_preview, scroll_to_line, ActiveBashRun,
     ActiveHookProgress, LogEntry, TranscriptSearchState,
 };
+use crate::i18n::keys_p1 as sk;
 use crate::AppConfig;
 
 use crate::app::state::{
@@ -37,6 +38,7 @@ use crate::app::state::{
     CloudProviderChoice, ComposerMode, ComposerSuggestionDialog, ConfigureField, CopyDialog,
     DeploymentKind,
     OnboardingDialog, PersonalEngineChoice, PromptDialog, RewindChoiceView, RewindDialog, RunStatus,
+    SettingsDialog, SettingsRowKind,
     SlashPaletteDialog, ThemeDialog, WorkspaceDialog, WorkspaceField, WorkspaceStep,
 };
 use crate::engine::at_typeahead::{self, AtFileIndex};
@@ -147,8 +149,7 @@ impl App {
         self.state.mouse_enabled = self.tui_prefs.mouse_enabled;
         crate::i18n::set_locale(self.tui_prefs.ui_locale);
         if loaded.theme_migrated_to_drox {
-            self.state.status_line =
-                "Thème Drox appliqué (charte 2.0.2) — /theme pour changer".into();
+            self.state.status_line = crate::i18n::t(sk::STATUS_THEME_MIGRATED).into();
         }
 
         let _guard = terminal::setup(self.tui_prefs.mouse_enabled)
@@ -209,7 +210,7 @@ impl App {
         if !llm_configured {
             self.open_ai_server_dialog();
             self.state
-                .push_toast("Configurez Ollama pour envoyer des messages à l'agent");
+                .push_toast(crate::i18n::t(sk::TOAST_LLM_REQUIRED));
         } else if !prefs.onboarding_done {
             self.state.onboarding = Some(OnboardingDialog::default());
             self.state.phase = AppPhase::Onboarding;
@@ -275,6 +276,7 @@ impl App {
                     &permission_mode,
                     plan_mode,
                     &self.vim,
+                    &self.tui_prefs,
                 )
             })
             .context("rendu frame TUI")?;
@@ -485,12 +487,12 @@ impl App {
         self.state.prompt = Some(dialog);
         self.pending_reply = Some(pending);
         self.state.status_line = if self.state.permission_queue_waiting > 0 {
-            format!(
-                "Réponse requise (+{} en attente)",
-                self.state.permission_queue_waiting
+            crate::i18n::tf(
+                crate::i18n::keys::MODAL_PERMISSION_QUEUE,
+                &self.state.permission_queue_waiting.to_string(),
             )
         } else {
-            "Réponse requise".into()
+            crate::i18n::t(sk::STATUS_PERMISSION_WAITING).into()
         };
     }
 
@@ -515,10 +517,10 @@ impl App {
         self.state.active_phase = None;
         self.state.last_run = status;
         self.state.status_line = match status {
-            RunStatus::Completed => "Prêt".into(),
-            RunStatus::Cancelled => "Annulé".into(),
-            RunStatus::Error => "Erreur — prêt".into(),
-            RunStatus::None => "Prêt".into(),
+            RunStatus::Completed => crate::i18n::t(sk::STATUS_AGENT_IDLE).into(),
+            RunStatus::Cancelled => crate::i18n::t(sk::STATUS_RUN_ABORTED).into(),
+            RunStatus::Error => crate::i18n::t(sk::STATUS_RUN_ERROR).into(),
+            RunStatus::None => crate::i18n::t(sk::STATUS_AGENT_IDLE).into(),
         };
         self.drain_message_queue();
     }
@@ -597,7 +599,7 @@ impl App {
         self.state.run_started = Some(Instant::now());
         self.state.active_phase = None;
         self.state.last_run = RunStatus::None;
-        self.state.status_line = "Agent en cours…".into();
+        self.state.status_line = crate::i18n::t(sk::STATUS_AGENT_RUNNING).into();
         self.auto_scroll = true;
         self.state.scroll = 0;
 
@@ -611,7 +613,7 @@ impl App {
     fn new_session(&mut self) -> anyhow::Result<()> {
         if self.state.phase == AppPhase::Running {
             self.state
-                .push_system("Impossible : un run est en cours. Annulez d'abord (Esc).");
+                .push_system(crate::i18n::t(sk::SLASH_MSG_RUN_BLOCKED));
             return Ok(());
         }
         let runtime = self.runtime.as_ref().context("moteur non initialisé")?;
@@ -629,7 +631,7 @@ impl App {
     fn resume_session(&mut self, sid: String) -> anyhow::Result<()> {
         if self.state.phase == AppPhase::Running {
             self.state
-                .push_system("Impossible : un run est en cours. Annulez d'abord (Esc).");
+                .push_system(crate::i18n::t(sk::SLASH_MSG_RUN_BLOCKED));
             return Ok(());
         }
         let runtime = self.runtime.as_ref().context("moteur non initialisé")?;
@@ -673,7 +675,7 @@ impl App {
             KeyCode::Esc => {
                 self.state.rewind = None;
                 self.state.phase = AppPhase::Idle;
-                self.state.status_line = "Rembobinage annulé".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_REWIND_CANCELLED).into();
             }
             KeyCode::Up => {
                 if dialog.cursor > 0 {
@@ -702,7 +704,7 @@ impl App {
             || key.code == KeyCode::Esc
         {
             self.state.scroll_viewer = None;
-            self.state.status_line = "Viewer outil fermé".into();
+            self.state.status_line = crate::i18n::t(sk::STATUS_VIEWER_CLOSED).into();
             return false;
         }
         let Some(viewer) = self.state.scroll_viewer.as_mut() else {
@@ -725,7 +727,7 @@ impl App {
             KeyCode::Esc => {
                 self.state.copy = None;
                 self.state.phase = AppPhase::Idle;
-                self.state.status_line = "Copie annulée".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_COPY_CANCELLED).into();
             }
             KeyCode::Up if dialog.cursor > 0 => {
                 dialog.cursor -= 1;
@@ -773,7 +775,7 @@ impl App {
             KeyCode::Esc => {
                 self.state.theme_dialog = None;
                 self.state.phase = AppPhase::Idle;
-                self.state.status_line = "Sélection thème annulée".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_THEME_CANCELLED).into();
             }
             KeyCode::Up if dialog.cursor > 0 => {
                 dialog.cursor -= 1;
@@ -788,11 +790,143 @@ impl App {
                 apply_theme(&mut self.state, theme);
                 self.state
                     .push_system(format!("Thème : {}", theme.label()));
-                self.state.status_line = "Thème appliqué".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_THEME_APPLIED).into();
             }
             _ => {}
         }
         false
+    }
+
+    fn open_settings_dialog(&mut self) {
+        if self.state.phase == AppPhase::Running {
+            self.state
+                .push_system(crate::i18n::t(sk::STATUS_AGENT_BUSY));
+            return;
+        }
+        self.tui_prefs = crate::engine::preferences::load_preferences();
+        self.state.settings_dialog = Some(SettingsDialog { cursor: 0 });
+        self.state.reset_modal_anim();
+        self.state.phase = AppPhase::Settings;
+    }
+
+    fn close_settings_dialog(&mut self) {
+        self.state.settings_dialog = None;
+        self.state.phase = AppPhase::Idle;
+    }
+
+    fn handle_settings_key(&mut self, key: KeyEvent) -> bool {
+        if self.state.settings_dialog.is_none() {
+            self.state.phase = AppPhase::Idle;
+            return false;
+        }
+        let row_count = SettingsRowKind::ALL.len();
+        match key.code {
+            KeyCode::Esc => self.close_settings_dialog(),
+            KeyCode::Up => {
+                if let Some(dialog) = self.state.settings_dialog.as_mut() {
+                    dialog.cursor = dialog.cursor.saturating_sub(1);
+                }
+            }
+            KeyCode::Down => {
+                if let Some(dialog) = self.state.settings_dialog.as_mut() {
+                    if dialog.cursor + 1 < row_count {
+                        dialog.cursor += 1;
+                    }
+                }
+            }
+            KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Left | KeyCode::Right => {
+                let cursor = self
+                    .state
+                    .settings_dialog
+                    .as_ref()
+                    .map(|d| d.cursor)
+                    .unwrap_or(0);
+                self.toggle_settings_row(SettingsRowKind::ALL[cursor]);
+            }
+            _ => {}
+        }
+        false
+    }
+
+    fn toggle_settings_row(&mut self, row: SettingsRowKind) {
+        match row {
+            SettingsRowKind::Language => {
+                let next = match self.tui_prefs.ui_locale {
+                    crate::i18n::UiLocale::Fr => crate::i18n::UiLocale::En,
+                    crate::i18n::UiLocale::En => crate::i18n::UiLocale::Fr,
+                };
+                self.apply_ui_locale(next);
+            }
+            SettingsRowKind::Animations => {
+                self.apply_animations_setting(!self.state.animations_enabled);
+            }
+            SettingsRowKind::Mouse => {
+                self.apply_mouse_setting(!self.state.mouse_enabled);
+            }
+            SettingsRowKind::Vim => {
+                self.apply_vim_setting(!self.tui_prefs.vim_enabled);
+            }
+        }
+    }
+
+    fn apply_ui_locale(&mut self, locale: crate::i18n::UiLocale) {
+        crate::i18n::set_locale(locale);
+        self.tui_prefs.ui_locale = locale;
+        let mut prefs = crate::engine::preferences::load_preferences();
+        prefs.ui_locale = locale;
+        if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
+            self.state.push_system(format!(
+                "{} — persist: {e}",
+                crate::i18n::tf2(
+                    crate::i18n::keys::LANGUAGE_CHANGED,
+                    locale.label(),
+                    locale.code(),
+                )
+            ));
+        } else {
+            self.state.push_system(crate::i18n::tf2(
+                crate::i18n::keys::LANGUAGE_CHANGED,
+                locale.label(),
+                locale.code(),
+            ));
+        }
+    }
+
+    fn apply_animations_setting(&mut self, enabled: bool) {
+        self.state.animations_enabled = enabled;
+        self.tui_prefs.animations_enabled = enabled;
+        let mut prefs = crate::engine::preferences::load_preferences();
+        prefs.animations_enabled = enabled;
+        if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
+            self.state.push_system(format!(
+                "Animations {} (échec persistance : {e})",
+                if enabled { "activées" } else { "désactivées" }
+            ));
+        } else {
+            self.state.push_system(crate::i18n::t(if enabled {
+                sk::STATUS_ANIMATIONS_ON
+            } else {
+                sk::STATUS_ANIMATIONS_OFF
+            }));
+        }
+    }
+
+    fn apply_vim_setting(&mut self, enabled: bool) {
+        self.tui_prefs.vim_enabled = enabled;
+        self.vim
+            .set_enabled(enabled, &self.state.composer_buffer);
+        let mut prefs = crate::engine::preferences::load_preferences();
+        prefs.vim_enabled = enabled;
+        if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
+            self.state.push_system(format!("Préférences : {e}"));
+        }
+        let msg = if enabled {
+            "Mode vim activé — Esc bascule INSERT/NORMAL · /vim pour désactiver"
+        } else {
+            "Mode vim désactivé — édition standard"
+        };
+        self.state.push_system(msg);
+        self.state.status_line = msg.into();
     }
 
     /// `true` = quitter l'application.
@@ -846,6 +980,10 @@ impl App {
 
         if self.state.phase == AppPhase::Workspace {
             return Ok(self.handle_workspace_key(key));
+        }
+
+        if self.state.phase == AppPhase::Settings {
+            return Ok(self.handle_settings_key(key));
         }
 
         if self.state.scroll_viewer.is_some() {
@@ -937,7 +1075,7 @@ impl App {
             if self.state.composer_mode == ComposerMode::Bash {
                 if self.state.composer_buffer.is_empty() {
                     self.state.composer_mode = ComposerMode::Normal;
-                    self.state.status_line = "Mode bash quitté".into();
+                    self.state.status_line = crate::i18n::t(sk::STATUS_BASH_EXITED).into();
                 } else {
                     self.state.composer_buffer.clear();
                 }
@@ -992,7 +1130,7 @@ impl App {
             if let Some(kind) = self.state.toggle_latest_expandable() {
                 self.auto_scroll = true;
                 self.state.scroll = 0;
-                self.state.status_line = format!("Affichage {kind} basculé (e)");
+                self.state.status_line = crate::i18n::tf(sk::STATUS_DISPLAY_TOGGLED, kind);
             }
         } else if key.code == KeyCode::Char('y')
             && !key.modifiers.contains(KeyModifiers::CONTROL)
@@ -1003,13 +1141,14 @@ impl App {
             use crate::engine::copy_cmd::{collect_recent_assistant_texts, try_copy_clipboard};
             if let Some(text) = collect_recent_assistant_texts(&self.state.entries).first() {
                 if try_copy_clipboard(text) {
-                    self.state.push_toast("Réponse assistant copiée");
+                    self.state.push_toast(crate::i18n::t(sk::TOAST_ASSISTANT_COPIED));
                 } else {
                     self.state
-                        .push_system("Presse-papiers indisponible — utilisez /copy");
+                        .push_system(crate::i18n::t(sk::SYSTEM_CLIPBOARD_UNAVAILABLE));
                 }
             } else {
-                self.state.push_system("Aucune réponse assistant à copier.");
+                self.state
+                    .push_system(crate::i18n::t(sk::SYSTEM_COPY_NO_ASSISTANT));
             }
         } else if let Some(c) = typed_char(&key) {
             if self.state.phase != AppPhase::Running {
@@ -1049,14 +1188,14 @@ impl App {
 
         if self.state.phase == AppPhase::Running {
             self.cancel_run();
-            self.state.status_line = "Run annulé (Ctrl+C)".into();
+            self.state.status_line = crate::i18n::t(sk::STATUS_RUN_CANCELLED).into();
             return Ok(false);
         }
 
         if self.ctrl_c_streak >= 2 {
             return Ok(true);
         }
-        self.state.status_line = "Ctrl+C encore pour quitter".into();
+        self.state.status_line = crate::i18n::t(sk::STATUS_CTRL_C_QUIT).into();
         Ok(false)
     }
 
@@ -1068,7 +1207,7 @@ impl App {
         if raw.is_empty() {
             if mode == ComposerMode::Bash {
                 self.state.composer_mode = ComposerMode::Normal;
-                self.state.status_line = "Mode bash quitté".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_BASH_EXITED).into();
             }
             return Ok(false);
         }
@@ -1091,7 +1230,7 @@ impl App {
             self.history_cursor = None;
             if cmd.is_empty() {
                 self.state.composer_mode = ComposerMode::Bash;
-                self.state.status_line = "Mode bash — commande sans agent".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_BASH_MODE).into();
                 return Ok(false);
             }
             if self.input_history.last().map(String::as_str) != Some(cmd) {
@@ -1217,7 +1356,7 @@ impl App {
                 self.state.theme_dialog = Some(ThemeDialog { cursor });
                 self.state.reset_modal_anim();
                 self.state.phase = AppPhase::Theme;
-                self.state.status_line = "/theme — choisir un thème".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_THEME_PICKER).into();
             }
             SlashOutcome::Keybindings { args } => {
                 self.pending_slash = Some(PendingSlash::Keybindings { args });
@@ -1246,27 +1385,10 @@ impl App {
                 self.pending_slash = Some(PendingSlash::Statusline);
             }
             SlashOutcome::Settings => {
-                self.tui_prefs = crate::engine::preferences::load_preferences();
-                for line in crate::engine::preferences::format_settings_lines(&self.tui_prefs) {
-                    self.state.push_system(line);
-                }
+                self.open_settings_dialog();
             }
             SlashOutcome::SettingsAnimations { enabled } => {
-                self.state.animations_enabled = enabled;
-                self.tui_prefs.animations_enabled = enabled;
-                let mut prefs = crate::engine::preferences::load_preferences();
-                prefs.animations_enabled = enabled;
-                if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
-                    self.state.push_system(format!(
-                        "Animations {} (échec persistance : {e})",
-                        if enabled { "activées" } else { "désactivées" }
-                    ));
-                } else {
-                    self.state.push_system(format!(
-                        "Animations UI {}",
-                        if enabled { "activées" } else { "désactivées" }
-                    ));
-                }
+                self.apply_animations_setting(enabled);
             }
             SlashOutcome::SettingsMouse { enabled } => {
                 self.apply_mouse_setting(enabled);
@@ -1277,26 +1399,7 @@ impl App {
                 self.state.phase = AppPhase::Onboarding;
             }
             SlashOutcome::SettingsLocale { locale } => {
-                crate::i18n::set_locale(locale);
-                self.tui_prefs.ui_locale = locale;
-                let mut prefs = crate::engine::preferences::load_preferences();
-                prefs.ui_locale = locale;
-                if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
-                    self.state.push_system(format!(
-                        "{} — persist: {e}",
-                        crate::i18n::tf2(
-                            crate::i18n::keys::LANGUAGE_CHANGED,
-                            locale.label(),
-                            locale.code(),
-                        )
-                    ));
-                } else {
-                    self.state.push_system(crate::i18n::tf2(
-                        crate::i18n::keys::LANGUAGE_CHANGED,
-                        locale.label(),
-                        locale.code(),
-                    ));
-                }
+                self.apply_ui_locale(locale);
             }
             SlashOutcome::AiServer => {
                 self.open_ai_server_dialog();
@@ -1305,23 +1408,7 @@ impl App {
                 self.open_workspace_dialog(initial);
             }
             SlashOutcome::ToggleVim => {
-                self.tui_prefs.vim_enabled = !self.tui_prefs.vim_enabled;
-                self.vim.set_enabled(
-                    self.tui_prefs.vim_enabled,
-                    &self.state.composer_buffer,
-                );
-                let mut prefs = crate::engine::preferences::load_preferences();
-                prefs.vim_enabled = self.tui_prefs.vim_enabled;
-                if let Err(e) = crate::engine::preferences::save_preferences(&prefs) {
-                    self.state.push_system(format!("Préférences : {e}"));
-                }
-                let msg = if self.tui_prefs.vim_enabled {
-                    "Mode vim activé — Esc bascule INSERT/NORMAL · /vim pour désactiver"
-                } else {
-                    "Mode vim désactivé — édition standard"
-                };
-                self.state.push_system(msg);
-                self.state.status_line = msg.into();
+                self.apply_vim_setting(!self.tui_prefs.vim_enabled);
             }
         }
         Ok(false)
@@ -1330,13 +1417,13 @@ impl App {
     async fn execute_slash(&mut self, cmd: PendingSlash) -> anyhow::Result<()> {
         if self.state.phase == AppPhase::Running {
             self.state
-                .push_system("Impossible pendant un run agent — annulez d'abord (Esc).");
+                .push_system(crate::i18n::t(sk::STATUS_AGENT_BUSY));
             return Ok(());
         }
         let runtime = self.runtime.as_ref().context("moteur non initialisé")?;
         match cmd {
             PendingSlash::Compact => {
-                self.state.status_line = "Compaction LLM en cours…".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_COMPACTION_RUNNING).into();
                 match runtime.compact_current_transcript().await {
                     Ok(CompactOutcome::Live(report)) => {
                         self.hydrate_transcript_ui(false).await?;
@@ -1349,7 +1436,7 @@ impl App {
                         if !preview.is_empty() {
                             self.state.push_system(preview);
                         }
-                        self.state.status_line = "Compaction live terminée".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_COMPACTION_DONE).into();
                     }
                     Ok(CompactOutcome::Preview(result)) => {
                         self.state.push_system(format!(
@@ -1362,11 +1449,11 @@ impl App {
                             result.summary.clone()
                         };
                         self.state.push_system(summary);
-                        self.state.status_line = "Aperçu compaction affiché".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_COMPACTION_PREVIEW).into();
                     }
                     Err(e) => {
                         self.state.push_system(format!("Compaction : {e:#}"));
-                        self.state.status_line = "Compaction échouée".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_COMPACTION_FAILED).into();
                     }
                 }
             }
@@ -1418,13 +1505,13 @@ impl App {
             PendingSlash::ApplyAiServer { index } => {
                 if let Err(e) = self.apply_ai_server_model(index).await {
                     self.state.push_system(format!("Connexion IA : {e:#}"));
-                    self.state.status_line = "Échec enregistrement connexion IA".into();
+                    self.state.status_line = crate::i18n::t(sk::STATUS_LLM_SAVE_FAILED).into();
                 }
             }
             PendingSlash::ApplyWorkspace { path } => {
                 if let Err(e) = self.apply_workspace_switch(path).await {
                     self.state.push_system(format!("Workspace : {e:#}"));
-                    self.state.status_line = "Échec changement workspace".into();
+                    self.state.status_line = crate::i18n::t(sk::STATUS_WORKSPACE_CHANGE_FAILED).into();
                 }
             }
             PendingSlash::Statusline => {
@@ -1444,14 +1531,14 @@ impl App {
                 }
             }
             PendingSlash::Doctor => {
-                self.state.status_line = "Diagnostic en cours…".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_DOCTOR_RUNNING).into();
                 for line in runtime.run_doctor_checks().await {
                     self.state.push_system(line);
                 }
-                self.state.status_line = "Diagnostic terminé".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_DOCTOR_DONE).into();
             }
             PendingSlash::Mcp { args } => {
-                self.state.status_line = "MCP…".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_MCP_RUNNING).into();
                 for line in runtime.run_mcp_command(&args).await {
                     self.state.push_system(line);
                 }
@@ -1507,7 +1594,7 @@ impl App {
                         cursor,
                     });
                     self.state.phase = AppPhase::Rewind;
-                    self.state.status_line = "/rewind — choisir un message".into();
+                    self.state.status_line = crate::i18n::t(sk::STATUS_REWIND_PICKER).into();
                 }
                 Err(e) => self.state.push_system(format!("Rewind : {e:#}")),
             },
@@ -1522,7 +1609,7 @@ impl App {
                         if !report.restore_text.is_empty() {
                             self.state.composer_buffer = report.restore_text;
                         }
-                        self.state.status_line = "Transcript rembobiné".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_TRANSCRIPT_REWOUND).into();
                     }
                     Err(e) => self.state.push_system(format!("Rewind : {e:#}")),
                 }
@@ -1534,7 +1621,7 @@ impl App {
                             "Conversation exportée : {} ({} octets, {} messages)",
                             report.path, report.bytes, report.message_count
                         ));
-                        self.state.status_line = "Export terminé".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_EXPORT_DONE).into();
                     }
                     Err(e) => self.state.push_system(format!("Export : {e:#}")),
                 }
@@ -1587,7 +1674,7 @@ impl App {
                         self.sync_terminal_title();
                         self.state
                             .push_system(format!("Session renommée : {new_title}"));
-                        self.state.status_line = "Titre session mis à jour".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_SESSION_RENAMED).into();
                     }
                     Err(e) => self.state.push_system(format!("Rename : {e:#}")),
                 }
@@ -1603,7 +1690,7 @@ impl App {
                         match crate::engine::copy_cmd::copy_text(&text, &filename).await {
                             Ok(msg) => {
                                 self.state.push_system(msg);
-                                self.state.status_line = "Copie terminée".into();
+                                self.state.status_line = crate::i18n::t(sk::STATUS_COPY_DONE).into();
                             }
                             Err(e) => self.state.push_system(format!("Copy : {e:#}")),
                         }
@@ -1611,7 +1698,7 @@ impl App {
                     CopyPlan::Picker { full_text, blocks } => {
                         self.state.copy = Some(CopyDialog::new(full_text, blocks));
                         self.state.phase = AppPhase::Copy;
-                        self.state.status_line = "/copy — choisir le contenu".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_COPY_PICKER).into();
                     }
                     CopyPlan::Error(msg) => self.state.push_system(msg),
                 }
@@ -1646,9 +1733,9 @@ impl App {
                         };
                         self.state.push_system(format!("{msg}{suffix}"));
                         if clipboard {
-                            self.state.push_toast("Copié dans le presse-papiers");
+                            self.state.push_toast(crate::i18n::t(sk::TOAST_CLIPBOARD));
                         }
-                        self.state.status_line = "Copie terminée".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_COPY_DONE).into();
                     }
                     Err(e) => self.state.push_system(format!("Copy : {e:#}")),
                 }
@@ -1722,7 +1809,7 @@ impl App {
                     Err(e) => {
                         self.state
                             .push_entry(LogEntry::Error { text: format!("bash : {e}") });
-                        self.state.status_line = "bash en erreur".into();
+                        self.state.status_line = crate::i18n::t(sk::STATUS_BASH_ERROR).into();
                     }
                 }
             }
@@ -1859,9 +1946,9 @@ impl App {
             };
         }
         self.state.status_line = if self.agent_rx.is_some() {
-            "Agent en cours…".into()
+            crate::i18n::t(sk::STATUS_AGENT_RUNNING).into()
         } else {
-            "Prêt".into()
+            crate::i18n::t(sk::STATUS_AGENT_IDLE).into()
         };
     }
 
@@ -1906,7 +1993,7 @@ impl App {
             self.state.scroll = scroll_to_line(lines.len(), inner_h, line_idx);
         }
         self.state.transcript_search = Some(search);
-        self.state.status_line = "Recherche transcript (Ctrl+F)".into();
+        self.state.status_line = crate::i18n::t(sk::STATUS_TRANSCRIPT_SEARCH).into();
     }
 
     fn refresh_transcript_search(&mut self) {
@@ -1947,7 +2034,7 @@ impl App {
                 self.last_transcript_query = search.query;
             }
         }
-        self.state.status_line = "Recherche fermée".into();
+        self.state.status_line = crate::i18n::t(sk::STATUS_SEARCH_CLOSED).into();
     }
 
     fn handle_transcript_search_key(&mut self, key: KeyEvent) -> bool {
@@ -1991,7 +2078,7 @@ impl App {
             match_indices: Vec::new(),
             current: 0,
         });
-        self.state.status_line = "Recherche historique (Ctrl+R)".into();
+        self.state.status_line = crate::i18n::t(sk::STATUS_HISTORY_SEARCH).into();
     }
 
     fn refresh_history_search(&mut self) {
@@ -2017,11 +2104,11 @@ impl App {
                     self.state.composer_buffer = search.saved_buffer;
                     self.history_cursor = search.saved_history_cursor;
                 }
-                self.state.status_line = "Recherche historique annulée".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_HISTORY_CANCELLED).into();
             }
             KeyCode::Enter => {
                 self.history_search = None;
-                self.state.status_line = "Historique accepté".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_HISTORY_ACCEPTED).into();
             }
             KeyCode::Char('r') if ctrl => {
                 if let Some(search) = self.history_search.as_mut() {
@@ -2038,7 +2125,7 @@ impl App {
                         if let Some(saved) = self.history_search.take() {
                             self.state.composer_buffer = saved.saved_buffer;
                             self.history_cursor = saved.saved_history_cursor;
-                            self.state.status_line = "Recherche historique annulée".into();
+                            self.state.status_line = crate::i18n::t(sk::STATUS_HISTORY_CANCELLED).into();
                         }
                     } else {
                         search.query.pop();
@@ -2076,7 +2163,7 @@ impl App {
     fn open_ai_server_dialog(&mut self) {
         if self.state.phase == AppPhase::Running {
             self.state
-                .push_system("Impossible pendant un run agent — annulez d'abord (Esc).");
+                .push_system(crate::i18n::t(sk::STATUS_AGENT_BUSY));
             return;
         }
         let saved = self.tui_prefs.llm_connection.as_ref();
@@ -2111,7 +2198,7 @@ impl App {
         self.state.ai_server = Some(dialog);
         self.state.reset_modal_anim();
         self.state.phase = AppPhase::AiServer;
-        self.state.status_line = "/server — assistant connexion IA (Ctrl+Shift+L)".into();
+        self.state.status_line = crate::i18n::t(sk::STATUS_SERVER_DIALOG).into();
         if needs_model_refresh {
             self.start_ai_server_test();
         }
@@ -2138,7 +2225,7 @@ impl App {
     fn open_workspace_dialog(&mut self, initial: Option<String>) {
         if self.state.phase == AppPhase::Running {
             self.state
-                .push_system("Impossible pendant un run agent — annulez d'abord (Esc).");
+                .push_system(crate::i18n::t(sk::STATUS_AGENT_BUSY));
             return;
         }
         let current = self
@@ -2250,7 +2337,7 @@ impl App {
         match key.code {
             KeyCode::Esc => {
                 self.close_workspace_dialog();
-                self.state.status_line = "Changement workspace annulé".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_WORKSPACE_CANCELLED).into();
             }
             KeyCode::Tab => self.cycle_workspace_focus(false),
             KeyCode::BackTab => self.cycle_workspace_focus(true),
@@ -2340,7 +2427,7 @@ impl App {
     ) -> anyhow::Result<()> {
         if self.state.phase == AppPhase::Running {
             self.state
-                .push_system("Impossible pendant un run agent — annulez d'abord (Esc).");
+                .push_system(crate::i18n::t(sk::STATUS_AGENT_BUSY));
             return Ok(());
         }
 
@@ -2405,9 +2492,10 @@ impl App {
             );
         }
 
-        self.state.status_line = format!("Workspace : {}", runtime.workspace);
+        self.state.status_line =
+            crate::i18n::tf(sk::STATUS_WORKSPACE_CHANGED, runtime.workspace.as_str());
         self.state
-            .push_toast("Workspace changé · nouvelle session");
+            .push_toast(crate::i18n::t(sk::TOAST_WORKSPACE_CHANGED));
         Ok(())
     }
 
@@ -2600,9 +2688,9 @@ impl App {
         ));
         self.state
             .push_system(format!("Preferences persistees : {prefs_path}"));
-        self.state.push_toast("Connexion IA enregistree");
+        self.state.push_toast(crate::i18n::t(sk::TOAST_LLM_SAVED));
         self.refresh_status_snapshot().await;
-        self.state.status_line = "Connexion IA enregistree".into();
+        self.state.status_line = crate::i18n::t(sk::STATUS_LLM_SAVED).into();
 
         if !self.tui_prefs.onboarding_done {
             self.state.onboarding = Some(OnboardingDialog::default());
@@ -2679,7 +2767,7 @@ impl App {
             })
         {
             self.close_ai_server_dialog();
-            self.state.status_line = "Connexion IA annulée".into();
+            self.state.status_line = crate::i18n::t(sk::STATUS_LLM_CANCELLED).into();
             return false;
         }
 
@@ -2954,7 +3042,7 @@ impl App {
         self.state.onboarding = None;
         self.state.phase = AppPhase::Idle;
         let _ = crate::engine::preferences::mark_onboarding_done();
-        self.state.push_toast("Onboarding terminé — /onboarding pour revoir");
+        self.state.push_toast(crate::i18n::t(sk::TOAST_ONBOARDING_DONE));
     }
 
     fn handle_onboarding_key(&mut self, key: KeyEvent) -> bool {
@@ -2986,7 +3074,7 @@ impl App {
         });
         self.state.reset_modal_anim();
         self.state.phase = AppPhase::SlashPalette;
-        self.state.status_line = "Palette slash — /".into();
+        self.state.status_line = crate::i18n::t(sk::STATUS_SLASH_PALETTE).into();
     }
 
     fn refilter_slash_palette(&mut self) {
@@ -3006,7 +3094,7 @@ impl App {
             KeyCode::Esc => {
                 self.state.slash_palette = None;
                 self.state.phase = AppPhase::Idle;
-                self.state.status_line = "Palette slash fermee".into();
+                self.state.status_line = crate::i18n::t(sk::STATUS_SLASH_PALETTE_CLOSED).into();
             }
             KeyCode::Up if dialog.cursor > 0 => {
                 dialog.cursor -= 1;
@@ -3097,15 +3185,18 @@ impl App {
                 };
                 self.state.composer_buffer =
                     at_typeahead::apply_completion(&self.state.composer_buffer, ctx, &item.payload);
-                self.state.status_line = format!("Référence @{} insérée", item.payload);
+                self.state.status_line =
+                    crate::i18n::tf(sk::STATUS_AT_REF_INSERTED, &item.payload);
             }
             SuggestionKind::Slash => {
                 self.state.composer_buffer = item.payload.clone();
-                self.state.status_line = format!("Commande {} — Entrée pour exécuter", item.label);
+                self.state.status_line =
+                    crate::i18n::tf(sk::STATUS_SLASH_CMD_READY, &item.label);
             }
             SuggestionKind::Skill => {
                 self.state.composer_buffer = format!("/skills {}", item.payload);
-                self.state.status_line = format!("Skill {} — Entrée pour lire", item.payload);
+                self.state.status_line =
+                    crate::i18n::tf(sk::STATUS_SKILL_READY, &item.payload);
             }
         }
     }
@@ -3131,7 +3222,7 @@ impl App {
             && self.state.composer_buffer.is_empty()
         {
             self.state.composer_mode = ComposerMode::Bash;
-            self.state.status_line = "Mode bash — Entrée exécute · Esc quitte".into();
+            self.state.status_line = crate::i18n::t(sk::STATUS_BASH_MODE_FOOTER).into();
             return Ok(true);
         }
         if c == '/'
@@ -3190,7 +3281,7 @@ impl App {
                     self.state.composer_buffer.push_str(&ins);
                 }
                 self.refresh_composer_suggestions();
-                self.state.status_line = format!("Image collée — {ins}");
+                self.state.status_line = crate::i18n::tf(sk::STATUS_IMAGE_PASTED, &ins);
             }
             return;
         }
@@ -3211,7 +3302,8 @@ impl App {
                     self.state.composer_buffer.push_str(&ins);
                 }
                 self.refresh_composer_suggestions();
-                self.state.status_line = format!("Image — {label} → {ins}");
+                self.state.status_line =
+                    crate::i18n::tf2(sk::STATUS_IMAGE_PATH, &label, &ins);
                 return;
             }
         }

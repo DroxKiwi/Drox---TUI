@@ -2,7 +2,7 @@
 
 > Reprend et formalise [`docs/2.0.1/PLAN-I18N-EN.md`](../2.0.1/PLAN-I18N-EN.md).
 
-**Statut** : plan  
+**Statut** : livré (2.0.2)  
 **Objectif** : interface TUI entièrement utilisable en **français** et **anglais**, avec choix utilisateur persistant.
 
 ---

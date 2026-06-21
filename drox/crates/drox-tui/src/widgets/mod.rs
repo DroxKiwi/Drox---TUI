@@ -22,6 +22,7 @@ pub mod mcp_panel;
 pub mod workspace_dialog;
 pub mod modal_frame;
 pub mod onboarding;
+pub mod settings_dialog;
 pub mod toast;
 pub mod todo_panel;
 pub mod tool_call;

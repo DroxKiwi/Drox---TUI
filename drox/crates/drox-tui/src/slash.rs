@@ -14,6 +14,7 @@ use camino::Utf8Path;
 
 use crate::app::AppState;
 use crate::engine::EngineRuntime;
+use crate::i18n::{self, keys_p1 as k};
 
 pub use appearance::{apply_theme, handle_color, handle_theme};
 pub use config::handle_config;
@@ -145,9 +146,6 @@ pub enum PendingSlash {
     ApplyWorkspace { path: camino::Utf8PathBuf },
 }
 
-const HELP: &str = "Commandes : /help /clear /exit /status /model /server /session /sessions \
-/newsession /resume <id> /rename [/rename <titre>] /copy [/copy N] /add-dir <chemin> /workspace [/workspace <chemin>] /vim /settings /onboarding /compact /memory [/memory <slug>|search <q>] /search <q> /permissions /plan [/plan off] /context /hooks [/hooks reload] /config /doctor /mcp [/mcp tools|resources|ping] /skills [/skills <name>] /cost /stats /usage /branch /rewind /export [/export fichier] /theme [/theme dark] /color [/color cyan] /keybindings [/keybindings init] /diff /files /init [/init run] /terminal-setup /sandbox /review [/review PR] /security-review /statusline [/statusline run]";
-
 pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) -> SlashOutcome {
     let trimmed = input.trim();
     if !trimmed.starts_with('/') {
@@ -158,19 +156,19 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
     let cmd = parts.first().copied().unwrap_or("/help").to_ascii_lowercase();
     match cmd.as_str() {
         "/help" | "/?" => {
-            state.push_system(HELP);
+            state.push_system(i18n::t(k::SLASH_HELP_BODY));
             SlashOutcome::Handled
         }
         "/clear" => {
             state.clear_transcript();
-            state.push_system("Fil effacé (transcript disque conservé).");
+            state.push_system(i18n::t(k::SLASH_MSG_CLEAR));
             SlashOutcome::Handled
         }
         "/new" | "/newsession" => SlashOutcome::NewSession,
         "/resume" => {
             let id = parts.get(1).copied().unwrap_or("").trim();
             if id.is_empty() {
-                state.push_system("Usage : /resume ses_<uuid>");
+                state.push_system(i18n::t(k::SLASH_MSG_RESUME_USAGE));
                 SlashOutcome::Handled
             } else {
                 SlashOutcome::ResumeSession(id.to_string())
@@ -207,14 +205,14 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
             match list_sessions_sync(&runtime.sessions_dir) {
                 Ok(lines) => {
                     if lines.is_empty() {
-                        state.push_system("Aucune session transcript (ses_*.jsonl).");
+                        state.push_system(i18n::t(k::SLASH_MSG_NO_SESSIONS));
                     } else {
                         for line in lines {
                             state.push_system(line);
                         }
                     }
                 }
-                Err(e) => state.push_system(format!("Liste sessions : {e}")),
+                Err(e) => state.push_system(i18n::tf(k::SLASH_MSG_SESSIONS_LIST_ERR, &e.to_string())),
             }
             SlashOutcome::Handled
         }
@@ -222,7 +220,7 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
         "/search" => {
             let query = trimmed.strip_prefix("/search").unwrap_or("").trim();
             if query.is_empty() {
-                state.push_system("Usage : /search <mots-clés> — mémoire `.drox/memory/sessions/`");
+                state.push_system(i18n::t(k::SLASH_MSG_MEMORY_SEARCH_USAGE));
                 SlashOutcome::Handled
             } else {
                 SlashOutcome::MemorySearch {
@@ -235,7 +233,7 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
             Some("search") | Some("find") => {
                 let query = parts[2..].join(" ");
                 if query.trim().is_empty() {
-                    state.push_system("Usage : /memory search <mots-clés>");
+                    state.push_system(i18n::t(k::SLASH_MSG_MEMORY_SEARCH_SHORT));
                     SlashOutcome::Handled
                 } else {
                     SlashOutcome::MemorySearch {
@@ -350,9 +348,7 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
                 match arg.parse::<usize>() {
                     Ok(n) if n >= 1 => n - 1,
                     _ => {
-                        state.push_system(format!(
-                            "Usage : /copy [N] — N=1 (dernier), 2, … Reçu : {arg}"
-                        ));
+                        state.push_system(i18n::tf(k::SLASH_MSG_COPY_USAGE, arg));
                         return SlashOutcome::Handled;
                     }
                 }
@@ -447,6 +443,13 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
                     SlashOutcome::Handled
                 }
             }
+            [_, "print"] => {
+                let prefs = crate::engine::preferences::load_preferences();
+                for line in crate::engine::preferences::format_settings_lines(&prefs) {
+                    state.push_system(line);
+                }
+                SlashOutcome::Handled
+            }
             _ => SlashOutcome::Settings,
         },
         "/language" => match parts.get(1) {
@@ -465,7 +468,11 @@ pub fn handle_slash(input: &str, state: &mut AppState, runtime: &EngineRuntime) 
         },
         "/onboarding" => SlashOutcome::Onboarding,
         _ => {
-            state.push_system(format!("Commande inconnue : {cmd}. {HELP}"));
+            state.push_system(i18n::tf2(
+                k::SLASH_MSG_UNKNOWN_CMD,
+                &cmd,
+                i18n::t(k::SLASH_HELP_BODY),
+            ));
             SlashOutcome::Handled
         }
     }
