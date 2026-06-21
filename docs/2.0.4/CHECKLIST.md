@@ -27,6 +27,6 @@
 
 ## Release
 
-- [ ] Bump version 2.0.4
+- [x] Bump version 2.0.4 (workspace)
 - [ ] RELEASE_NOTES OR
-- [ ] Branche `2.0.4` → merge `main`
+- [ ] Merge `2.0.4` → `main`

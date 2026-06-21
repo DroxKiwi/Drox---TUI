@@ -4,9 +4,9 @@ Binaire `drox-cli` autonome qui implémente la boucle agent. Communique via stdi
 
 ## Statut
 
-**Ligne produit `2.0.3`** — client terminal `drox-tui` dérivé du **moteur agent Drox IDE `1.5.0`** (rewrite Rust). Branche de développement active : **`2.0.3`**. La passe expérimentale **`0.0.0`** est clôturée.
+**Ligne produit `2.0.4`** — client terminal `drox-tui` dérivé du **moteur agent Drox IDE `1.5.0`** (rewrite Rust). Branche de développement active : **`2.0.4`**. La passe expérimentale **`0.0.0`** est clôturée.
 
-Voir [`../docs/2.0.3/README.md`](../docs/2.0.3/README.md) et [`../README.md`](../README.md).
+Voir [`../docs/2.0.4/README.md`](../docs/2.0.4/README.md) et [`../README.md`](../README.md).
 
 ## Architecture
 

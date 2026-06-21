@@ -1,7 +1,7 @@
 # Ligne produit `2.0.4` — Drox TUI · Diff visuel + confiance install + animation IDE
 
-**Version produit** : `2.0.4` (planification)  
-**Branche Git** : `2.0.4` (à créer au démarrage implémentation)  
+**Version produit** : `2.0.4` (en cours)  
+**Branche Git** : `2.0.4`  
 **Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`**  
 **Prédécesseur** : [`2.0.3`](../2.0.3/README.md) — [release OR v2.0.3](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.3)
 
