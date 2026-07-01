@@ -2,37 +2,36 @@
 
 ## C0 — Audit
 
-- [ ] Repro échecs connexion cloud actuelle (Ollama Cloud)
-- [ ] Repro self-hosted vLLM / LM Studio
-- [ ] Corriger `profile_to_llm_config` si gaps
-- [ ] Tests mock auth headers
+- [x] Repro échecs connexion cloud (Ollama Cloud 401 — header `x-api-key` au lieu de Bearer)
+- [ ] Repro self-hosted vLLM / LM Studio (à valider manuellement)
+- [x] Corriger `profile_to_llm_config` + chemins legacy/bootstrap
+- [x] Tests auth headers (`connection_library`, `llm_connection`, `openai_compat`)
+- [x] Messages probe actionnables (401/403/404 via `format_probe_error`)
 
 ## C1 — Self-hosted
 
-- [ ] Formulaires Ollama, vLLM, LM Studio, OpenAI-compat
-- [ ] Éditeur headers (clé/valeur) self-hosted + Custom
-- [ ] `probe_connection` généralisé
-- [ ] i18n FR/EN
+- [x] Formulaires Ollama, vLLM, LM Studio, OpenAI-compat (presets + defaults wizard)
+- [x] Éditeur headers (clé/valeur) self-hosted + Custom
+- [x] `probe_connection` généralisé (Ollama natif + OpenAI-compat)
+- [x] i18n FR/EN moteurs + lien doc officielle à l'étape connexion
 
 ## C2 — Cloud
 
-- [ ] `LlmProvider` + `CloudProviderChoice` : Mistral, OVH, HF, Scaleway
-- [ ] Connecteur Ollama Cloud (revue doc officielle)
-- [ ] Connecteur Mistral
-- [ ] Connecteur OVHcloud AI Endpoints
-- [ ] Connecteur Hugging Face
-- [ ] Connecteur Scaleway Generative APIs
-- [ ] Formulaire dédié par prestataire + lien doc
+- [x] `LlmProvider` + `CloudProviderChoice` : Mistral, OVH, HF, Scaleway
+- [x] Connecteur Ollama Cloud (Bearer, revue doc)
+- [x] Connecteurs Mistral / OVH / HF / Scaleway (OpenAI-compat + presets URL)
+- [x] Formulaire wizard par prestataire (defaults, auth Bearer verrouillée si requis)
+- [x] Lien doc officielle dans l'écran configuration
 
 ## C3 — Release
 
-- [ ] Migration profils JSON existants
-- [ ] `/doctor` connexion active
-- [ ] README utilisateur
-- [ ] RELEASE_NOTES OR
+- [x] Migration profils JSON (`repair_misclassified_cloud_auth`)
+- [x] `/doctor` — messages connexion LLM améliorés
+- [x] README utilisateur (section moteurs cloud)
+- [x] RELEASE_NOTES OR
 - [ ] Merge → `main`
 
-## Déjà fait
+## Déjà fait (hors jalons)
 
 - [x] Bump version workspace `2.0.5`
 - [x] Spec produit `docs/2.0.5/` (connexions)

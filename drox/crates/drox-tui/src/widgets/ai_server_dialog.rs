@@ -212,6 +212,16 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             }
         }
         AiServerStep::ConfigureConnection | AiServerStep::Testing => {
+            if let Some(doc) = dialog.configure_doc_url() {
+                lines.push(Line::from(vec![
+                    Span::styled(
+                        format!("{}: ", i18n::t(keys::MODAL_SERVER_FIELD_DOC)),
+                        Style::default().fg(p.header_muted),
+                    ),
+                    Span::styled(doc.to_string(), Style::default().fg(p.accent_bright)),
+                ]));
+                lines.push(Line::from(""));
+            }
             lines.push(field_line(
                 p,
                 i18n::t(keys::MODAL_SERVER_FIELD_URL),
@@ -221,12 +231,14 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
                     && dialog.step == AiServerStep::ConfigureConnection,
                 false,
             ));
-            lines.push(auth_type_line(
-                p,
-                dialog.auth_type,
-                dialog.configure_focus == ConfigureField::AuthType
-                    && dialog.step == AiServerStep::ConfigureConnection,
-            ));
+            if !dialog.auth_type_locked() {
+                lines.push(auth_type_line(
+                    p,
+                    dialog.auth_type,
+                    dialog.configure_focus == ConfigureField::AuthType
+                        && dialog.step == AiServerStep::ConfigureConnection,
+                ));
+            }
             if dialog.auth_type == AuthTypeChoice::ApiKeyHeader {
                 lines.push(field_line(
                     p,

@@ -57,9 +57,16 @@ pub const MODAL_SERVER_CONN_FAILED_PREFIX: &str = "modal.server.conn_failed_pref
 pub const DEPLOYMENT_PERSONAL: &str = "deployment.personal";
 pub const DEPLOYMENT_CLOUD: &str = "deployment.cloud";
 pub const ENGINE_VLLM: &str = "engine.vllm";
+pub const ENGINE_OLLAMA: &str = "engine.ollama";
 pub const ENGINE_LM_STUDIO: &str = "engine.lm_studio";
 pub const ENGINE_OPENAI_COMPAT: &str = "engine.openai_compat";
 pub const ENGINE_CUSTOM: &str = "engine.custom";
+pub const CLOUD_OLLAMA: &str = "cloud.ollama";
+pub const CLOUD_MISTRAL: &str = "cloud.mistral";
+pub const CLOUD_OVH: &str = "cloud.ovh";
+pub const CLOUD_HF: &str = "cloud.hf";
+pub const CLOUD_SCALEWAY: &str = "cloud.scaleway";
+pub const MODAL_SERVER_FIELD_DOC: &str = "modal.server.field.doc";
 pub const AUTH_NONE: &str = "auth.none";
 pub const AUTH_BEARER: &str = "auth.bearer";
 pub const AUTH_API_KEY_HEADER: &str = "auth.api_key_header";
@@ -192,9 +199,16 @@ pub const P0_KEYS: &[&str] = &[
     DEPLOYMENT_PERSONAL,
     DEPLOYMENT_CLOUD,
     ENGINE_VLLM,
+    ENGINE_OLLAMA,
     ENGINE_LM_STUDIO,
     ENGINE_OPENAI_COMPAT,
     ENGINE_CUSTOM,
+    CLOUD_OLLAMA,
+    CLOUD_MISTRAL,
+    CLOUD_OVH,
+    CLOUD_HF,
+    CLOUD_SCALEWAY,
+    MODAL_SERVER_FIELD_DOC,
     AUTH_NONE,
     AUTH_BEARER,
     AUTH_API_KEY_HEADER,

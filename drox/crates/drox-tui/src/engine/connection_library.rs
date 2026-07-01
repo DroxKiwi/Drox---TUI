@@ -16,6 +16,10 @@ use super::preferences::{
 /// Identifiants des presets intégrés (non supprimables).
 pub const PRESET_OLLAMA_LOCAL: &str = "ollama-local";
 pub const PRESET_OLLAMA_CLOUD: &str = "ollama-cloud";
+pub const PRESET_MISTRAL_CLOUD: &str = "mistral-cloud";
+pub const PRESET_OVH_CLOUD: &str = "ovh-cloud";
+pub const PRESET_HF_CLOUD: &str = "hf-cloud";
+pub const PRESET_SCALEWAY_CLOUD: &str = "scaleway-cloud";
 pub const PRESET_VLLM_OPENAI: &str = "vllm-openai";
 pub const PRESET_LM_STUDIO: &str = "lm-studio";
 pub const PRESET_OPENAI_COMPAT: &str = "openai-compatible";
@@ -27,6 +31,10 @@ pub enum LlmProvider {
     #[default]
     OllamaLocal,
     OllamaCloud,
+    MistralCloud,
+    OvhCloud,
+    HuggingFaceCloud,
+    ScalewayCloud,
     Vllm,
     OpenAiCompatible,
     LmStudio,
@@ -39,11 +47,58 @@ impl LlmProvider {
         match self {
             Self::OllamaLocal => "Ollama local",
             Self::OllamaCloud => "Ollama Cloud",
+            Self::MistralCloud => "Mistral",
+            Self::OvhCloud => "OVHcloud AI Endpoints",
+            Self::HuggingFaceCloud => "Hugging Face",
+            Self::ScalewayCloud => "Scaleway",
             Self::Vllm => "vLLM (OpenAI)",
             Self::OpenAiCompatible => "OpenAI-compatible",
             Self::LmStudio => "LM Studio",
             Self::Custom => "Personnalisé",
         }
+    }
+
+    #[must_use]
+    pub const fn is_cloud(self) -> bool {
+        matches!(
+            self,
+            Self::OllamaCloud
+                | Self::MistralCloud
+                | Self::OvhCloud
+                | Self::HuggingFaceCloud
+                | Self::ScalewayCloud
+        )
+    }
+
+    #[must_use]
+    pub const fn doc_url(self) -> Option<&'static str> {
+        match self {
+            Self::OllamaLocal => Some(
+                "https://github.com/ollama/ollama/blob/main/docs/api.md",
+            ),
+            Self::OllamaCloud => Some("https://ollama.com/cloud"),
+            Self::MistralCloud => Some("https://docs.mistral.ai/api/"),
+            Self::OvhCloud => Some(
+                "https://help.ovhcloud.com/csm/en-gb-public-cloud-ai-machine-learning-endpoints",
+            ),
+            Self::HuggingFaceCloud => Some("https://huggingface.co/docs/api-inference/index"),
+            Self::ScalewayCloud => Some("https://www.scaleway.com/en/docs/generative-apis/"),
+            Self::Vllm => Some(
+                "https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html",
+            ),
+            Self::LmStudio => Some("https://lmstudio.ai/docs/app/api/endpoints/openai"),
+            Self::OpenAiCompatible => Some("https://platform.openai.com/docs/api-reference"),
+            Self::Custom => None,
+        }
+    }
+
+    /// Auth Bearer imposée (pas de bascule vers header custom dans le wizard).
+    #[must_use]
+    pub const fn requires_bearer_auth(self) -> bool {
+        matches!(
+            self,
+            Self::OllamaCloud | Self::MistralCloud | Self::HuggingFaceCloud
+        )
     }
 
     #[must_use]
@@ -55,7 +110,13 @@ impl LlmProvider {
     pub const fn uses_openai_api(self) -> bool {
         matches!(
             self,
-            Self::Vllm | Self::OpenAiCompatible | Self::LmStudio
+            Self::Vllm
+                | Self::OpenAiCompatible
+                | Self::LmStudio
+                | Self::MistralCloud
+                | Self::OvhCloud
+                | Self::HuggingFaceCloud
+                | Self::ScalewayCloud
         )
     }
 }
@@ -229,7 +290,7 @@ impl ConnectionLibrary {
         max_iterations: usize,
     ) {
         let provider = infer_provider_from_url(server);
-        let auth = legacy_api_key_to_auth(api_key);
+        let auth = legacy_api_key_to_auth(api_key, server);
 
         if let Some(id) = self.active_profile_id.clone() {
             if let Some(profile) = self.profiles.iter_mut().find(|p| p.id == id) {
@@ -269,6 +330,42 @@ pub fn builtin_preset_templates() -> Vec<ConnectionProfile> {
             "Ollama Cloud",
             LlmProvider::OllamaCloud,
             "https://ollama.com",
+            AuthConfig::Bearer {
+                token: String::new(),
+            },
+        ),
+        preset(
+            PRESET_MISTRAL_CLOUD,
+            "Mistral",
+            LlmProvider::MistralCloud,
+            "https://api.mistral.ai/v1",
+            AuthConfig::Bearer {
+                token: String::new(),
+            },
+        ),
+        preset(
+            PRESET_OVH_CLOUD,
+            "OVHcloud AI Endpoints",
+            LlmProvider::OvhCloud,
+            "https://endpoints.ai.cloud.ovh.net",
+            AuthConfig::Bearer {
+                token: String::new(),
+            },
+        ),
+        preset(
+            PRESET_HF_CLOUD,
+            "Hugging Face",
+            LlmProvider::HuggingFaceCloud,
+            "https://api-inference.huggingface.co",
+            AuthConfig::Bearer {
+                token: String::new(),
+            },
+        ),
+        preset(
+            PRESET_SCALEWAY_CLOUD,
+            "Scaleway",
+            LlmProvider::ScalewayCloud,
+            "https://api.scaleway.ai/v1",
             AuthConfig::Bearer {
                 token: String::new(),
             },
@@ -330,6 +427,14 @@ pub fn infer_provider_from_url(url: &str) -> LlmProvider {
     let lower = url.to_ascii_lowercase();
     if lower.contains("ollama.com") {
         LlmProvider::OllamaCloud
+    } else if lower.contains("mistral.ai") {
+        LlmProvider::MistralCloud
+    } else if lower.contains("huggingface.co") || lower.contains("hf.co") {
+        LlmProvider::HuggingFaceCloud
+    } else if lower.contains("scaleway.ai") || lower.contains("scw.cloud") {
+        LlmProvider::ScalewayCloud
+    } else if lower.contains("ovh.net") || lower.contains("ovhcloud") {
+        LlmProvider::OvhCloud
     } else if lower.contains(":1234") || lower.contains("lmstudio") {
         LlmProvider::LmStudio
     } else if lower.contains(":8000") || lower.contains("vllm") {
@@ -343,13 +448,35 @@ pub fn infer_provider_from_url(url: &str) -> LlmProvider {
     }
 }
 
-pub(crate) fn legacy_api_key_to_auth(api_key: Option<&str>) -> AuthConfig {
-    match api_key.filter(|k| !k.trim().is_empty()) {
-        Some(token) => AuthConfig::ApiKeyHeader {
+/// Mappe l'ancien champ `api_key` vers [`AuthConfig`] selon le prestataire déduit de l'URL.
+pub(crate) fn legacy_api_key_to_auth(api_key: Option<&str>, server: &str) -> AuthConfig {
+    let Some(token) = api_key.filter(|k| !k.trim().is_empty()) else {
+        return AuthConfig::None;
+    };
+    let provider = infer_provider_from_url(server);
+    if provider.is_cloud() || provider.uses_openai_api() {
+        AuthConfig::Bearer {
+            token: token.to_string(),
+        }
+    } else {
+        AuthConfig::ApiKeyHeader {
             header_name: "x-api-key".into(),
             token: token.to_string(),
-        },
-        None => AuthConfig::None,
+        }
+    }
+}
+
+/// Corrige les profils cloud migrés avec un `x-api-key` erroné (401 cloud).
+pub(crate) fn repair_misclassified_cloud_auth(profile: &mut ConnectionProfile) {
+    if !profile.provider.is_cloud() {
+        return;
+    }
+    if let AuthConfig::ApiKeyHeader { header_name, token } = &profile.auth {
+        if header_name.eq_ignore_ascii_case("x-api-key") && !token.trim().is_empty() {
+            profile.auth = AuthConfig::Bearer {
+                token: token.clone(),
+            };
+        }
     }
 }
 
@@ -372,7 +499,7 @@ pub fn profile_to_probe_config(profile: &ConnectionProfile) -> Result<LlmConfig,
     Ok(config)
 }
 
-fn apply_auth_to_config(
+pub(crate) fn apply_auth_to_config(
     config: &mut LlmConfig,
     auth: &AuthConfig,
     extra_headers: &BTreeMap<String, String>,
@@ -426,7 +553,7 @@ fn legacy_api_key_from_profile(profile: &ConnectionProfile) -> Option<String> {
 pub fn legacy_prefs_to_profile(conn: &LlmConnectionPrefs, name: &str) -> ConnectionProfile {
     let provider = infer_provider_from_url(&conn.server);
     let mut profile = ConnectionProfile::new_custom(name, provider, &conn.server);
-    profile.auth = legacy_api_key_to_auth(conn.api_key.as_deref());
+    profile.auth = legacy_api_key_to_auth(conn.api_key.as_deref(), &conn.server);
     profile.default_model = Some(conn.model.clone());
     profile.num_ctx = conn.num_ctx;
     profile.max_iterations = conn.max_iterations;
@@ -464,7 +591,7 @@ mod tests {
         lib.ensure_builtin_presets();
         assert!(lib.profile_by_id(PRESET_OLLAMA_LOCAL).is_some());
         assert!(lib.profile_by_id(PRESET_OLLAMA_CLOUD).is_some());
-        assert_eq!(lib.profiles.len(), 5);
+        assert_eq!(lib.profiles.len(), 9);
     }
 
     #[test]
@@ -508,6 +635,61 @@ mod tests {
         profile.default_model = Some("m".into());
         let cfg = profile_to_llm_config(&profile).unwrap();
         assert_eq!(cfg.headers.get("x-custom").map(String::as_str), Some("v1"));
+    }
+
+    #[test]
+    fn legacy_api_key_ollama_cloud_uses_bearer() {
+        let auth = legacy_api_key_to_auth(Some("tok"), "https://ollama.com");
+        assert!(matches!(auth, AuthConfig::Bearer { .. }));
+        let cfg = {
+            let mut profile =
+                ConnectionProfile::new_custom("cloud", LlmProvider::OllamaCloud, "https://ollama.com");
+            profile.auth = auth;
+            profile.default_model = Some("llama3.2".into());
+            profile_to_llm_config(&profile).unwrap()
+        };
+        assert_eq!(
+            cfg.headers.get("authorization").map(String::as_str),
+            Some("Bearer tok")
+        );
+        assert!(cfg.headers.get("x-api-key").is_none());
+    }
+
+    #[test]
+    fn legacy_api_key_local_uses_x_api_key() {
+        let auth = legacy_api_key_to_auth(Some("key"), "http://127.0.0.1:11434");
+        assert!(matches!(
+            auth,
+            AuthConfig::ApiKeyHeader {
+                header_name,
+                ..
+            } if header_name == "x-api-key"
+        ));
+    }
+
+    #[test]
+    fn repair_cloud_profile_migrates_x_api_key_to_bearer() {
+        let mut profile =
+            ConnectionProfile::new_custom("cloud", LlmProvider::OllamaCloud, "https://ollama.com");
+        profile.auth = AuthConfig::ApiKeyHeader {
+            header_name: "x-api-key".into(),
+            token: "secret".into(),
+        };
+        repair_misclassified_cloud_auth(&mut profile);
+        assert!(matches!(profile.auth, AuthConfig::Bearer { .. }));
+    }
+
+    #[test]
+    fn mistral_cloud_preset_uses_openai_api() {
+        let mut profile = builtin_preset_templates()
+            .into_iter()
+            .find(|p| p.id == PRESET_MISTRAL_CLOUD)
+            .unwrap();
+        assert_eq!(profile.provider, LlmProvider::MistralCloud);
+        profile.default_model = Some("mistral-small-latest".into());
+        let cfg = profile_to_llm_config(&profile).unwrap();
+        assert!(profile.provider.uses_openai_api());
+        assert!(cfg.base_url.as_str().contains("mistral.ai"));
     }
 
     #[test]

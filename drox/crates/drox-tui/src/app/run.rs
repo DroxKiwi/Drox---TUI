@@ -3037,7 +3037,7 @@ impl App {
         tokio::spawn(async move {
             let result = crate::engine::probe_connection(&profile)
                 .await
-                .map_err(|e| e.to_string());
+                .map_err(|e| crate::engine::format_probe_error(&e));
             let _ = tx.send(result).await;
         });
     }
@@ -3403,10 +3403,16 @@ impl App {
                 KeyCode::Enter if dialog.configure_focus == ConfigureField::AddExtraHeader => {
                     dialog.add_extra_header_from_inputs();
                 }
-                KeyCode::Left if dialog.configure_focus == ConfigureField::AuthType => {
+                KeyCode::Left
+                    if dialog.configure_focus == ConfigureField::AuthType
+                        && !dialog.auth_type_locked() =>
+                {
                     dialog.auth_type = dialog.auth_type.prev();
                 }
-                KeyCode::Right if dialog.configure_focus == ConfigureField::AuthType => {
+                KeyCode::Right
+                    if dialog.configure_focus == ConfigureField::AuthType
+                        && !dialog.auth_type_locked() =>
+                {
                     dialog.auth_type = dialog.auth_type.next();
                 }
                 KeyCode::Left => {

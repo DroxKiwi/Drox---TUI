@@ -45,8 +45,9 @@ pub use vim::{VimComposer, VimKeyResult, VimMode};
 pub use connection_library::{
     builtin_preset_templates, infer_provider_from_url, migrate_library_from_legacy,
     profile_to_legacy_prefs, profile_to_llm_config, profile_to_probe_config, AuthConfig,
-    ConnectionLibrary, ConnectionProfile, LlmProvider, PRESET_LM_STUDIO, PRESET_OLLAMA_CLOUD,
-    PRESET_OLLAMA_LOCAL, PRESET_OPENAI_COMPAT, PRESET_VLLM_OPENAI,
+    ConnectionLibrary, ConnectionProfile, LlmProvider, PRESET_HF_CLOUD, PRESET_LM_STUDIO,
+    PRESET_MISTRAL_CLOUD, PRESET_OLLAMA_CLOUD, PRESET_OLLAMA_LOCAL, PRESET_OPENAI_COMPAT,
+    PRESET_OVH_CLOUD, PRESET_SCALEWAY_CLOUD, PRESET_VLLM_OPENAI,
 };
 pub use preferences::{
     apply_llm_prefs_to_config, format_settings_lines, load_preferences, llm_connection_from_config,
@@ -58,7 +59,7 @@ pub use preferences::{
 pub use copy_cmd::try_copy_clipboard;
 pub use paste::{prepare_user_prompt, PastedTextStore};
 pub use at_typeahead::{active_at_query, apply_completion, AtFileIndex, AtQuery};
-pub use llm_connection::{probe_connection, probe_legacy_fields, probe_ollama};
+pub use llm_connection::{format_probe_error, probe_connection, probe_legacy_fields, probe_ollama};
 pub use llm_context::{
     cycle_preset_index, default_max_iterations, default_num_ctx, parse_max_iterations,
     preset_index_for, preset_label, preset_count, resolve_num_ctx, CONTEXT_CUSTOM_INDEX,

@@ -1,8 +1,8 @@
 # Drox TUI — agent local en terminal
 
-> ⚠️ **Avertissement** — Drox TUI est **potentiellement instable** : développement actif et exigeant, produit encore **expérimental**. De nombreuses mises à jour sont prévues (**2.0.5** connexions LLM cloud, **2.0.6** multi-pane, **2.0.7** signature installateur et GPG Linux, etc.). Il est conseillé d’utiliser les [releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) et de s’attendre à des évolutions fréquentes.
+> ⚠️ **Avertissement** — Drox TUI est **potentiellement instable** : développement actif et exigeant, produit encore **expérimental**. Prochaines mises à jour : **2.0.6** multi-pane, **2.0.7** signature installateur et GPG Linux, etc. Il est conseillé d’utiliser les [releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) et de s’attendre à des évolutions fréquentes.
 >
-> ⚠️ **Warning** — Drox TUI may be **unstable**: active, demanding development; still **experimental**. Many updates ahead (**2.0.5** LLM cloud connections, **2.0.6** multi-pane, **2.0.7** installer signing and Linux GPG, etc.). Use [releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) and expect frequent changes.
+> ⚠️ **Warning** — Drox TUI may be **unstable**: active, demanding development; still **experimental**. Upcoming: **2.0.6** multi-pane, **2.0.7** installer signing and Linux GPG, etc. Use [releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) and expect frequent changes.
 
 > **Tu découvres Drox ?** **Drox TUI** est un assistant agent en **terminal**, adapté aux débutants.  
 > **Produit sœur** : **[Drox IDE](https://github.com/DroxKiwi/Drox---IDE---OR)** (éditeur graphique, fork VS Code, même moteur agent) — **beaucoup plus difficile à prendre en main** (install lourde, UI riche, toujours expérimental). **Il est conseillé de commencer par le TUI**.
@@ -13,7 +13,7 @@
 
 ### Où en est Drox TUI (2.0.x)
 
-Le TUI est le **cœur agent d’origine** de l’écosystème Drox : une boucle mono-agent (`tui_mono`) en Rust, dérivée du moteur **Drox IDE 1.5.0**, emballée en binaire terminal autonome. La release courante [**2.0.4**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) apporte le **diff visuel** (`/diff`, touche `e`, bandeau fin de run) et peaufine **`/update`** ; les lignes **2.0.5** (connexions LLM self-hosted & cloud), **2.0.6** (poste multi-pane) et **2.0.7** (signature installateur, GPG Linux) suivent. Toujours **expérimental** — assistant terminal pour early adopters, pas un produit agent « prod ».
+Le TUI est le **cœur agent d’origine** de l’écosystème Drox : une boucle mono-agent (`tui_mono`) en Rust, dérivée du moteur **Drox IDE 1.5.0**, emballée en binaire terminal autonome. La release courante [**2.0.5**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) apporte les **connexions LLM** self-hosted et cloud (Ollama, Mistral, OVH, HF, Scaleway…) ; les lignes **2.0.6** (poste multi-pane) et **2.0.7** (signature installateur, GPG Linux) suivent. Toujours **expérimental** — assistant terminal pour early adopters, pas un produit agent « prod ».
 
 ### Souveraineté
 
@@ -34,7 +34,7 @@ Plans produit dans ce dépôt — voir aussi la vision partagée [Drox IDE](http
 | Thème | Objectif | Ligne |
 |-------|----------|-------|
 | **Diff visuel overlay** | `/diff`, viewer coloré, `e` sur les patches | ✅ **2.0.4** |
-| **Connexions LLM** | Self-hosted + cloud (Ollama, Mistral, OVH, HF, Scaleway…) | **2.0.5** |
+| **Connexions LLM** | Self-hosted + cloud (Ollama, Mistral, OVH, HF, Scaleway…) | ✅ **2.0.5** |
 | **Poste multi-pane** | Fil · carte contexte · changements+diff | **2.0.6** |
 | **Confiance install** | Authenticode Windows, signatures GPG Linux | **2.0.7** |
 | **Télémétrie locale** | KPI par run, dashboards **100 % locaux** (`.drox/`) — aucun cloud | piste |
@@ -47,24 +47,24 @@ Ces pistes **ne bloquent pas** les releases courantes ; elles nourrissent la lig
 
 ---
 
-## ⚠️ STATUT — version 2.0.4 (juin 2026)
+## ⚠️ STATUT — version 2.0.5 (juin 2026)
 
-> **Drox TUI 2.0.4** : diff visuel M1–M4, pastille header `[MAJ on/off]`, correctif réponses assistant en double — moteur **1.5.0** (`tui_mono`).  
+> **Drox TUI 2.0.5** : connexions LLM self-hosted & cloud, fix auth Bearer Ollama Cloud, wizard `/server` par prestataire — moteur **1.5.0** (`tui_mono`).  
 > Toujours **expérimental** — early adopters / dogfood.
 
 | | |
 |---|---|
-| **Version** | [**2.0.4**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) (juin 2026) · moteur **1.5.0** |
-| **Plateformes** | **Windows** installateur 2.0.4 · **Linux** tar.gz **2.0.3** (archive 2.0.4 Linux à publier) |
+| **Version** | [**2.0.5**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) (juin 2026) · moteur **1.5.0** |
+| **Plateformes** | **Windows** installateur 2.0.5 · **Linux** tar.gz selon release OR |
 | **Utilisable au quotidien ?** | **Partiellement** — fonctionnel pour le travail agent local ; polish et signing en cours. |
-| **Nouveautés 2.0.4** | `/diff` overlay · `--stat` · navigation status · `e` sur diffs · bandeau fin de run · `/update` polish. |
-| **2.0.x−** | **2.0.3** : `/update` opt-in, Linux first-class. **2.0.2** : i18n. |
+| **Nouveautés 2.0.5** | `/server` cloud + self-hosted · Bearer Ollama Cloud · Mistral/OVH/HF/Scaleway · headers custom. |
+| **2.0.x−** | **2.0.4** : diff overlay. **2.0.3** : `/update` opt-in. **2.0.2** : i18n. |
 
-**En bref** : *le terminal où vit la boucle agent Drox — diff enfin lisible, MAJ sous contrôle.*
+**En bref** : *le terminal où vit la boucle agent Drox — connexions LLM locales et cloud enfin utilisables.*
 
 ---
 
-**Releases officielles** : [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) · notes [2.0.4](https://github.com/DroxKiwi/Drox---TUI---OR/blob/main/releases/v2.0.4/RELEASE_NOTES.md)
+**Releases officielles** : [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) · notes [2.0.5](https://github.com/DroxKiwi/Drox---TUI---OR/blob/main/releases/v2.0.5/RELEASE_NOTES.md)
 
 | | |
 |---|---|
@@ -93,7 +93,7 @@ Drox TUI **n’embarque pas** de modèle : il appelle un **serveur LLM** que tu 
 | **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` — modèles sur ton PC / serveur ([matériel testé](#matériel-testé-inférence-locale)) | **[Ollama Cloud](https://ollama.com/cloud)** — modèles hébergés, connexion par clé API (preset *Ollama Cloud*) |
 | **[vLLM](https://docs.vllm.ai/)** | API **OpenAI-compatible** sur ta machine (ex. `http://127.0.0.1:8000/v1`) — un GPU est recommandé ([matériel testé](#matériel-testé-inférence-locale)) | Instance vLLM sur **ton** VPS, cluster ou cloud privé (même API, URL + token) |
 
-Presets intégrés dans la modale connexion : *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
+Presets intégrés dans la modale connexion : *Ollama local*, *Ollama Cloud*, *Mistral*, *OVHcloud AI Endpoints*, *Hugging Face*, *Scaleway*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
 
 **Local vs cloud — ce que ça implique**
 
@@ -158,7 +158,7 @@ Ce ne sont **pas** des minimums officiels Drox : lance **`/doctor`**, teste ton 
 
 #### Windows x64
 
-1. Télécharge [`drox-tui-2.0.4-windows-x64-setup.exe`](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.4) depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest).
+1. Télécharge [`drox-tui-2.0.5-windows-x64-setup.exe`](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.5) depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest).
 2. Lance l’installateur → coche **Ajouter au PATH** si proposé.
 3. Ouvre un **nouveau** terminal (obligatoire pour que `drox-tui` soit reconnu).
 
@@ -167,7 +167,7 @@ Windows peut afficher « Éditeur inconnu » (SmartScreen) — l’installeur n�
 #### Linux x64
 
 ```bash
-# Archive 2.0.3 sur OR (2.0.4 Linux à venir)
+# Archive Linux : voir [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) (version 2.0.5 si publiée)
 tar xzf drox-tui-2.0.3-linux-x64.tar.gz
 cd drox-tui-2.0.3-linux-x64
 ./install.sh
@@ -255,7 +255,7 @@ Les transcripts sont dans `~/.drox/sessions/`.
 
 - Ollama ne répond pas → `ollama serve` ou relance l’app Ollama, puis `/doctor`.
 - Commande introuvable → nouveau terminal après install Windows, ou `~/.local/bin` dans le PATH (Linux).
-- [Issues](https://github.com/DroxKiwi/Drox---TUI---OR/issues) · notes [2.0.4](https://github.com/DroxKiwi/Drox---TUI---OR/blob/main/releases/v2.0.4/RELEASE_NOTES.md)
+- [Issues](https://github.com/DroxKiwi/Drox---TUI---OR/issues) · notes [2.0.5](https://github.com/DroxKiwi/Drox---TUI---OR/blob/main/releases/v2.0.5/RELEASE_NOTES.md)
 
 ---
 
@@ -336,7 +336,7 @@ Sans `--workspace`, le répertoire courant est utilisé. Au **premier lancement*
 
 ### Windows x64
 
-1. Téléchargez `drox-tui-2.0.4-windows-x64-setup.exe` depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.4).
+1. Téléchargez `drox-tui-2.0.5-windows-x64-setup.exe` depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.5).
 2. Lancez l’**installateur** (double-clic) et suivez l’assistant.
 3. Cochez **Ajouter au PATH** si proposé.
 
@@ -344,7 +344,7 @@ Le binaire est installé dans `%LOCALAPPDATA%\Programs\DroxTUI\bin`. Ouvrez un *
 
 ### Linux x64
 
-1. Téléchargez `drox-tui-2.0.3-linux-x64.tar.gz` depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) (archive **2.0.4** Linux à venir).
+1. Téléchargez `drox-tui-2.0.5-linux-x64.tar.gz` depuis [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) (si publiée).
 2. Extrayez et installez :
 
 ```bash
@@ -529,7 +529,7 @@ Seule communication produit Drox vers l’extérieur : **vérification de versio
 
 ### Where Drox TUI stands (2.0.x)
 
-The TUI is the **original agent core** of the Drox ecosystem: a Rust **mono-agent loop** (`tui_mono`), derived from **Drox IDE 1.5.0**, shipped as a standalone terminal binary. Current release [**2.0.4**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) adds **visual diff** (`/diff`, `e` key, end-of-run banner) and polishes **`/update`**; **2.0.5** (LLM connections), **2.0.6** (multi-pane), and **2.0.7** (installer signing, Linux GPG) follow. Still **experimental** — not a production daily driver.
+The TUI is the **original agent core** of the Drox ecosystem: a Rust **mono-agent loop** (`tui_mono`), derived from **Drox IDE 1.5.0**, shipped as a standalone terminal binary. Current release [**2.0.5**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) adds **LLM connections** (self-hosted and cloud); **2.0.6** (multi-pane) and **2.0.7** (installer signing, Linux GPG) follow. Still **experimental** — not a production daily driver.
 
 ### Sovereignty
 
@@ -550,7 +550,7 @@ Product plans in this repo — shared vision with [Drox IDE](https://github.com/
 | Theme | Goal | Line |
 |-------|------|------|
 | **Visual diff overlay** | `/diff`, colored viewer, `e` on patches | ✅ **2.0.4** |
-| **LLM connections** | Self-hosted + cloud providers | **2.0.5** |
+| **LLM connections** | Self-hosted + cloud providers | ✅ **2.0.5** |
 | **Multi-pane cockpit** | Feed · context map · changes+diff | **2.0.6** |
 | **Install trust** | Windows Authenticode, Linux GPG | **2.0.7** |
 | **Local telemetry** | Per-run KPIs, **100 % local** dashboards | planned |
@@ -561,19 +561,19 @@ These themes **do not block** current releases; they feed **2.0.x+**.
 
 ---
 
-## EN — Status (2.0.4)
+## EN — Status (2.0.5)
 
-> **Drox TUI 2.0.4** : visual diff M1–M4, header `[MAJ on/off]` badge, duplicate assistant reply fix — **1.5.0** engine (`tui_mono`).  
+> **Drox TUI 2.0.5** : self-hosted & cloud LLM connections, Ollama Cloud Bearer fix, `/server` wizard per provider — **1.5.0** engine (`tui_mono`).  
 > Still **experimental**.
 
 | | |
 |---|---|
-| **Version** | [**2.0.4**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) (June 2026) · engine **1.5.0** |
-| **Platforms** | **Windows** installer 2.0.4 · **Linux** tar.gz **2.0.3** (2.0.4 Linux archive pending) |
+| **Version** | [**2.0.5**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) (June 2026) · engine **1.5.0** |
+| **Platforms** | **Windows** installer 2.0.5 · **Linux** tar.gz per OR release |
 | **Daily driver?** | **Partially** — solid for local agent work; polish and signing in progress. |
-| **2.0.4 highlights** | `/diff` overlay · `--stat` · status navigation · `e` on diffs · end-of-run banner · `/update` polish. |
+| **2.0.5 highlights** | `/server` cloud + self-hosted · Ollama Cloud Bearer · Mistral/OVH/HF/Scaleway · custom headers. |
 
-**In short**: *the terminal home of the Drox agent loop — diffs you can read, updates under your control.*
+**In short**: *the terminal home of the Drox agent loop — local and cloud LLM connections that work.*
 
 ---
 
@@ -595,7 +595,7 @@ Drox TUI does **not** ship a model: it calls an **LLM server** you choose via **
 | **[Ollama](https://ollama.com/)** | `http://127.0.0.1:11434` ([tested hardware](#en--tested-hardware-local-inference)) | **[Ollama Cloud](https://ollama.com/cloud)** — API key, hosted models |
 | **[vLLM](https://docs.vllm.ai/)** | OpenAI-compatible API (e.g. `http://127.0.0.1:8000/v1`) — a GPU is recommended ([tested hardware](#en--tested-hardware-local-inference)) | Your VPS / private cloud instance (URL + token) |
 
-Built-in presets: *Ollama local*, *Ollama Cloud*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
+Built-in presets: *Ollama local*, *Ollama Cloud*, *Mistral*, *OVHcloud AI Endpoints*, *Hugging Face*, *Scaleway*, *vLLM (OpenAI)*, *LM Studio*, *OpenAI-compatible*.
 
 **Local vs cloud**
 
@@ -654,7 +654,7 @@ These are **not** official Drox minimums — run **`/doctor`**, test your model,
 
 ### Step 1 — Install Drox TUI
 
-**Windows**: download [`drox-tui-2.0.4-windows-x64-setup.exe`](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.4), run the installer, enable **Add to PATH**, open a **new** terminal.
+**Windows**: download [`drox-tui-2.0.5-windows-x64-setup.exe`](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.5), run the installer, enable **Add to PATH**, open a **new** terminal.
 
 **Linux**: extract `drox-tui-2.0.3-linux-x64.tar.gz`, run `./install.sh`, check `drox-tui --version`.
 
@@ -744,9 +744,9 @@ cd /path/to/your-project
 drox-tui --workspace .
 ```
 
-**Windows**: download `drox-tui-2.0.4-windows-x64-setup.exe` from [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.4).
+**Windows**: download `drox-tui-2.0.5-windows-x64-setup.exe` from [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.5).
 
-**Linux**: download `drox-tui-2.0.3-linux-x64.tar.gz` (2.0.4 Linux pending), run `./install.sh`.
+**Linux**: download `drox-tui-2.0.5-linux-x64.tar.gz` (if published), run `./install.sh`.
 
 First launch: configure Ollama via **`Ctrl+Shift+L`** or **`/server`**.
 
@@ -810,8 +810,8 @@ Update checks are **opt-in** (`/update on`). When enabled, the client reads `rel
 | FR | EN |
 |----|-----|
 | [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR/releases) | Binaires officiels |
-| [RELEASE_NOTES 2.0.4](docs/2.0.4/RELEASE_NOTES.md) | Notes de version |
-| [Plan 2.0.5](docs/2.0.5/README.md) | Connexions LLM (à venir) |
+| [RELEASE_NOTES 2.0.5](docs/2.0.5/RELEASE_NOTES.md) | Notes de version |
+| [Plan 2.0.5](docs/2.0.5/README.md) | Connexions LLM (livrée) |
 | [Plan 2.0.6](docs/2.0.6/README.md) | Multi-pane (à venir) |
 | [Plan 2.0.7](docs/2.0.7/README.md) | Signing & Linux |
 | [Drox IDE OR](https://github.com/DroxKiwi/Drox---IDE---OR) | Produit sœur (éditeur) |

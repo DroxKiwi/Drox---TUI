@@ -343,7 +343,7 @@ impl EngineRuntime {
                     } else {
                         CheckStatus::Warn
                     },
-                    format!("{server} /api/tags : {e}"),
+                    format!("{server} : {}", crate::engine::format_probe_error(&e)),
                 )
             }
         }

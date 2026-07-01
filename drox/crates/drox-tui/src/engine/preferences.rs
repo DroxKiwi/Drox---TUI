@@ -183,6 +183,10 @@ fn normalize_preferences_inner(mut prefs: TuiPreferences) -> (TuiPreferences, bo
         migrate_library_from_legacy(prefs.connection_library.clone(), prefs.llm_connection.as_ref());
     prefs.connection_library.ensure_builtin_presets();
 
+    for profile in &mut prefs.connection_library.profiles {
+        crate::engine::connection_library::repair_misclassified_cloud_auth(profile);
+    }
+
     if let Some(active_id) = prefs.connection_library.active_profile_id.clone() {
         if let Some(active) = prefs
             .connection_library

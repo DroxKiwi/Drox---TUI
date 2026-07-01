@@ -206,11 +206,38 @@ impl PersonalEngineChoice {
     #[must_use]
     pub fn label(self) -> &'static str {
         match self {
-            Self::Ollama => "Ollama",
+            Self::Ollama => crate::i18n::t(crate::i18n::keys::ENGINE_OLLAMA),
             Self::Vllm => crate::i18n::t(crate::i18n::keys::ENGINE_VLLM),
             Self::LmStudio => crate::i18n::t(crate::i18n::keys::ENGINE_LM_STUDIO),
             Self::OpenAiCompatible => crate::i18n::t(crate::i18n::keys::ENGINE_OPENAI_COMPAT),
             Self::Custom => crate::i18n::t(crate::i18n::keys::ENGINE_CUSTOM),
+        }
+    }
+
+    #[must_use]
+    pub const fn doc_url(self) -> &'static str {
+        match self {
+            Self::Ollama => "https://github.com/ollama/ollama/blob/main/docs/api.md",
+            Self::Vllm => {
+                "https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html"
+            }
+            Self::LmStudio => "https://lmstudio.ai/docs/app/api/endpoints/openai",
+            Self::OpenAiCompatible => "https://platform.openai.com/docs/api-reference",
+            Self::Custom => "https://platform.openai.com/docs/api-reference",
+        }
+    }
+
+    #[must_use]
+    pub const fn preset_id(self) -> &'static str {
+        use crate::engine::{
+            PRESET_LM_STUDIO, PRESET_OLLAMA_LOCAL, PRESET_OPENAI_COMPAT, PRESET_VLLM_OPENAI,
+        };
+        match self {
+            Self::Ollama => PRESET_OLLAMA_LOCAL,
+            Self::Vllm => PRESET_VLLM_OPENAI,
+            Self::LmStudio => PRESET_LM_STUDIO,
+            Self::OpenAiCompatible => PRESET_OPENAI_COMPAT,
+            Self::Custom => PRESET_OPENAI_COMPAT,
         }
     }
 }
@@ -218,16 +245,75 @@ impl PersonalEngineChoice {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CloudProviderChoice {
     OllamaCloud,
+    Mistral,
+    OvhCloud,
+    HuggingFace,
+    Scaleway,
 }
 
 impl CloudProviderChoice {
-    pub const ALL: &'static [Self] = &[Self::OllamaCloud];
+    pub const ALL: &'static [Self] = &[
+        Self::OllamaCloud,
+        Self::Mistral,
+        Self::OvhCloud,
+        Self::HuggingFace,
+        Self::Scaleway,
+    ];
 
     #[must_use]
-    pub const fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
-            Self::OllamaCloud => "Ollama Cloud",
+            Self::OllamaCloud => crate::i18n::t(crate::i18n::keys::CLOUD_OLLAMA),
+            Self::Mistral => crate::i18n::t(crate::i18n::keys::CLOUD_MISTRAL),
+            Self::OvhCloud => crate::i18n::t(crate::i18n::keys::CLOUD_OVH),
+            Self::HuggingFace => crate::i18n::t(crate::i18n::keys::CLOUD_HF),
+            Self::Scaleway => crate::i18n::t(crate::i18n::keys::CLOUD_SCALEWAY),
         }
+    }
+
+    #[must_use]
+    pub const fn doc_url(self) -> &'static str {
+        match self {
+            Self::OllamaCloud => "https://ollama.com/cloud",
+            Self::Mistral => "https://docs.mistral.ai/api/",
+            Self::OvhCloud => {
+                "https://help.ovhcloud.com/csm/en-gb-public-cloud-ai-machine-learning-endpoints"
+            }
+            Self::HuggingFace => "https://huggingface.co/docs/api-inference/index",
+            Self::Scaleway => "https://www.scaleway.com/en/docs/generative-apis/",
+        }
+    }
+
+    #[must_use]
+    pub const fn preset_id(self) -> &'static str {
+        use crate::engine::{
+            PRESET_HF_CLOUD, PRESET_MISTRAL_CLOUD, PRESET_OLLAMA_CLOUD, PRESET_OVH_CLOUD,
+            PRESET_SCALEWAY_CLOUD,
+        };
+        match self {
+            Self::OllamaCloud => PRESET_OLLAMA_CLOUD,
+            Self::Mistral => PRESET_MISTRAL_CLOUD,
+            Self::OvhCloud => PRESET_OVH_CLOUD,
+            Self::HuggingFace => PRESET_HF_CLOUD,
+            Self::Scaleway => PRESET_SCALEWAY_CLOUD,
+        }
+    }
+
+    #[must_use]
+    pub const fn llm_provider(self) -> crate::engine::LlmProvider {
+        use crate::engine::LlmProvider;
+        match self {
+            Self::OllamaCloud => LlmProvider::OllamaCloud,
+            Self::Mistral => LlmProvider::MistralCloud,
+            Self::OvhCloud => LlmProvider::OvhCloud,
+            Self::HuggingFace => LlmProvider::HuggingFaceCloud,
+            Self::Scaleway => LlmProvider::ScalewayCloud,
+        }
+    }
+
+    #[must_use]
+    pub const fn requires_bearer_auth(self) -> bool {
+        self.llm_provider().requires_bearer_auth()
     }
 }
 
@@ -393,7 +479,13 @@ impl AiServerDialog {
             dialog.server = server.clone();
             dialog.server_cursor = server.len();
             if !api_key.is_empty() {
-                dialog.auth_type = AuthTypeChoice::ApiKeyHeader;
+                use crate::engine::infer_provider_from_url;
+                let provider = infer_provider_from_url(&server);
+                if provider.is_cloud() || provider.uses_openai_api() {
+                    dialog.auth_type = AuthTypeChoice::Bearer;
+                } else {
+                    dialog.auth_type = AuthTypeChoice::ApiKeyHeader;
+                }
                 dialog.auth_token = api_key.clone();
                 dialog.auth_token_cursor = api_key.len();
             }
@@ -420,6 +512,26 @@ impl AiServerDialog {
             LlmProvider::OllamaCloud => {
                 self.deployment = Some(DeploymentKind::Cloud);
                 self.cloud_provider = Some(CloudProviderChoice::OllamaCloud);
+                self.personal_engine = None;
+            }
+            LlmProvider::MistralCloud => {
+                self.deployment = Some(DeploymentKind::Cloud);
+                self.cloud_provider = Some(CloudProviderChoice::Mistral);
+                self.personal_engine = None;
+            }
+            LlmProvider::OvhCloud => {
+                self.deployment = Some(DeploymentKind::Cloud);
+                self.cloud_provider = Some(CloudProviderChoice::OvhCloud);
+                self.personal_engine = None;
+            }
+            LlmProvider::HuggingFaceCloud => {
+                self.deployment = Some(DeploymentKind::Cloud);
+                self.cloud_provider = Some(CloudProviderChoice::HuggingFace);
+                self.personal_engine = None;
+            }
+            LlmProvider::ScalewayCloud => {
+                self.deployment = Some(DeploymentKind::Cloud);
+                self.cloud_provider = Some(CloudProviderChoice::Scaleway);
                 self.personal_engine = None;
             }
             LlmProvider::OllamaLocal => {
@@ -476,21 +588,27 @@ impl AiServerDialog {
     }
 
     pub fn apply_engine_defaults(&mut self) {
-        use crate::engine::{
-            builtin_preset_templates, AuthConfig, LlmProvider, PRESET_LM_STUDIO, PRESET_OLLAMA_CLOUD,
-            PRESET_OLLAMA_LOCAL, PRESET_OPENAI_COMPAT, PRESET_VLLM_OPENAI,
-        };
+        use crate::engine::{builtin_preset_templates, AuthConfig, LlmProvider};
         let preset_id = match self.deployment {
-            Some(DeploymentKind::Cloud) => PRESET_OLLAMA_CLOUD,
-            Some(DeploymentKind::Personal) => match self.personal_engine {
-                Some(PersonalEngineChoice::Ollama) => PRESET_OLLAMA_LOCAL,
-                Some(PersonalEngineChoice::Vllm) => PRESET_VLLM_OPENAI,
-                Some(PersonalEngineChoice::LmStudio) => PRESET_LM_STUDIO,
-                Some(PersonalEngineChoice::OpenAiCompatible) => PRESET_OPENAI_COMPAT,
-                Some(PersonalEngineChoice::Custom) | None => return,
-            },
-            None => return,
+            Some(DeploymentKind::Cloud) => self.cloud_provider.map(CloudProviderChoice::preset_id),
+            Some(DeploymentKind::Personal) => {
+                self.personal_engine.map(PersonalEngineChoice::preset_id)
+            }
+            None => None,
         };
+        let Some(preset_id) = preset_id else {
+            return;
+        };
+        if self.personal_engine == Some(PersonalEngineChoice::Custom) {
+            self.server.clear();
+            self.server_cursor = 0;
+            self.auth_type = AuthTypeChoice::Bearer;
+            self.auth_token.clear();
+            self.auth_token_cursor = 0;
+            self.auth_header_name = "x-api-key".into();
+            self.auth_header_name_cursor = 9;
+            return;
+        }
         let Some(template) = builtin_preset_templates()
             .into_iter()
             .find(|p| p.id == preset_id)
@@ -619,7 +737,10 @@ impl AiServerDialog {
     pub fn build_probe_profile(&self) -> crate::engine::ConnectionProfile {
         use crate::engine::{AuthConfig, ConnectionProfile, LlmProvider};
         let provider = match self.deployment {
-            Some(DeploymentKind::Cloud) => LlmProvider::OllamaCloud,
+            Some(DeploymentKind::Cloud) => self
+                .cloud_provider
+                .map(CloudProviderChoice::llm_provider)
+                .unwrap_or(crate::engine::LlmProvider::OllamaCloud),
             Some(DeploymentKind::Personal) => match self.personal_engine {
                 Some(PersonalEngineChoice::Ollama) => LlmProvider::OllamaLocal,
                 Some(PersonalEngineChoice::Vllm) => LlmProvider::Vllm,
@@ -698,6 +819,24 @@ impl AiServerDialog {
         }
     }
 
+    pub fn configure_doc_url(&self) -> Option<&'static str> {
+        match self.deployment {
+            Some(DeploymentKind::Cloud) => self.cloud_provider.map(CloudProviderChoice::doc_url),
+            Some(DeploymentKind::Personal) => self.personal_engine.map(PersonalEngineChoice::doc_url),
+            None => None,
+        }
+    }
+
+    #[must_use]
+    pub fn auth_type_locked(&self) -> bool {
+        match self.deployment {
+            Some(DeploymentKind::Cloud) => self
+                .cloud_provider
+                .is_some_and(CloudProviderChoice::requires_bearer_auth),
+            _ => false,
+        }
+    }
+
     pub fn cycle_configure_focus(&mut self, reverse: bool) {
         let order = [
             ConfigureField::Url,
@@ -711,6 +850,7 @@ impl AiServerDialog {
             ConfigureField::BackButton,
         ];
         let skip_header = self.auth_type != AuthTypeChoice::ApiKeyHeader;
+        let skip_auth_type = self.auth_type_locked();
         let pos = order
             .iter()
             .position(|&f| f == self.configure_focus)
@@ -730,6 +870,9 @@ impl AiServerDialog {
             };
             let candidate = order[next];
             if skip_header && candidate == ConfigureField::AuthHeaderName {
+                continue;
+            }
+            if skip_auth_type && candidate == ConfigureField::AuthType {
                 continue;
             }
             self.configure_focus = candidate;

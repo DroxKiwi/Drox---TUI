@@ -28,7 +28,7 @@ use uuid::Uuid;
 
 use crate::app::AppConfig;
 use crate::asker::{AskCoordinator, TuiUserAsker};
-use crate::engine::connection_library::{profile_to_llm_config, ConnectionProfile};
+use crate::engine::connection_library::{apply_auth_to_config, legacy_api_key_to_auth, profile_to_llm_config, ConnectionProfile};
 use crate::view::LogEntry;
 
 struct LlmRuntimeState {
@@ -733,20 +733,17 @@ pub(crate) fn build_llm_config(
 ) -> anyhow::Result<LlmConfig> {
     let mut config = LlmConfig::try_from_str(server, model)?;
     config = config.with_num_ctx(num_ctx.max(2048));
-    if let Some(k) = api_key {
-        if !k.trim().is_empty() {
-            config = config.with_api_key(k.clone());
-        }
-    } else if let Ok(s) = std::env::var("DROX_API_KEY") {
-        if !s.trim().is_empty() {
-            config = config.with_api_key(s);
-        }
-    }
-    for (name, value) in extra_headers {
-        if !value.trim().is_empty() {
-            config = config.with_header(name, value);
-        }
-    }
+    let key = api_key
+        .as_ref()
+        .filter(|k| !k.trim().is_empty())
+        .cloned()
+        .or_else(|| {
+            std::env::var("DROX_API_KEY")
+                .ok()
+                .filter(|k| !k.trim().is_empty())
+        });
+    let auth = legacy_api_key_to_auth(key.as_deref(), server);
+    apply_auth_to_config(&mut config, &auth, extra_headers);
     Ok(config)
 }
 
