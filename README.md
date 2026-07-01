@@ -167,7 +167,7 @@ Windows peut afficher « Éditeur inconnu » (SmartScreen) — l’installeur n�
 #### Linux x64
 
 ```bash
-# Archive Linux : voir [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) (version 2.0.5 si publiée)
+# Archive Linux 2.0.5 sur [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.5)
 tar xzf drox-tui-2.0.3-linux-x64.tar.gz
 cd drox-tui-2.0.3-linux-x64
 ./install.sh
@@ -569,7 +569,7 @@ These themes **do not block** current releases; they feed **2.0.x+**.
 | | |
 |---|---|
 | **Version** | [**2.0.5**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) (June 2026) · engine **1.5.0** |
-| **Platforms** | **Windows** installer 2.0.5 · **Linux** tar.gz per OR release |
+| **Platforms** | **Windows** installer 2.0.5 · **Linux** tar.gz 2.0.5 |
 | **Daily driver?** | **Partially** — solid for local agent work; polish and signing in progress. |
 | **2.0.5 highlights** | `/server` cloud + self-hosted · Ollama Cloud Bearer · Mistral/OVH/HF/Scaleway · custom headers. |
 
@@ -656,7 +656,7 @@ These are **not** official Drox minimums — run **`/doctor`**, test your model,
 
 **Windows**: download [`drox-tui-2.0.5-windows-x64-setup.exe`](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.5), run the installer, enable **Add to PATH**, open a **new** terminal.
 
-**Linux**: extract `drox-tui-2.0.3-linux-x64.tar.gz`, run `./install.sh`, check `drox-tui --version`.
+**Linux**: download `drox-tui-2.0.5-linux-x64.tar.gz`, run `./install.sh`, check `drox-tui --version`.
 
 SmartScreen may warn « Unknown publisher » — expected until signing lands in 2.0.7.
 
@@ -746,7 +746,7 @@ drox-tui --workspace .
 
 **Windows**: download `drox-tui-2.0.5-windows-x64-setup.exe` from [Releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/tag/v2.0.5).
 
-**Linux**: download `drox-tui-2.0.5-linux-x64.tar.gz` (if published), run `./install.sh`.
+**Linux**: download `drox-tui-2.0.5-linux-x64.tar.gz`, run `./install.sh`.
 
 First launch: configure Ollama via **`Ctrl+Shift+L`** or **`/server`**.
 
