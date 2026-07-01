@@ -55,7 +55,7 @@ Ces pistes **ne bloquent pas** les releases courantes ; elles nourrissent la lig
 | | |
 |---|---|
 | **Version** | [**2.0.5**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) (juin 2026) · moteur **1.5.0** |
-| **Plateformes** | **Windows** installateur 2.0.5 · **Linux** tar.gz selon release OR |
+| **Plateformes** | **Windows** installateur 2.0.5 · **Linux** tar.gz 2.0.5 |
 | **Utilisable au quotidien ?** | **Partiellement** — fonctionnel pour le travail agent local ; polish et signing en cours. |
 | **Nouveautés 2.0.5** | `/server` cloud + self-hosted · Bearer Ollama Cloud · Mistral/OVH/HF/Scaleway · headers custom. |
 | **2.0.x−** | **2.0.4** : diff overlay. **2.0.3** : `/update` opt-in. **2.0.2** : i18n. |
