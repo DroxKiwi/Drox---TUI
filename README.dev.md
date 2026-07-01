@@ -12,17 +12,24 @@ Ce dépôt contient les **sources** et la doc interne. Les utilisateurs finaux r
 | [`docs/2.0.7/`](docs/2.0.7/) | Code signing & Linux (plan) |
 | [`docs/2.0.3/`](docs/2.0.3/) | `/update`, Linux (clôturée) |
 | [`docs/2.0.2/`](docs/2.0.2/) | Phase UI (clôturée) |
-| [`packaging/`](packaging/) | Scripts build, installateurs, `publish-or.ps1` |
+| [`packaging/`](packaging/) | Scripts build, installateurs, [`RELEASE.md`](packaging/RELEASE.md) |
 | [`drox/`](drox/) | Workspace Rust (crates moteur + TUI) |
 
 ## Build release
 
+Guide détaillé : [`packaging/RELEASE.md`](packaging/RELEASE.md).
+
 ```powershell
 cd drox
 cargo build --release -p drox-tui
-.\packaging\publish-or.ps1 -SkipLinux   # Windows seul pour l'instant
+
+# Windows + OR
+.\packaging\publish-or.ps1 -SkipLinux
+
+# Linux (WSL) + OR — complément
+.\packaging\publish-linux-or.ps1
 ```
 
 Copie binaires + `README.md` public vers `../Drox---TUI---OR`.
 
-Branche active : **`2.0.5`** · release publique OR : **2.0.4** (Windows)
+Branche active : **`2.0.5`** · release publique OR : **2.0.5** (Windows + Linux)

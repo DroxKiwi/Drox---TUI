@@ -1,44 +1,53 @@
 # Pipeline release officielle — Drox TUI
 
-Produit **2.0.2** · moteur dérivé IDE **1.5.0** · dépôt OR : `../Drox---TUI---OR`
+> **Guide complet** : [`RELEASE.md`](RELEASE.md) (Windows + Linux, OR, GitHub Release).
+
+Produit **2.0.5** · moteur dérivé IDE **1.5.0** · dépôt OR : `../Drox---TUI---OR`
 
 ## Prérequis Windows (build installateur)
 
 - Rust ≥ 1.85
 - [Inno Setup 6](https://jrsoftware.org/isdl.php) — ou `winget install JRSoftware.InnoSetup` (auto via le script)
 
-## Windows (depuis ce repo)
+## Prérequis Linux (WSL ou machine Linux)
+
+- Rust ≥ 1.85 (`rustup` dans WSL Ubuntu)
+- Scripts shell en LF (voir `.gitattributes`)
+
+## Windows
 
 ```powershell
 # Build + installateur .exe
 .\packaging\build-and-pack.ps1
 
-# Build + installateur + copie vers Drox---TUI---OR (+ commit git OR)
+# Build + publier OR (Windows seul)
+.\packaging\publish-or.ps1 -SkipLinux
+
+# Windows + Linux (WSL)
 .\packaging\publish-or.ps1
 ```
 
-Artefact : `dist/drox-tui-<version>-windows-x64-setup.exe`  
-Script Inno Setup : `packaging/windows/drox-tui-setup.iss`  
-Icône officielle : `packaging/assets/drox.ico` (installateur + exe Windows)
+Artefact : `dist/drox-tui-<version>-windows-x64-setup.exe`
 
-### Installation utilisateur
-
-Double-clic sur `drox-tui-2.0.1-windows-x64-setup.exe`, puis :
+## Linux
 
 ```powershell
-drox-tui --workspace C:\chemin\projet
-```
+# Build WSL + publier OR (complément d'une release Windows existante)
+.\packaging\publish-linux-or.ps1
 
-Installe dans `%LOCALAPPDATA%\Programs\DroxTUI\bin`, PATH utilisateur (option), entrée Désinstaller dans Windows.
-
-## Linux (machine Linux ou WSL)
-
-```bash
-chmod +x packaging/build-and-pack-linux.sh
+# Ou sur Linux natif :
 ./packaging/build-and-pack-linux.sh
 ```
 
 Artefact : `dist/drox-tui-<version>-linux-x64.tar.gz`
+
+## GitHub Release
+
+```powershell
+cd ..\Drox---TUI---OR
+git push origin main
+gh release upload v2.0.5 "releases/v2.0.5/drox-tui-2.0.5-linux-x64.tar.gz"
+```
 
 ## Structure dépôt OR
 
@@ -46,12 +55,14 @@ Artefact : `dist/drox-tui-<version>-linux-x64.tar.gz`
 Drox---TUI---OR/
 ├── README.md
 ├── install/
-│   ├── windows/install.ps1   # installation manuelle (optionnel)
+│   ├── windows/install.ps1
 │   └── linux/install.sh
 └── releases/
-    └── v2.0.1/
-        ├── drox-tui-2.0.1-windows-x64-setup.exe
+    ├── latest.json
+    └── v2.0.5/
+        ├── drox-tui-2.0.5-windows-x64-setup.exe
+        ├── drox-tui-2.0.5-linux-x64.tar.gz
         ├── SHA256SUMS-windows.txt
-        ├── drox-tui-2.0.1-linux-x64.tar.gz
+        ├── SHA256SUMS-linux.txt
         └── RELEASE_NOTES.md
 ```

@@ -76,7 +76,7 @@ if (-not $SkipLinux) {
         $WslDistro = if (wsl -l -q 2>$null | Where-Object { $_ -match '^Ubuntu$' }) { 'Ubuntu' } else { '' }
         $WslExec = if ($WslDistro) { @('-d', $WslDistro) } else { @() }
         $SkipFlag = if ($SkipBuild) { '--skip-build' } else { '' }
-        wsl @WslExec bash -lc "cd '$WslRepo' && chmod +x packaging/build-and-pack-linux.sh && ./packaging/build-and-pack-linux.sh $SkipFlag"
+        wsl @WslExec bash -lc "cd '$WslRepo' && sed -i 's/\r$//' packaging/build-and-pack-linux.sh packaging/linux/install.sh && source ~/.cargo/env 2>/dev/null || true && bash packaging/build-and-pack-linux.sh $SkipFlag"
         if (-not (Test-Path -LiteralPath $LinuxTar)) {
             Write-Warning "Archive Linux absente apres build WSL: $LinuxTar"
         }

@@ -56,8 +56,6 @@ cd drox-tui-2.0.5-linux-x64
 drox-tui --workspace ~/projets/mon-repo
 ```
 
-*(Archive Linux publiée si incluse dans cette release.)*
-
 ---
 
 ## Migration depuis 2.0.4
