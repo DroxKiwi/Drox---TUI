@@ -1,6 +1,6 @@
-# F03 — Context manifest (connaissance LLM réelle)
+﻿# F03 — Context manifest (connaissance LLM réelle)
 
-**Statut** : spec · **Ligne** : 2.0.5 M2  
+**Statut** : spec · **Ligne** : 2.0.6 M2  
 **Consommateurs** : panneau carte (F05), panel IDE « contexte actuel »
 
 ---

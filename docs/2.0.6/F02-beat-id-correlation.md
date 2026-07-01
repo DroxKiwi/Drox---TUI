@@ -1,6 +1,6 @@
-# F02 — Beat ID & corrélation couleur
+﻿# F02 — Beat ID & corrélation couleur
 
-**Statut** : spec · **Ligne** : 2.0.5 M0–M1  
+**Statut** : spec · **Ligne** : 2.0.6 M0–M1  
 **Consommateurs** : fil TUI, carte, panneau diff, timeline IDE
 
 ---

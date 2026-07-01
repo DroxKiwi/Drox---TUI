@@ -1,4 +1,4 @@
-# Plan — Code signing & préparation Linux (ligne 2.0.6)
+﻿# Plan — Code signing & préparation Linux (ligne 2.0.7)
 
 > **Reporté depuis** [`docs/2.0.4/PLAN-CODE-SIGNING.md`](../2.0.4/PLAN-CODE-SIGNING.md) (plan archivé, non livré en 2.0.4).
 
@@ -15,7 +15,7 @@
 | CI `ubuntu-latest` (tests) | ✅ |
 | SHA256 Windows + Linux | ✅ |
 
-La 2.0.6 **ajoute** signing et QA Linux approfondie — pas le packaging minimal.
+La 2.0.7 **ajoute** signing et QA Linux approfondie — pas le packaging minimal.
 
 ---
 
@@ -65,7 +65,7 @@ SHA256SUMS-{version}-linux.txt.asc
 - [ ] Documenter écarts connus (presse-papiers image, etc.)
 - [ ] Option CI `publish-linux-or.yml` renforcé
 
-### Hors scope 2.0.6
+### Hors scope 2.0.7
 
 - `.deb` / AppImage signé, Flatpak, notarisation macOS
 
@@ -74,7 +74,7 @@ SHA256SUMS-{version}-linux.txt.asc
 ## `/update` et signatures
 
 - Aujourd’hui : SHA256 via `latest.json` (`update_install.rs`)
-- 2.0.6 optionnel : URL `.asc` dans `latest.json`, vérif GPG avant install Linux
+- 2.0.7 optionnel : URL `.asc` dans `latest.json`, vérif GPG avant install Linux
 - Windows : confiance OS via installateur Authenticode
 
 ---

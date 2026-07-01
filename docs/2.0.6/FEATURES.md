@@ -1,6 +1,6 @@
-# Features 2.0.5 — index des specs
+﻿# Features 2.0.6 — index des specs
 
-> **Doc produit** de la ligne 2.0.5. L’**externalisation** concerne le **code moteur** (crate `drox-observe`, modules par feature) — pas un dossier doc transversal. Voir [ARCHITECTURE-FEATURES.md](ARCHITECTURE-FEATURES.md).
+> **Doc produit** de la ligne 2.0.6. L’**externalisation** concerne le **code moteur** (crate `drox-observe`, modules par feature) — pas un dossier doc transversal. Voir [ARCHITECTURE-FEATURES.md](ARCHITECTURE-FEATURES.md).
 
 Chaque fiche décrit le comportement UX + contrat de données ; l’implémentation vit dans les modules Rust correspondants.
 

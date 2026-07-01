@@ -1,34 +1,27 @@
-# Ligne produit `2.0.6` — Drox TUI · Confiance install + Linux avancé
+﻿# Ligne produit `2.0.6` — Drox TUI · Poste de pilotage multi-pane
 
-**Version produit** : `2.0.6` (plan)  
-**Branche Git** : `2.0.6` (à créer après clôture 2.0.4)  
-**Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`**  
-**Prédécesseur** : [`2.0.4`](../2.0.4/README.md) — diff visuel TUI
+**Version produit** : `2.0.6` (dev)  
+**Branche Git** : `2.0.6`  
+**Release OR publique** : `2.0.4` (Windows)  
+**Moteur** : dérivé du **moteur agent Drox IDE `1.5.0`** — **couche observe** nouvelle, moteur legacy touch minimal  
+**Prédécesseur** : [`2.0.5`](../2.0.5/README.md) — connexions LLM · [`2.0.4`](../2.0.4/README.md) — diff overlay
 
 ---
 
 ## Objectif
 
-Renforcer la **confiance à l’installation** et la **maturité Linux** — reportés depuis le plan initial 2.0.4 :
+Transformer le TUI en **poste de pilotage agent** : jusqu’à **3 vues simultanées** (fil · carte contexte · changements+diff), panneaux masquables, corrélés par **beat IDs** colorés (A1, A2…).
 
-1. **Code signing Windows** (Authenticode) — éditeur identifié, SmartScreen
-2. **Signatures Linux** (GPG `.asc`) — chaîne de confiance au-delà du SHA256
-3. **Préparation / QA Linux** — parité release, CI, doc installateur
+La release introduit une **architecture code externalisée** (crate `drox-observe`, modules par feature) pour limiter les effets de bord moteur et faciliter le port vers Drox IDE.
 
 ```mermaid
 flowchart LR
-    subgraph Win["Windows"]
-        A1["Certificat OV/EV"]
-        A2["sign-release.ps1"]
-        A3["Inno SignTool"]
-    end
-    subgraph Lin["Linux"]
-        B1["GPG release"]
-        B2["QA multi-distro"]
-        B3["Doc vérification"]
-    end
-    Win --> OR["Drox---TUI---OR"]
-    Lin --> OR
+  FIL["Fil agent"]
+  MAP["Carte contexte LLM"]
+  CHG["Changements + diff"]
+  FIL --- MAP
+  MAP --- CHG
+  FIL -.->|"A12 couleur"| CHG
 ```
 
 ---
@@ -37,21 +30,40 @@ flowchart LR
 
 | Document | Rôle |
 |---|---|
-| [PLAN-CODE-SIGNING-LINUX.md](PLAN-CODE-SIGNING-LINUX.md) | Signing Windows/Linux, pipeline, QA |
+| [PLAN-MULTI-PANE.md](PLAN-MULTI-PANE.md) | Vision UX, jalons M0–M4 |
+| [ARCHITECTURE-FEATURES.md](ARCHITECTURE-FEATURES.md) | Découplage **code** moteur / `drox-observe` / TUI |
+| [FEATURES.md](FEATURES.md) | Index specs F01–F05 |
 | [CHECKLIST.md](CHECKLIST.md) | Suivi implémentation |
+| [PLAN-DIFF-INLINE.md](PLAN-DIFF-INLINE.md) | Sous-feature M3 (diff fil — historique) |
 
 ---
 
-## Reprise depuis 2.0.4
+## Features 2.0.6
 
-Le contenu détaillé était dans [`docs/2.0.4/PLAN-CODE-SIGNING.md`](../2.0.4/PLAN-CODE-SIGNING.md) (référence archivée). La 2.0.6 **implémente** ce plan.
-
-Linux de base (archive `tar.gz`, `publish-or`, CI Ubuntu) est déjà livré en **2.0.3** ; la 2.0.6 couvre **signing + QA approfondie**, pas le packaging minimal.
+| ID | Feature | Spec | Module code |
+|---|---|---|---|
+| F01 | Multi-pane shell | [F01](F01-multi-pane-shell.md) | `drox-tui/panes/` |
+| F02 | Beat ID | [F02](F02-beat-id-correlation.md) | `drox-observe/beat/` |
+| F03 | Context manifest | [F03](F03-context-manifest.md) | `drox-observe/manifest/` |
+| F04 | Changements + diff | [F04](F04-run-changes-panel.md) | `drox-observe/changes/` |
+| F05 | Carte workspace | [F05](F05-workspace-map-view.md) | `drox-observe/map_view/` |
 
 ---
 
 ## Périmètre hors 2.0.6
 
-- Notarisation macOS
-- Installateur `.deb` / AppImage signé
-- Microsoft Store
+- Graphe mermaid / layout graphique auto
+- Édition fichier depuis panneau diff
+- Relay RPC observe vers IDE (spec M4, impl IDE séparée)
+- Code signing → [2.0.7](../2.0.7/README.md)
+
+---
+
+## Réutilisation 2.0.4
+
+| Existant | Usage 2.0.6 |
+|---|---|
+| `diff_render`, `lines_viewer` | Panneau changements (F04) |
+| `RunFileChange` | Base `RunChangesSnapshot` → observe |
+| `WorkspaceMapStore` | Structure ; F03 pour état contextuel |
+| Overlay `/diff` | Conservé ; fallback terminal étroit |

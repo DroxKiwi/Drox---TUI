@@ -6,9 +6,10 @@ Ce dépôt contient les **sources** et la doc interne. Les utilisateurs finaux r
 
 | Chemin | Contenu |
 |---|---|
-| [`docs/2.0.5/`](docs/2.0.5/) | Ligne active — multi-pane + `drox-observe` |
+| [`docs/2.0.5/`](docs/2.0.5/) | Ligne active — connexions LLM self-hosted & cloud |
 | [`docs/2.0.4/`](docs/2.0.4/) | Diff visuel overlay (clôturée) |
-| [`docs/2.0.6/`](docs/2.0.6/) | Code signing & Linux (plan) |
+| [`docs/2.0.6/`](docs/2.0.6/) | Multi-pane + `drox-observe` (plan) |
+| [`docs/2.0.7/`](docs/2.0.7/) | Code signing & Linux (plan) |
 | [`docs/2.0.3/`](docs/2.0.3/) | `/update`, Linux (clôturée) |
 | [`docs/2.0.2/`](docs/2.0.2/) | Phase UI (clôturée) |
 | [`packaging/`](packaging/) | Scripts build, installateurs, `publish-or.ps1` |

@@ -21,8 +21,9 @@
 
 | Thème | Ligne |
 |---|---|
-| Code signing Windows + GPG Linux | [`2.0.6`](../2.0.6/README.md) |
-| Diff inline fil + split pane | [`2.0.5`](../2.0.5/README.md) |
+| Code signing Windows + GPG Linux | [`2.0.7`](../2.0.7/README.md) |
+| Connexions LLM self-hosted & cloud | [`2.0.5`](../2.0.5/README.md) |
+| Poste multi-pane + diff inline fil | [`2.0.6`](../2.0.6/README.md) |
 | Animation splash IDE | [`animation-start`](../animation-start/README.md) |
 
 ---
@@ -34,7 +35,7 @@
 | [PLAN-VISUAL-DIFF.md](PLAN-VISUAL-DIFF.md) | Jalons M1–M4 |
 | [RELEASE_NOTES.md](RELEASE_NOTES.md) | Notes release OR |
 | [BUG-DUPLICATE-RESPONSES.md](BUG-DUPLICATE-RESPONSES.md) | Correctif streaming |
-| [PLAN-CODE-SIGNING.md](PLAN-CODE-SIGNING.md) | Archivé → voir 2.0.6 |
+| [PLAN-CODE-SIGNING.md](PLAN-CODE-SIGNING.md) | Archivé → voir 2.0.7 |
 | [CHECKLIST.md](CHECKLIST.md) | Clôture |
 
 ---

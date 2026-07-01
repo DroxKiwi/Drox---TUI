@@ -1,6 +1,6 @@
-# F04 — Panneau changements + diff
+﻿# F04 — Panneau changements + diff
 
-**Statut** : spec · **Ligne** : 2.0.5 M1  
+**Statut** : spec · **Ligne** : 2.0.6 M1  
 **Consommateurs** : colonne droite TUI, multi-diff IDE
 
 ---

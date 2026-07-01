@@ -1,8 +1,8 @@
 # Drox TUI — agent local en terminal
 
-> ⚠️ **Avertissement** — Drox TUI est **potentiellement instable** : développement actif et exigeant, produit encore **expérimental**. De nombreuses mises à jour sont prévues (**2.0.5** diff inline / multi-pane, **2.0.6** signature installateur et GPG Linux, etc.). Il est conseillé d’utiliser les [releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) et de s’attendre à des évolutions fréquentes.
+> ⚠️ **Avertissement** — Drox TUI est **potentiellement instable** : développement actif et exigeant, produit encore **expérimental**. De nombreuses mises à jour sont prévues (**2.0.5** connexions LLM cloud, **2.0.6** multi-pane, **2.0.7** signature installateur et GPG Linux, etc.). Il est conseillé d’utiliser les [releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) et de s’attendre à des évolutions fréquentes.
 >
-> ⚠️ **Warning** — Drox TUI may be **unstable**: active, demanding development; still **experimental**. Many updates ahead (**2.0.5** inline diff / multi-pane, **2.0.6** installer signing and Linux GPG, etc.). Use [releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) and expect frequent changes.
+> ⚠️ **Warning** — Drox TUI may be **unstable**: active, demanding development; still **experimental**. Many updates ahead (**2.0.5** LLM cloud connections, **2.0.6** multi-pane, **2.0.7** installer signing and Linux GPG, etc.). Use [releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases) and expect frequent changes.
 
 > **Tu découvres Drox ?** **Drox TUI** est un assistant agent en **terminal**, adapté aux débutants.  
 > **Produit sœur** : **[Drox IDE](https://github.com/DroxKiwi/Drox---IDE---OR)** (éditeur graphique, fork VS Code, même moteur agent) — **beaucoup plus difficile à prendre en main** (install lourde, UI riche, toujours expérimental). **Il est conseillé de commencer par le TUI**.
@@ -13,7 +13,7 @@
 
 ### Où en est Drox TUI (2.0.x)
 
-Le TUI est le **cœur agent d’origine** de l’écosystème Drox : une boucle mono-agent (`tui_mono`) en Rust, dérivée du moteur **Drox IDE 1.5.0**, emballée en binaire terminal autonome. La release courante [**2.0.4**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) apporte le **diff visuel** (`/diff`, touche `e`, bandeau fin de run) et peaufine **`/update`** ; les lignes **2.0.5** (diff inline dans le fil) et **2.0.6** (signature installateur, GPG Linux) suivent. Toujours **expérimental** — assistant terminal pour early adopters, pas un produit agent « prod ».
+Le TUI est le **cœur agent d’origine** de l’écosystème Drox : une boucle mono-agent (`tui_mono`) en Rust, dérivée du moteur **Drox IDE 1.5.0**, emballée en binaire terminal autonome. La release courante [**2.0.4**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) apporte le **diff visuel** (`/diff`, touche `e`, bandeau fin de run) et peaufine **`/update`** ; les lignes **2.0.5** (connexions LLM self-hosted & cloud), **2.0.6** (poste multi-pane) et **2.0.7** (signature installateur, GPG Linux) suivent. Toujours **expérimental** — assistant terminal pour early adopters, pas un produit agent « prod ».
 
 ### Souveraineté
 
@@ -34,8 +34,9 @@ Plans produit dans ce dépôt — voir aussi la vision partagée [Drox IDE](http
 | Thème | Objectif | Ligne |
 |-------|----------|-------|
 | **Diff visuel overlay** | `/diff`, viewer coloré, `e` sur les patches | ✅ **2.0.4** |
-| **Diff inline fil** | Diffs dans le transcript, split pane (style Claude Code) | **2.0.5** |
-| **Confiance install** | Authenticode Windows, signatures GPG Linux | **2.0.6** |
+| **Connexions LLM** | Self-hosted + cloud (Ollama, Mistral, OVH, HF, Scaleway…) | **2.0.5** |
+| **Poste multi-pane** | Fil · carte contexte · changements+diff | **2.0.6** |
+| **Confiance install** | Authenticode Windows, signatures GPG Linux | **2.0.7** |
 | **Télémétrie locale** | KPI par run, dashboards **100 % locaux** (`.drox/`) — aucun cloud | piste |
 | **i18n FR/EN** | Interface et messages utilisateur bilingues | en cours |
 | **Animation démarrage** | Splash ASCII / halo au boot | `docs/animation-start/` |
@@ -70,7 +71,7 @@ Ces pistes **ne bloquent pas** les releases courantes ; elles nourrissent la lig
 | Installer | [Télécharger](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) |
 | MAJ auto | `releases/latest.json` (opt-in `/update on`) |
 | Ollama (recommandé) | [ollama.com](https://ollama.com/) |
-| SmartScreen | Installeur **non signé** — « Éditeur inconnu » normal · signing prévu **2.0.6** |
+| SmartScreen | Installeur **non signé** — « Éditeur inconnu » normal · signing prévu **2.0.7** |
 
 ---
 
@@ -514,7 +515,7 @@ Seule communication produit Drox vers l’extérieur : **vérification de versio
 | Agent terminal « prod » | Toujours expérimental — mais base 2.0.x solide |
 | IDE graphique | Voir [Drox IDE](https://github.com/DroxKiwi/Drox---IDE---OR) pour l’éditeur |
 | Cloud Drox obligatoire | LLM et données restent chez toi |
-| Installateur signé | Prévu **2.0.6** (Authenticode + GPG) |
+| Installateur signé | Prévu **2.0.7** (Authenticode + GPG) |
 | Code source moteur ouvert | — |
 
 ---
@@ -528,7 +529,7 @@ Seule communication produit Drox vers l’extérieur : **vérification de versio
 
 ### Where Drox TUI stands (2.0.x)
 
-The TUI is the **original agent core** of the Drox ecosystem: a Rust **mono-agent loop** (`tui_mono`), derived from **Drox IDE 1.5.0**, shipped as a standalone terminal binary. Current release [**2.0.4**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) adds **visual diff** (`/diff`, `e` key, end-of-run banner) and polishes **`/update`**; **2.0.5** (inline diff) and **2.0.6** (installer signing, Linux GPG) follow. Still **experimental** — not a production daily driver.
+The TUI is the **original agent core** of the Drox ecosystem: a Rust **mono-agent loop** (`tui_mono`), derived from **Drox IDE 1.5.0**, shipped as a standalone terminal binary. Current release [**2.0.4**](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) adds **visual diff** (`/diff`, `e` key, end-of-run banner) and polishes **`/update`**; **2.0.5** (LLM connections), **2.0.6** (multi-pane), and **2.0.7** (installer signing, Linux GPG) follow. Still **experimental** — not a production daily driver.
 
 ### Sovereignty
 
@@ -549,8 +550,9 @@ Product plans in this repo — shared vision with [Drox IDE](https://github.com/
 | Theme | Goal | Line |
 |-------|------|------|
 | **Visual diff overlay** | `/diff`, colored viewer, `e` on patches | ✅ **2.0.4** |
-| **Inline diff in stream** | Diffs in transcript, split pane | **2.0.5** |
-| **Install trust** | Windows Authenticode, Linux GPG | **2.0.6** |
+| **LLM connections** | Self-hosted + cloud providers | **2.0.5** |
+| **Multi-pane cockpit** | Feed · context map · changes+diff | **2.0.6** |
+| **Install trust** | Windows Authenticode, Linux GPG | **2.0.7** |
 | **Local telemetry** | Per-run KPIs, **100 % local** dashboards | planned |
 | **FR/EN i18n** | Bilingual UI | ongoing |
 | **Boot animation** | ASCII splash / halo | `docs/animation-start/` |
@@ -656,7 +658,7 @@ These are **not** official Drox minimums — run **`/doctor`**, test your model,
 
 **Linux**: extract `drox-tui-2.0.3-linux-x64.tar.gz`, run `./install.sh`, check `drox-tui --version`.
 
-SmartScreen may warn « Unknown publisher » — expected until signing lands in 2.0.6.
+SmartScreen may warn « Unknown publisher » — expected until signing lands in 2.0.7.
 
 ### Step 2 — Launch and connect AI
 
@@ -798,7 +800,7 @@ Update checks are **opt-in** (`/update on`). When enabled, the client reads `rel
 | Production agent terminal | Still experimental — solid 2.0.x foundation |
 | Graphical IDE | See [Drox IDE](https://github.com/DroxKiwi/Drox---IDE---OR) |
 | Mandatory Drox cloud | LLM and data stay local |
-| Signed installer | Planned **2.0.6** |
+| Signed installer | Planned **2.0.7** |
 | Open engine source | — |
 
 ---
@@ -809,8 +811,9 @@ Update checks are **opt-in** (`/update on`). When enabled, the client reads `rel
 |----|-----|
 | [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR/releases) | Binaires officiels |
 | [RELEASE_NOTES 2.0.4](docs/2.0.4/RELEASE_NOTES.md) | Notes de version |
-| [Plan 2.0.5](docs/2.0.5/README.md) | Diff inline (à venir) |
-| [Plan 2.0.6](docs/2.0.6/README.md) | Signing & Linux |
+| [Plan 2.0.5](docs/2.0.5/README.md) | Connexions LLM (à venir) |
+| [Plan 2.0.6](docs/2.0.6/README.md) | Multi-pane (à venir) |
+| [Plan 2.0.7](docs/2.0.7/README.md) | Signing & Linux |
 | [Drox IDE OR](https://github.com/DroxKiwi/Drox---IDE---OR) | Produit sœur (éditeur) |
 
 ---

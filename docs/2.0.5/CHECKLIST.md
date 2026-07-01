@@ -1,48 +1,40 @@
-# Checklist — Ligne 2.0.5
+# Checklist — Ligne 2.0.5 (connexions LLM)
 
-## Architecture & externalisation
+## C0 — Audit
 
-- [ ] Crate `drox-observe` créé (sans dépendance ratatui)
-- [ ] `ObserveEvent` + feature flags documentés
-- [ ] Hook moteur opt-in (pas de régression `drox-engine` tests)
-- [ ] Specs F01–F05 validées ([FEATURES.md](FEATURES.md))
+- [ ] Repro échecs connexion cloud actuelle (Ollama Cloud)
+- [ ] Repro self-hosted vLLM / LM Studio
+- [ ] Corriger `profile_to_llm_config` si gaps
+- [ ] Tests mock auth headers
 
-## M0 — Shell multi-pane (F01)
+## C1 — Self-hosted
 
-- [ ] `PaneManager` + toggles masquer/afficher
-- [ ] Focus Tab · Esc restore
-- [ ] Fallback terminal étroit
-- [ ] Adaptateur TUI observe (stub)
+- [ ] Formulaires Ollama, vLLM, LM Studio, OpenAI-compat
+- [ ] Éditeur headers (clé/valeur) self-hosted + Custom
+- [ ] `probe_connection` généralisé
+- [ ] i18n FR/EN
 
-## M1 — Changements + beats (F04, F02)
+## C2 — Cloud
 
-- [ ] `RunChangesSnapshot` live pendant run
-- [ ] Beat ID mécaniques sur tools fichier
-- [ ] Panneau diff : liste j/k + clic
-- [ ] Corrélation couleur fil ↔ panneau changements
+- [ ] `LlmProvider` + `CloudProviderChoice` : Mistral, OVH, HF, Scaleway
+- [ ] Connecteur Ollama Cloud (revue doc officielle)
+- [ ] Connecteur Mistral
+- [ ] Connecteur OVHcloud AI Endpoints
+- [ ] Connecteur Hugging Face
+- [ ] Connecteur Scaleway Generative APIs
+- [ ] Formulaire dédié par prestataire + lien doc
 
-## M2 — Contexte & carte (F03, F05)
+## C3 — Release
 
-- [ ] `ContextManifestBuilder` post-tour LLM
-- [ ] Panneau carte : arbre ● ○ ◇ ▲
-- [ ] Corrélation beat sur 3 panes
-- [ ] Scroll auto nœud actif
-
-## M3 — Finitions
-
-- [ ] Diff inline fil (optionnel)
-- [ ] i18n FR/EN panes
-- [ ] Prefs layout mémorisé
-- [ ] Non-régression overlay 2.0.4
-
-## M4 — Portabilité IDE
-
-- [ ] `observe_schema_version` + exemples JSON
-- [ ] Spec relay RPC (doc)
-- [ ] Matrice port par feature
-
-## Release
-
-- [x] Bump version 2.0.5 (workspace)
+- [ ] Migration profils JSON existants
+- [ ] `/doctor` connexion active
+- [ ] README utilisateur
 - [ ] RELEASE_NOTES OR
 - [ ] Merge → `main`
+
+## Déjà fait
+
+- [x] Bump version workspace `2.0.5`
+- [x] Spec produit `docs/2.0.5/` (connexions)
+- [x] Report multi-pane → `docs/2.0.6/`
+- [x] Report signing → `docs/2.0.7/`

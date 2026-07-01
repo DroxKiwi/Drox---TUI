@@ -1,6 +1,6 @@
-# F01 — Multi-pane shell
+﻿# F01 — Multi-pane shell
 
-**Statut** : spec · **Ligne** : 2.0.5 M0  
+**Statut** : spec · **Ligne** : 2.0.6 M0  
 **Consommateurs** : TUI ratatui, IDE webview
 
 ---

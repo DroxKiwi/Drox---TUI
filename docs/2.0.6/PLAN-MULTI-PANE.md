@@ -1,4 +1,4 @@
-# Plan — Poste de pilotage multi-pane (ligne 2.0.5)
+﻿# Plan — Poste de pilotage multi-pane (ligne 2.0.6)
 
 > **Vision** : le TUI devient un **triptyque configurable** (fil · carte contexte · changements+diff), corrélé par **beat IDs** colorés (A1, A2…), alimenté par une couche **observe** découplée du moteur legacy.
 

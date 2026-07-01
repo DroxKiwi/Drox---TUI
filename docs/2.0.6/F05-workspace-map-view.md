@@ -1,6 +1,6 @@
-# F05 — Carte workspace lisible
+﻿# F05 — Carte workspace lisible
 
-**Statut** : spec · **Ligne** : 2.0.5 M2  
+**Statut** : spec · **Ligne** : 2.0.6 M2  
 **Consommateurs** : colonne centrale TUI, tree view IDE
 
 ---

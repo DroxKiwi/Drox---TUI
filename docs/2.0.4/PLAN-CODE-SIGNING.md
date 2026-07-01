@@ -1,10 +1,10 @@
 # Plan — Confiance installation Windows & Linux
 
-> **Statut** : **reporté ligne 2.0.6** — voir [`docs/2.0.6/PLAN-CODE-SIGNING-LINUX.md`](../2.0.6/PLAN-CODE-SIGNING-LINUX.md).
+> **Statut** : **reporté ligne 2.0.7** — voir [`docs/2.0.7/PLAN-CODE-SIGNING-LINUX.md`](../2.0.7/PLAN-CODE-SIGNING-LINUX.md).
 
 > **Problème** : les installateurs Drox TUI sont distribués sans signature de code reconnue. Windows affiche « Éditeur inconnu » / SmartScreen ; Linux repose sur SHA256 publié mais sans chaîne de confiance GPG.
 
-**Objectif (2.0.6)** : un utilisateur qui télécharge depuis [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) voit un **éditeur identifié** (Windows) et peut **vérifier cryptographiquement** les binaires (Linux).
+**Objectif (2.0.7)** : un utilisateur qui télécharge depuis [Drox---TUI---OR](https://github.com/DroxKiwi/Drox---TUI---OR) voit un **éditeur identifié** (Windows) et peut **vérifier cryptographiquement** les binaires (Linux).
 
 ---
 
@@ -136,7 +136,7 @@ Référence plan antérieur : signature ed25519 de `latest.json` ([PLAN-UPDATE 2
 
 ---
 
-## Jalons (→ 2.0.6)
+## Jalons (→ 2.0.7)
 
 | Jalon | Livrable |
 |---|---|

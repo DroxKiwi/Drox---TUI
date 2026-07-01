@@ -94,8 +94,9 @@ drox-tui --workspace ~/projets/mon-repo
 
 ## Reporté (lignes suivantes)
 
-- **Code signing + GPG Linux** → [`2.0.6`](../2.0.6/README.md)
-- **Diff inline dans le fil** (style Claude Code) → [`2.0.5`](../2.0.5/README.md)
+- **Code signing + GPG Linux** → [`2.0.7`](../2.0.7/README.md)
+- **Connexions LLM self-hosted & cloud** → [`2.0.5`](../2.0.5/README.md)
+- **Poste multi-pane + diff inline fil** → [`2.0.6`](../2.0.6/README.md)
 - **Animation splash IDE** → [`animation-start`](../animation-start/README.md)
 
 ---

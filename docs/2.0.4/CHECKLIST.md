@@ -18,8 +18,9 @@
 
 ## Reporté
 
-- [ ] Code signing → [2.0.6](../2.0.6/README.md)
-- [ ] Diff inline fil → [2.0.5](../2.0.5/README.md)
+- [ ] Code signing → [2.0.7](../2.0.7/README.md)
+- [ ] Connexions LLM → [2.0.5](../2.0.5/README.md)
+- [ ] Multi-pane + diff inline → [2.0.6](../2.0.6/README.md)
 - [ ] Animation IDE → [animation-start](../animation-start/README.md)
 
 ## Release

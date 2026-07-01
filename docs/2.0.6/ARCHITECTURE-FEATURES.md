@@ -1,6 +1,6 @@
-# Architecture — Externalisation des features moteur (2.0.5)
+﻿# Architecture — Externalisation des features moteur (2.0.6)
 
-> **Objectif** : le **code** des nouveautés 2.0.5 vit dans des **modules / crate séparés** du moteur legacy (`drox-engine`, boucle `tui_mono`) — pas dans un arbre doc `docs/features/`. La doc produit reste dans [`docs/2.0.5/`](README.md) ; le découpage code est ici.
+> **Objectif** : le **code** des nouveautés 2.0.6 vit dans des **modules / crate séparés** du moteur legacy (`drox-engine`, boucle `tui_mono`) — pas dans un arbre doc `docs/features/`. La doc produit reste dans [`docs/2.0.6/`](README.md) ; le découpage code est ici.
 
 ---
 
