@@ -1,4 +1,4 @@
-//! Vérification MAJ TUI via `latest.json` (dépôt OR).
+//! Vérification MAJ TUI via `latest.json` (dépôt sources / Releases).
 
 use std::time::Duration;
 
@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::i18n::{self, keys_update as u};
 
-/// URL raw GitHub du manifeste OR (surchargeable en tests via `DROX_UPDATE_JSON_URL`).
+/// URL raw GitHub du manifeste (surchargeable en tests via `DROX_UPDATE_JSON_URL`).
 pub fn latest_json_url() -> String {
     std::env::var("DROX_UPDATE_JSON_URL").unwrap_or_else(|_| {
-        "https://raw.githubusercontent.com/DroxKiwi/Drox---TUI---OR/main/releases/latest.json"
+        "https://raw.githubusercontent.com/DroxKiwi/Drox---TUI/main/releases/latest.json"
             .into()
     })
 }

@@ -18,7 +18,7 @@ Exception réseau **opt-in** uniquement : la vérif de version (`/update on`) li
 | | |
 |---|---|
 | **Licence** | MIT — [`LICENSE`](LICENSE) · [`NOTICE.md`](NOTICE.md) |
-| **Version** | **2.0.5** · moteur agent **1.5.0** (`tui_mono`) |
+| **Version** | **2.0.6** · moteur agent **1.5.0** (`tui_mono`) |
 | **Binaires** | [Releases](https://github.com/DroxKiwi/Drox---TUI/releases) |
 | **Sœur** | [Drox IDE](https://github.com/DroxKiwi/Drox---IDE) (fork Code OSS, même cerveau) |
 | **État** | Expérimental / dogfood — bugs et cassures possibles |
