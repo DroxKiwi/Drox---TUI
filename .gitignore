@@ -2,3 +2,10 @@ dist/
 packaging/tools/
 drox/.drox/
 drox/target/
+.build/
+_upload/
+.drox/
+.droxignore
+.claude/
+# Outillage agent local (Cursor / skills) — hors dépôt public
+.agents/

@@ -1,0 +1,15 @@
+{
+  "version": "2.0.5",
+  "published_at": "2026-09-28T16:30:00Z",
+  "product": "drox-tui",
+  "engine_baseline": "1.5.0",
+  "windows_x64": {
+    "url": "https://github.com/DroxKiwi/Drox---TUI/releases/download/v2.0.5/drox-tui-2.0.5-windows-x64-setup.exe",
+    "sha256": "e4e7afb3ed1ae5b1113ff7ae16c6ff7257fe4f2f8c24bd9665b729695e55059c"
+  },
+  "linux_x64": {
+    "url": "https://github.com/DroxKiwi/Drox---TUI/releases/download/v2.0.5/drox-tui-2.0.5-linux-x64.tar.gz",
+    "sha256": "9d956f73aaa07de929425479ab5a058b7443b5d1d283b273fb4ed44a2f99d030"
+  },
+  "release_notes": "https://github.com/DroxKiwi/Drox---TUI/blob/main/docs/RELEASE_NOTES.md"
+}

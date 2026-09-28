@@ -1,0 +1,17 @@
+# Gitleaks — Drox TUI
+# Scan: gitleaks detect --source . --report-path .build/gitleaks-report.json
+title = "Drox TUI gitleaks"
+
+[allowlist]
+description = "Fixtures de test et placeholders (pas de secrets Drox)"
+paths = [
+  '''.*/test/.*''',
+  '''.*/tests/.*''',
+  '''.*/fixtures/.*''',
+]
+
+regexes = [
+  '''(?i)example[_-]?api[_-]?key''',
+  '''(?i)fake[_-]?secret''',
+  '''(?i)test[_-]?token''',
+]
